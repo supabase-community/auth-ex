@@ -1,8 +1,8 @@
 defmodule SupabaseAuth.MixProject do
   use Mix.Project
 
-  @version "0.3.10"
-  @source_url "https://github.com/zoedsoupe/gotrue-ex"
+  @version "0.4.0"
+  @source_url "https://github.com/supabase-community/auth-ex"
 
   def project do
     [
@@ -13,7 +13,8 @@ defmodule SupabaseAuth.MixProject do
       deps: deps(),
       docs: docs(),
       package: package(),
-      description: description()
+      description: description(),
+      dialyzer: [plt_local_path: "priv/plts", ignore_warnings: ".dialyzerignore"]
     ]
   end
 

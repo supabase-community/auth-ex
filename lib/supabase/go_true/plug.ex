@@ -60,7 +60,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_password(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
@@ -68,7 +68,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_id_token(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
@@ -76,7 +76,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_oauth(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
@@ -84,7 +84,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_sso(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
@@ -92,14 +92,14 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_otp(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
-        defp do_login(%Supabase.Client{} = client, conn, session, params) do
+        defp do_login(conn, session, params) do
           user_return_to = get_session(conn, :user_return_to)
 
-          :ok = Supabase.Client.update_access_token(client, session.access_token)
+          :ok = @client.set_auth(session.access_token)
 
           conn
           |> renew_session()

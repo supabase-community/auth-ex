@@ -36,8 +36,8 @@ defmodule Supabase.GoTrue.Admin do
   def sign_out(%Client{} = client, %Session{} = session, scope) when scope in @scopes do
       case AdminHandler.sign_out(client, session.access_token, scope) do
         {:ok, _} -> :ok
-        {:error, :not_found} -> :ok
-        {:error, :unauthorized} -> :ok
+        {:error, %{code: :not_found}} -> :ok
+        {:error, %{code: :unauthorized}} -> :ok
         err -> err
       end
   end
@@ -57,7 +57,7 @@ defmodule Supabase.GoTrue.Admin do
   def invite_user_by_email(%Client{} = client, email, options \\ %{}) do
     with {:ok, options} <- InviteUserParams.parse(options),
          {:ok, response} <- AdminHandler.invite_user(client, email, options) do
-      User.parse(response)
+      User.parse(response.body)
     end
   end
 
@@ -75,7 +75,7 @@ defmodule Supabase.GoTrue.Admin do
   def generate_link(%Client{} = client, attrs) do
     with {:ok, params} <- GenerateLink.parse(attrs),
          {:ok, response} <- AdminHandler.generate_link(client, params) do
-      GenerateLink.properties(response)
+      GenerateLink.properties(response.body)
     end
   end
 
@@ -93,7 +93,7 @@ defmodule Supabase.GoTrue.Admin do
   def create_user(%Client{} = client, attrs) do
     with {:ok, params} <- AdminUserParams.parse(attrs),
          {:ok, response} <- AdminHandler.create_user(client, params) do
-      User.parse(response)
+      User.parse(response.body)
     end
   end
 
@@ -128,7 +128,7 @@ defmodule Supabase.GoTrue.Admin do
   @impl true
   def get_user_by_id(%Client{} = client, user_id) do
     with {:ok, response} <- AdminHandler.get_user(client, user_id) do
-      User.parse(response)
+      User.parse(response.body)
     end
   end
 
@@ -199,7 +199,7 @@ defmodule Supabase.GoTrue.Admin do
   def update_user_by_id(%Client{} = client, user_id, attrs) do
     with {:ok, params} <- AdminUserParams.parse_update(attrs),
          {:ok, response} <- AdminHandler.update_user(client, user_id, params) do
-      User.parse(response)
+      User.parse(response.body)
     end
   end
 end

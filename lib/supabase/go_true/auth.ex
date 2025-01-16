@@ -53,7 +53,7 @@ defmodule Supabase.GoTrue.Auth do
   end
 
   defp network_failure_changeset(failure, attrs) do
-    cast(failure, attrs, ~w[max_retries max_interval])
+    cast(failure, attrs, ~w[max_retries max_interval]a)
   end
 
   def parse_mfa(attrs) do

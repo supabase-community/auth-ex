@@ -55,6 +55,7 @@ defmodule Supabase.GoTrue.UserHandler do
       |> Request.with_body(body)
       |> Request.with_method(:post)
       |> Request.with_query(%{"redirect_to" => body.redirect_to})
+      |> Fetcher.request()
       |> then(fn
         {:ok, resp} ->
           if is_nil(signin.email), do: {:ok, resp["data"]["message_id"]}, else: :ok
@@ -72,6 +73,7 @@ defmodule Supabase.GoTrue.UserHandler do
       |> Request.with_body(body)
       |> Request.with_method(:post)
       |> Request.with_query(%{"redirect_to" => body.redirect_to})
+      |> Fetcher.request()
       |> then(fn
         {:ok, resp} ->
           if is_nil(signin.email), do: {:ok, resp["data"]["message_id"]}, else: :ok
@@ -92,6 +94,7 @@ defmodule Supabase.GoTrue.UserHandler do
       |> Request.with_body(body)
       |> Request.with_method(:post)
       |> Request.with_query(%{"redirect_to" => body.redirect_to})
+      |> Fetcher.request()
       |> then(fn
         {:ok, resp} -> {:ok, resp["data"]["url"]}
         err -> err
@@ -106,6 +109,7 @@ defmodule Supabase.GoTrue.UserHandler do
       |> Request.with_body(body)
       |> Request.with_method(:post)
       |> Request.with_query(%{"redirect_to" => body.redirect_to})
+      |> Fetcher.request()
       |> then(fn
         {:ok, resp} -> {:ok, resp["data"]["url"]}
         err -> err
@@ -149,7 +153,8 @@ defmodule Supabase.GoTrue.UserHandler do
            client
            |> GoTrue.Request.base(@sign_up_uri)
            |> Request.with_method(:post)
-           |> Request.with_body(body),
+           |> Request.with_body(body)
+           |> Fetcher.request(),
          {:ok, user} <- User.parse(resp.body) do
       {:ok, user, challenge}
     end
@@ -161,7 +166,8 @@ defmodule Supabase.GoTrue.UserHandler do
            client
            |> GoTrue.Request.base(@sign_up_uri)
            |> Request.with_method(:post)
-           |> Request.with_body(body) do
+           |> Request.with_body(body)
+           |> Fetcher.request() do
       User.parse(resp.body)
     end
   end

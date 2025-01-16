@@ -15,6 +15,18 @@ defmodule Supabase.GoTrue.Schemas.SignInWithPassword do
 
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+          email: String.t() | nil,
+          phone: String.t() | nil,
+          password: String.t() | nil,
+          options:
+            %__MODULE__.Options{
+              data: map | nil,
+              captcha_token: String.t() | nil
+            }
+            | nil
+        }
+
   @primary_key false
   embedded_schema do
     field(:email, :string)
@@ -51,6 +63,6 @@ defmodule Supabase.GoTrue.Schemas.SignInWithPassword do
   end
 
   defp options_changeset(options, attrs) do
-    cast(options, attrs, ~w[email_redirect_to data captcha_token]a)
+    cast(options, attrs, ~w[data captcha_token]a)
   end
 end

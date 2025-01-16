@@ -98,16 +98,12 @@ defmodule Supabase.GoTrue.Schemas.VerifyOTP do
 
   defp options_changeset(%Ecto.Changeset{} = changeset) do
     if options = get_change(changeset, :options) do
-      {%{}, @options_types}
-      |> cast(options, Map.keys(@options_types))
-      |> apply_action(:parse)
-      |> case do
-        {:ok, option} -> put_change(changeset, :options, option)
-        {:error, error_changeset} ->
-          for {field, {err, info}} <- error_changeset.errors, reduce: changeset do
-            changeset -> add_error(changeset, "options.#{field}", err, info)
-          end
-      end
+      {:ok, result} =
+        {%{}, @options_types}
+        |> cast(options, Map.keys(@options_types))
+        |> apply_action(:parse)
+
+      put_change(changeset, :options, result)
     else
       changeset
     end

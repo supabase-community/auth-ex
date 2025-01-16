@@ -8,15 +8,14 @@ defmodule Supabase.GoTrue.AdminBehaviour do
   @type scope :: :global | :local | :others
   @type invite_options :: %{data: map, redirect_to: String.t()}
 
-  @callback sign_out(Client.t(), Session.t(), scope) :: :ok | {:error, atom}
-  @callback invite_user_by_email(Client.t(), email, invite_options) :: :ok | {:error, atom}
+  @callback sign_out(Client.t(), Session.t(), scope) :: :ok | {:error, Supabase.Error.t()}
+  @callback invite_user_by_email(Client.t(), email, invite_options) ::
+              :ok | {:error, Supabase.Error.t()}
             when email: String.t()
-  @callback generate_link(Client.t(), map) :: {:ok, String.t()} | {:error, atom}
-  @callback create_user(Client.t(), map) :: {:ok, User.t()} | {:error, atom}
-  @callback list_users(Client.t()) :: {:ok, list(User.t())} | {:error, atom}
-  @callback get_user_by_id(Client.t(), Ecto.UUID.t()) :: {:ok, User.t()} | {:error, atom}
-  @callback update_user_by_id(Client.t(), Ecto.UUID.t(), map) ::
-              {:ok, User.t()} | {:error, atom}
-  @callback delete_user(Client.t(), Ecto.UUID.t(), keyword) ::
-              {:ok, User.t()} | {:error, atom}
+  @callback generate_link(Client.t(), map) :: Supabase.result(String.t())
+  @callback create_user(Client.t(), map) :: Supabase.result(User.t())
+  @callback list_users(Client.t()) :: Supabase.result(list(User.t()))
+  @callback get_user_by_id(Client.t(), Ecto.UUID.t()) :: Supabase.result(User.t())
+  @callback update_user_by_id(Client.t(), Ecto.UUID.t(), map) :: Supabase.result(User.t())
+  @callback delete_user(Client.t(), Ecto.UUID.t(), keyword) :: Supabase.result(User.t())
 end
