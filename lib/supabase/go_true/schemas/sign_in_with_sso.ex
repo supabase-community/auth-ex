@@ -10,7 +10,9 @@ defmodule Supabase.GoTrue.Schemas.SignInWithSSO do
       - `captcha_token` - The captcha token.
   """
 
-  use Supabase, :schema
+  use Ecto.Schema
+
+  import Ecto.Changeset
 
   import Supabase.GoTrue.Validations
 

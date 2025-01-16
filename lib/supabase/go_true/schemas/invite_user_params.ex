@@ -7,7 +7,9 @@ defmodule Supabase.GoTrue.Schemas.InviteUserParams do
     * `redirect_to` - The redirect URL.
   """
 
-  use Supabase, :schema
+  use Ecto.Schema
+
+  import Ecto.Changeset
 
   @type t :: %__MODULE__{
           data: map,

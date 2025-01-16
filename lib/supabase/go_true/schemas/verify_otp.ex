@@ -28,7 +28,9 @@ defmodule Supabase.GoTrue.Schemas.VerifyOTP do
       - `captcha_token` - The captcha token.
   """
 
-  use Supabase, :schema
+  use Ecto.Schema
+
+  import Ecto.Changeset
 
   @type options :: %{redirect_to: String.t(), captcha_token: String.t()}
   @type mobile :: %{phone: String.t(), token: String.t(), type: String.t(), options: options}

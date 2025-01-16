@@ -7,7 +7,7 @@ defmodule Supabase.GoTrue.Admin do
   """
 
   alias Supabase.Client
-  alias Supabase.Fetcher
+  alias Supabase.Fetcher.Response
   alias Supabase.GoTrue.AdminHandler
   alias Supabase.GoTrue.Schemas.AdminUserParams
   alias Supabase.GoTrue.Schemas.GenerateLink
@@ -147,11 +147,11 @@ defmodule Supabase.GoTrue.Admin do
     with {:ok, params} <- PaginationParams.page_params(params),
          {:ok, response} <- AdminHandler.list_users(client, params),
          {:ok, users} <- User.parse_list(response.body["users"]) do
-      total = Fetcher.get_header(response, "x-total-count")
+      total = Response.get_header(response, "x-total-count")
 
       links =
         response
-        |> Fetcher.get_header("link", "")
+        |> Response.get_header("link", "")
         |> String.split(",", trim: true)
 
       next = parse_next_page_count(links)
