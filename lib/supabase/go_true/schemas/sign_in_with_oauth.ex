@@ -11,7 +11,9 @@ defmodule Supabase.GoTrue.Schemas.SignInWithOauth do
       - `skip_browser_redirect` - Whether to skip the browser redirect.
   """
 
-  use Supabase, :schema
+  use Ecto.Schema
+
+  import Ecto.Changeset
 
   alias Supabase.GoTrue.User.Identity
 

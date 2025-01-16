@@ -12,7 +12,9 @@ defmodule Supabase.GoTrue.Schemas.SignInWithOTP do
       - `channel` - The channel for the OTP.
   """
 
-  use Supabase, :schema
+  use Ecto.Schema
+
+  import Ecto.Changeset
 
   import Supabase.GoTrue.Validations
 

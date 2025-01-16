@@ -1,5 +1,7 @@
 defmodule Supabase.GoTrue.Schemas.SignUpWithPassword do
-  @moduledoc false
+  @moduledoc """    
+  This schema is used to validate and parse the parameters for signing up with a password.
+  """
 
   use Ecto.Schema
 

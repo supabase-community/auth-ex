@@ -1,5 +1,8 @@
 # Supabase GoTrue
 
+> ![WARNING]
+> This library is under development and for so expect breaking changes
+
 [Auth](https://supabase.com/docs/guides/auth) implementation for the [Supabase Potion](https://hexdocs.pm/supabase_potion) SDK in Elixir.
 
 ## Installation
@@ -7,8 +10,8 @@
 ```elixir
 def deps do
   [
-    {:supabase_potion, "~> 0.5"},
-    {:supabase_gotrue, "~> 0.3"}
+    {:supabase_potion, "~> 0.6"},
+    {:supabase_gotrue, "~> 0.4"}
   ]
 end
 ```
@@ -36,7 +39,7 @@ iex> Supabase.GoTrue.Admin.create_user(client, %{} = params)
 
 There are sample apps in the `examples` directory that demonstrate how to use the `Supabase.GoTrue` module in your application.
 
-Check the [Supabase Potion examples showcase](https://github.com/zoedsoupe/supabase-ex?tab=readme-ov-file#examples)!
+Check the [Supabase Potion examples showcase](https://github.com/supabase-community/supabase-ex?tab=readme-ov-file#examples)!
 
 ### Configuration
 
@@ -85,7 +88,7 @@ end
 
 > [!WARNING]
 > The `client` options must be a module that implements the `Supabase.Client.Behaviour` behaviour.
-> It should be a [Self Managed Client](https://github.com/zoedsoupe/supabase-ex?tab=readme-ov-file#self-managed-clients) but it can be a [One off Client](https://github.com/zoedsoupe/supabase-ex?tab=readme-ov-file#one-off-clients) if you correctly manage the client state on your application.
+> It should be a [Self Managed Client](https://github.com/supabase-community/supabase-ex?tab=readme-ov-file#self-managed-clients) but it can be a [One off Client](https://github.com/supabase-community/supabase-ex?tab=readme-ov-file#one-off-clients) if you correctly manage the client state on your application.
 
 So, considering that you have something like this on your `config.exs`:
 
@@ -204,7 +207,7 @@ end
 
 > [!WARNING]
 > The `client` options must be a module that implements the `Supabase.Client.Behaviour` behaviour.
-> It should be a [Self Managed Client](https://github.com/zoedsoupe/supabase-ex?tab=readme-ov-file#self-managed-clients) but it can be a [One off Client](https://github.com/zoedsoupe/supabase-ex?tab=readme-ov-file#one-off-clients) if you correctly manage the client state on your application.
+> It should be a [Self Managed Client](https://github.com/supabase-community/supabase-ex?tab=readme-ov-file#self-managed-clients) but it can be a [One off Client](https://github.com/supabase-community/supabase-ex?tab=readme-ov-file#one-off-clients) if you correctly manage the client state on your application.
 
 So, considering that you have something like this on your `config.exs`:
 

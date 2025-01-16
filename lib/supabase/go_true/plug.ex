@@ -11,7 +11,7 @@ if Code.ensure_loaded?(Plug) do
     - `authentication_client`: The Supabase client used for authentication.
     - `endpoint`: Your web app endpoint, used internally for broadcasting user disconnection events.
     - `signed_in_path`: The route to where socket should be redirected to after authentication
-    - `not_authenticated_path: The route to where socket should be redirect to if user isn't authenticated
+    - `not_authenticated_path`: The route to where socket should be redirect to if user isn't authenticated
 
     ## Usage
 
@@ -19,8 +19,9 @@ if Code.ensure_loaded?(Plug) do
     """
 
     defmacro __using__(opts) do
+      alias Supabase.GoTrue.MissingConfig
       module = __CALLER__.module
-      Supabase.GoTrue.MissingConfig.ensure_opts!(opts, module)
+      MissingConfig.ensure_opts!(opts, module)
 
       client = opts[:client]
       signed_in_path = opts[:signed_in_path]
@@ -29,6 +30,7 @@ if Code.ensure_loaded?(Plug) do
       session_cookie_name = opts[:session_cookie] || "_supabase_go_true_session_cookie"
       session_cookie_options = opts[:session_cookie_options] || [sign: true, same_site: "Lax"]
 
+      # credo:disable-for-next-line
       quote do
         import Plug.Conn
         import Phoenix.Controller
@@ -58,7 +60,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_password(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
@@ -66,7 +68,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_id_token(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
@@ -74,7 +76,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_oauth(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
@@ -82,7 +84,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_sso(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
@@ -90,14 +92,14 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- GoTrue.sign_in_with_otp(client, params) do
-            do_login(client, conn, session, params)
+            do_login(conn, session, params)
           end
         end
 
-        defp do_login(%Supabase.Client{} = client, conn, session, params) do
+        defp do_login(conn, session, params) do
           user_return_to = get_session(conn, :user_return_to)
 
-          :ok = Supabase.Client.update_access_token(client, session.access_token)
+          :ok = @client.set_auth(session.access_token)
 
           conn
           |> renew_session()
@@ -136,7 +138,7 @@ if Code.ensure_loaded?(Plug) do
           live_socket_id = get_session(conn, :live_socket_id)
 
           if live_socket_id do
-            apply(unquote(endpoint), :broadcast, [live_socket_id, "disconnect", %{}])
+            unquote(endpoint).broadcast(live_socket_id, "disconnect", %{})
           end
 
           conn

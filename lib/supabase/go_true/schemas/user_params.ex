@@ -13,6 +13,15 @@ defmodule Supabase.GoTrue.Schemas.UserParams do
 
   import Ecto.Changeset
 
+  @type t :: %{
+          data: map | nil,
+          email: String.t() | nil,
+          phone: String.t() | nil,
+          password: String.t() | nil,
+          nonce: String.t() | nil,
+          email_redirect_to: String.t() | nil
+        }
+
   @types %{
     data: :map,
     email: :string,

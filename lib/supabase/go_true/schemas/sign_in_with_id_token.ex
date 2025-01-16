@@ -11,7 +11,9 @@ defmodule Supabase.GoTrue.Schemas.SignInWithIdToken do
       - `captcha_token` - The captcha token.
   """
 
-  use Supabase, :schema
+  use Ecto.Schema
+
+  import Ecto.Changeset
 
   @type t :: %__MODULE__{
           provider: :google | :apple | :azure | :facebook,

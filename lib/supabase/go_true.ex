@@ -39,7 +39,7 @@ defmodule Supabase.GoTrue do
   @impl true
   def get_user(%Client{} = client, %Session{} = session) do
     with {:ok, response} <- UserHandler.get_user(client, session.access_token) do
-      User.parse(response)
+      User.parse(response.body)
     end
   end
 
@@ -116,7 +116,7 @@ defmodule Supabase.GoTrue do
   @impl true
   def verify_otp(%Client{} = client, params) do
     with{:ok, response} <- UserHandler.verify_otp(client, params) do
-      Session.parse(response)
+      Session.parse(response.body)
     end
   end
 
@@ -155,7 +155,7 @@ defmodule Supabase.GoTrue do
   def sign_in_with_password(%Client{} = client, credentials) do
     with{:ok, credentials} <- SignInWithPassword.parse(credentials),
          {:ok, response} <- UserHandler.sign_in_with_password(client, credentials) do
-      Session.parse(response)
+      Session.parse(response.body)
     end
   end
 
@@ -227,9 +227,9 @@ defmodule Supabase.GoTrue do
     - `attrs` - Check `UserParams`
 
   ## Examples
-    iex> params = %{email: "another@example.com", password: "new-pass"}
-    iex> Supabase.GoTrue.update_user(client, conn, params)
-    {:ok, conn}
+      iex> params = %{email: "another@example.com", password: "new-pass"}
+      iex> Supabase.GoTrue.update_user(client, conn, params)
+      {:ok, conn}
   """
   @spec update_user(Client.t, conn, UserParams.t) :: {:ok, conn} | {:error, term}
         when conn: Plug.Conn.t | Phoenix.LiveView.Socket.t
