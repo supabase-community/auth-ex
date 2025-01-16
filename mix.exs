@@ -27,12 +27,12 @@ defmodule SupabaseAuth.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:supabase_potion, "~> 0.4"},
+      {:supabase_potion, "~> 0.6"},
       {:plug, "~> 1.15", optional: true},
-      {:phoenix_live_view, "~> 0.20", optional: true},
-      {:ex_doc, ">= 0.0.0", runtime: false},
+      {:phoenix_live_view, "~> 1.0", optional: true},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.3", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false}
     ]
   end
 
