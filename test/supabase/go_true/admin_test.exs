@@ -1,5 +1,5 @@
 defmodule Supabase.GoTrue.AdminTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import Mox
 
@@ -17,13 +17,16 @@ defmodule Supabase.GoTrue.AdminTest do
 
   @mock TestHTTPClient
 
-  setup do
-    client = Supabase.init_client!("http://localhost:54321", "test-api-key")
+  setup_all do
     Application.put_env(:supabase_gotrue, :http_client, @mock)
 
     on_exit(fn ->
       Application.delete_env(:supabase_gotrue, :http_client)
     end)
+  end
+
+  setup do
+    client = Supabase.init_client!("http://localhost:54321", "test-api-key")
 
     {:ok, client: client}
   end
