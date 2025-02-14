@@ -16,7 +16,7 @@ defmodule Supabase.GoTrue.Schemas.SignInWithIdToken do
   import Ecto.Changeset
 
   @type t :: %__MODULE__{
-          provider: :google | :apple | :azure | :facebook,
+          provider: :google | :apple | :azure | :facebook | :kakao,
           token: String.t(),
           access_token: String.t() | nil,
           nonce: String.t() | nil,
@@ -27,7 +27,7 @@ defmodule Supabase.GoTrue.Schemas.SignInWithIdToken do
             | nil
         }
 
-  @providers ~w[google apple azure facebook]a
+  @providers ~w[google apple azure facebook kakao]a
 
   embedded_schema do
     field(:provider, Ecto.Enum, values: @providers)

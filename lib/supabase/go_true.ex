@@ -11,6 +11,7 @@ defmodule Supabase.GoTrue do
   """
 
   alias Supabase.Client
+  alias Supabase.GoTrue.Schemas.ResendParams
   alias Supabase.GoTrue.Schemas.SignInWithIdToken
   alias Supabase.GoTrue.Schemas.SignInWithOauth
   alias Supabase.GoTrue.Schemas.SignInWithOTP
@@ -53,12 +54,13 @@ defmodule Supabase.GoTrue do
   ## Examples
       iex> credentials = %Supabase.GoTrue.SignInWithIdToken{}
       iex> Supabase.GoTrue.sign_in_with_id_token(pid | client_name, credentials)
-      {:ok, %Supabase.GoTrue.User{}}
+      {:ok, %Supabase.GoTrue.Session{}}
   """
   @impl true
   def sign_in_with_id_token(%Client{} = client, credentials) do
-    with {:ok, credentials} <- SignInWithIdToken.parse(credentials) do
-      UserHandler.sign_in_with_id_token(client, credentials)
+    with {:ok, credentials} <- SignInWithIdToken.parse(credentials),
+         {:ok, resp} <- UserHandler.sign_in_with_id_token(client, credentials) do
+      Session.parse(resp.body)
     end
   end
 
@@ -76,7 +78,7 @@ defmodule Supabase.GoTrue do
   """
   @impl true
   def sign_in_with_oauth(%Client{} = client, credentials) do
-    with{:ok, credentials} <- SignInWithOauth.parse(credentials) do
+    with {:ok, credentials} <- SignInWithOauth.parse(credentials) do
       url = UserHandler.get_url_for_provider(client, credentials)
       {:ok, credentials.provider, url}
     end
@@ -92,11 +94,11 @@ defmodule Supabase.GoTrue do
   ## Examples
       iex> credentials = %Supabase.GoTrue.SignInWithOTP{}
       iex> Supabase.GoTrue.sign_in_with_otp(pid | client_name, credentials)
-      {:ok, %Supabase.GoTrue.Session{}}
+      :ok
   """
   @impl true
   def sign_in_with_otp(%Client{} = client, credentials) do
-    with{:ok, credentials} <- SignInWithOTP.parse(credentials) do
+    with {:ok, credentials} <- SignInWithOTP.parse(credentials) do
       UserHandler.sign_in_with_otp(client, credentials)
     end
   end
@@ -115,7 +117,7 @@ defmodule Supabase.GoTrue do
   """
   @impl true
   def verify_otp(%Client{} = client, params) do
-    with{:ok, response} <- UserHandler.verify_otp(client, params) do
+    with {:ok, response} <- UserHandler.verify_otp(client, params) do
       Session.parse(response.body)
     end
   end
@@ -130,11 +132,11 @@ defmodule Supabase.GoTrue do
   ## Examples
       iex> credentials = %Supabase.GoTrue.SignInWithSSO{}
       iex> Supabase.GoTrue.sign_in_with_sso(pid | client_name, credentials)
-      {:ok, %Supabase.GoTrue.User{}}
+      {:ok, %Supabase.GoTrue.Session{}}
   """
   @impl true
   def sign_in_with_sso(%Client{} = client, credentials) do
-    with{:ok, credentials} <- SignInWithSSO.parse(credentials) do
+    with {:ok, credentials} <- SignInWithSSO.parse(credentials) do
       UserHandler.sign_in_with_sso(client, credentials)
     end
   end
@@ -153,7 +155,7 @@ defmodule Supabase.GoTrue do
   """
   @impl true
   def sign_in_with_password(%Client{} = client, credentials) do
-    with{:ok, credentials} <- SignInWithPassword.parse(credentials),
+    with {:ok, credentials} <- SignInWithPassword.parse(credentials),
          {:ok, response} <- UserHandler.sign_in_with_password(client, credentials) do
       Session.parse(response.body)
     end
@@ -192,14 +194,17 @@ defmodule Supabase.GoTrue do
     iex> Supabase.GoTrue.reset_password_for_email(client, "john@example.com", redirect_to: "http://localohst:4000/reset-pass")
     :ok
   """
-  @spec reset_password_for_email(Client.t(), String.t, opts) :: :ok | {:error, term}
-    when opts: [redirect_to: String.t] | [captcha_token: String.t] | [redirect_to: String.t, captcha_token: String.t]
+  @spec reset_password_for_email(Client.t(), String.t(), opts) :: :ok | {:error, term}
+        when opts:
+               [redirect_to: String.t()]
+               | [captcha_token: String.t()]
+               | [redirect_to: String.t(), captcha_token: String.t()]
   def reset_password_for_email(%Client{} = client, email, opts) do
-      UserHandler.recover_password(client, email, Map.new(opts))
+    UserHandler.recover_password(client, email, Map.new(opts))
   end
 
   @doc """
-  Resends a signuo confirm email for the given email address.
+  Resends a signup confirm email for the given email address.
 
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
@@ -212,10 +217,11 @@ defmodule Supabase.GoTrue do
     iex> Supabase.GoTrue.resend(client, "john@example.com", redirect_to: "http://localohst:4000/reset-pass")
     :ok
   """
-  @spec resend(Client.t(), String.t, opts) :: :ok | {:error, term}
-    when opts: [redirect_to: String.t] | [captcha_token: String.t] | [redirect_to: String.t, captcha_token: String.t]
+  @spec resend(Client.t(), String.t(), ResendParams.t()) :: :ok | {:error, term}
   def resend(%Client{} = client, email, opts) do
-      UserHandler.resend_signup(client, email, Map.new(opts))
+    with {:ok, params} <- ResendParams.parse(Map.new(opts)) do
+      UserHandler.resend(client, email, params)
+    end
   end
 
   @doc """
@@ -231,15 +237,15 @@ defmodule Supabase.GoTrue do
       iex> Supabase.GoTrue.update_user(client, conn, params)
       {:ok, conn}
   """
-  @spec update_user(Client.t, conn, UserParams.t) :: {:ok, conn} | {:error, term}
-        when conn: Plug.Conn.t | Phoenix.LiveView.Socket.t
+  @spec update_user(Client.t(), conn, UserParams.t()) :: {:ok, conn} | {:error, term}
+        when conn: Plug.Conn.t() | Phoenix.LiveView.Socket.t()
   def update_user(%Client{} = client, conn, attrs) do
-    with{:ok, params} <- UserParams.parse(attrs) do
-        if conn.assigns.current_user do
-          UserHandler.update_user(client, conn, params)
-        else
-          {:error, :no_user_logged_in}
-        end
+    with {:ok, params} <- UserParams.parse(attrs) do
+      if conn.assigns.current_user do
+        UserHandler.update_user(client, conn, params)
+      else
+        {:error, :no_user_logged_in}
+      end
     end
   end
 
@@ -248,8 +254,7 @@ defmodule Supabase.GoTrue do
   Check https://hexdocs.pm/supabase_gotrue/readme.html#usage
   """
   def get_auth_module! do
-
     Application.get_env(:supabase_gotrue, :auth_module) ||
-                     raise(Supabase.GoTrue.MissingConfig, key: :auth_module)
+      raise(Supabase.GoTrue.MissingConfig, key: :auth_module)
   end
 end
