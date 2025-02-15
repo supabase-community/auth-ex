@@ -13,7 +13,7 @@ defmodule Supabase.GoTrue.SessionFixture do
       access_token: "111",
       refresh_token: "111",
       expires_in: 3600,
-      expires_at: ~U[2024-01-01 00:00:00.0Z],
+      expires_at: 1_000_000_000,
       token_type: "bearer",
       user: UserFixture.user_fixture(attrs[:user] || %{})
     }
