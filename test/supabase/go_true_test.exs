@@ -3,11 +3,13 @@ defmodule Supabase.GoTrueTest do
 
   import Mox
 
+  import Supabase.GoTrue.ServerHealthFixture
   import Supabase.GoTrue.ServerSettingsFixture
   import Supabase.GoTrue.SessionFixture
   import Supabase.GoTrue.UserFixture
 
   alias Supabase.GoTrue
+  alias Supabase.GoTrue.Schemas.ServerHealth
   alias Supabase.GoTrue.Schemas.ServerSettings
   alias Supabase.GoTrue.Session
   alias Supabase.GoTrue.User
@@ -708,6 +710,22 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:error, %Supabase.Error{}} = GoTrue.get_server_settings(client)
+    end
+  end
+
+  describe "get_server_health/1" do
+    test "successfully retrieves the server health", %{client: client} do
+      @mock
+      |> expect(:request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/health"
+
+        body = server_health_fixture_json()
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, %ServerHealth{}} = GoTrue.get_server_health(client)
     end
   end
 end
