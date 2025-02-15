@@ -12,6 +12,7 @@ defmodule Supabase.GoTrue do
 
   alias Supabase.Client
   alias Supabase.GoTrue.Schemas.ResendParams
+  alias Supabase.GoTrue.Schemas.ServerHealth
   alias Supabase.GoTrue.Schemas.ServerSettings
   alias Supabase.GoTrue.Schemas.SignInWithIdToken
   alias Supabase.GoTrue.Schemas.SignInWithOauth
@@ -266,6 +267,23 @@ defmodule Supabase.GoTrue do
   def refresh_session(%Client{} = client, refresh_token) do
     with {:ok, resp} <- UserHandler.refresh_session(client, refresh_token) do
       Session.parse(resp.body)
+    end
+  end
+
+  @doc """
+  Retrieves the server health from the GoTrue API.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+
+  ## Examples
+      iex> Supabase.GoTrue.get_server_health(client)
+      {:ok, %Supabase.GoTrue.ServerHealth{}}
+  """
+  @spec get_server_health(Client.t()) :: {:ok, ServerHealth.t()} | {:error, term}
+  def get_server_health(%Client{} = client) do
+    with {:ok, resp} <- UserHandler.get_server_health(client) do
+      ServerHealth.parse(resp.body)
     end
   end
 
