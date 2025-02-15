@@ -7,6 +7,7 @@ defmodule Supabase.GoTrue.UserHandler do
   alias Supabase.GoTrue
   alias Supabase.GoTrue.PKCE
   alias Supabase.GoTrue.Schemas.ResendParams
+  alias Supabase.GoTrue.Schemas.SignInAnonymously
   alias Supabase.GoTrue.Schemas.SignInRequest
   alias Supabase.GoTrue.Schemas.SignInWithIdToken
   alias Supabase.GoTrue.Schemas.SignInWithOauth
@@ -118,6 +119,14 @@ defmodule Supabase.GoTrue.UserHandler do
         err -> err
       end)
     end
+  end
+
+  def sign_in_anonymously(%Client{} = client, %SignInAnonymously{} = opts) do
+    client
+    |> GoTrue.Request.base(@sign_up_uri)
+    |> Request.with_method(:post)
+    |> Request.with_body(%{"options" => opts})
+    |> Fetcher.request()
   end
 
   @grant_types ~w[password id_token]

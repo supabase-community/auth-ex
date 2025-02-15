@@ -522,6 +522,67 @@ defmodule Supabase.GoTrueTest do
     end
   end
 
+  describe "sign_in_anonymously/2" do
+    test "successfully signs in an user anonymously", %{client: client} do
+      data = %{captcha_token: "123"}
+
+      @mock
+      |> expect(:request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/signup"
+
+        assert %{
+                 "options" => %{"captcha_token" => "123"}
+               } = Jason.decode!(req.body)
+
+        user = user_fixture(id: "123", identities: []) |> Map.from_struct()
+        body = session_fixture_json(access_token: "123", user: user)
+
+        {:ok, %Finch.Response{status: 201, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = session} = GoTrue.sign_in_anonymously(client, data)
+      assert session.access_token == "123"
+      assert session.user.id == "123"
+    end
+
+    test "returns an error on unexpected error", %{client: client} do
+      data = %{captcha_token: "123"}
+
+      @mock
+      |> expect(:request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/signup"
+
+        assert %{
+                 "options" => %{"captcha_token" => "123"}
+               } = Jason.decode!(req.body)
+
+        {:error, %Mint.TransportError{reason: :timeout}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = GoTrue.sign_in_anonymously(client, data)
+    end
+
+    test "returns an error on authentication error", %{client: client} do
+      data = %{captcha_token: "123"}
+
+      @mock
+      |> expect(:request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/signup"
+
+        assert %{
+                 "options" => %{"captcha_token" => "123"}
+               } = Jason.decode!(req.body)
+
+        {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = GoTrue.sign_in_anonymously(client, data)
+    end
+  end
+
   describe "sign_up/2" do
     test "successfully signs up an user with email and password", %{client: client} do
       data = %{

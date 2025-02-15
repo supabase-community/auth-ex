@@ -14,6 +14,7 @@ defmodule Supabase.GoTrue do
   alias Supabase.GoTrue.Schemas.ResendParams
   alias Supabase.GoTrue.Schemas.ServerHealth
   alias Supabase.GoTrue.Schemas.ServerSettings
+  alias Supabase.GoTrue.Schemas.SignInAnonymously
   alias Supabase.GoTrue.Schemas.SignInWithIdToken
   alias Supabase.GoTrue.Schemas.SignInWithOauth
   alias Supabase.GoTrue.Schemas.SignInWithOTP
@@ -157,9 +158,28 @@ defmodule Supabase.GoTrue do
   """
   @impl true
   def sign_in_with_password(%Client{} = client, credentials) do
-    with {:ok, credentials} <- SignInWithPassword.parse(credentials),
+    with {:ok, credentials} <- SignInWithPassword.parse(Map.new(credentials)),
          {:ok, response} <- UserHandler.sign_in_with_password(client, credentials) do
       Session.parse(response.body)
+    end
+  end
+
+  @doc """
+  Signs in a user anonymously.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+    - `opts` - The options to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInAnonymously` for more information.
+
+  ## Examples
+      iex> Supabase.GoTrue.sign_in_anonymously(pid | client_name, %{})
+      {:ok, %Supabase.GoTrue.Session{}}
+  """
+  @spec sign_in_anonymously(Client.t(), Enumerable.t()) :: {:ok, Session.t()} | {:error, term}
+  def sign_in_anonymously(%Client{} = client, opts \\ %{}) do
+    with {:ok, params} <- SignInAnonymously.parse(Map.new(opts)),
+         {:ok, resp} <- UserHandler.sign_in_anonymously(client, params) do
+      Session.parse(resp.body)
     end
   end
 

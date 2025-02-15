@@ -25,7 +25,8 @@ defmodule Supabase.GoTrue.Session do
           access_token: String.t(),
           refresh_token: String.t(),
           expires_in: integer,
-          expires_at: NaiveDateTime.t() | nil,
+          # unix timestamp
+          expires_at: integer | nil,
           token_type: String.t(),
           user: User.t()
         }
@@ -41,7 +42,7 @@ defmodule Supabase.GoTrue.Session do
     field(:access_token, :string)
     field(:refresh_token, :string)
     field(:expires_in, :integer)
-    field(:expires_at, :utc_datetime)
+    field(:expires_at, :integer)
     field(:token_type, :string)
 
     embeds_one(:user, User)

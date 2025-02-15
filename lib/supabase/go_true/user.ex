@@ -96,7 +96,7 @@ defmodule Supabase.GoTrue.User do
     user
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
-    |> cast_embed(:identities, required: true)
+    |> cast_embed(:identities, required: false)
     |> cast_embed(:factors, required: false)
   end
 
