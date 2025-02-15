@@ -250,6 +250,25 @@ defmodule Supabase.GoTrue do
   end
 
   @doc """
+  Exchanges a refresh token for a new session.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+    - `refresh_token` - The refresh token to use for the request.
+
+  ## Examples
+      iex> Supabase.GoTrue.refresh_session(client, "refresh_token")
+      {:ok, %Supabase.GoTrue.Session{}}
+  """
+  @spec refresh_session(Client.t(), refresh_token :: String.t()) ::
+          {:ok, Session.t()} | {:error, term}
+  def refresh_session(%Client{} = client, refresh_token) do
+    with {:ok, resp} <- UserHandler.refresh_session(client, refresh_token) do
+      Session.parse(resp.body)
+    end
+  end
+
+  @doc """
   Retrieves the auth module handle from the application configuration.
   Check https://hexdocs.pm/supabase_gotrue/readme.html#usage
   """

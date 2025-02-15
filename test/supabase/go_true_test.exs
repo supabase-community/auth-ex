@@ -615,4 +615,69 @@ defmodule Supabase.GoTrueTest do
                GoTrue.resend(client, email, redirect_to: "http://localhost:3000", type: :signup)
     end
   end
+
+  describe "refresh_session/2" do
+    test "successfully refreshes the current session", %{client: client} do
+      user = user_fixture(id: "123") |> Map.from_struct()
+      refresh_token = "456"
+      session = session_fixture(refresh_token: refresh_token, user: user)
+
+      @mock
+      |> expect(:request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "refresh_token"
+        assert %{"refresh_token" => ^refresh_token} = Jason.decode!(req.body)
+
+        body = session_fixture_json(access_token: "789", refresh_token: "101112", user: user)
+
+        {:ok, %Finch.Response{status: 201, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = new_session} =
+               GoTrue.refresh_session(client, session.refresh_token)
+
+      assert new_session.access_token == "789"
+      assert new_session.refresh_token == "101112"
+      assert new_session.user.id == session.user.id
+    end
+
+    test "returns an unauthenticated error", %{client: client} do
+      user = user_fixture(id: "123") |> Map.from_struct()
+      refresh_token = "456"
+      session = session_fixture(refresh_token: refresh_token, user: user)
+
+      @mock
+      |> expect(:request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "refresh_token"
+        assert %{"refresh_token" => ^refresh_token} = Jason.decode!(req.body)
+
+        {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} =
+               GoTrue.refresh_session(client, session.refresh_token)
+    end
+
+    test "returns an unexpected error", %{client: client} do
+      user = user_fixture(id: "123") |> Map.from_struct()
+      refresh_token = "456"
+      session = session_fixture(refresh_token: refresh_token, user: user)
+
+      @mock
+      |> expect(:request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "refresh_token"
+        assert %{"refresh_token" => ^refresh_token} = Jason.decode!(req.body)
+
+        {:error, %Mint.TransportError{reason: :timeout}}
+      end)
+
+      assert {:error, %Supabase.Error{}} =
+               GoTrue.refresh_session(client, session.refresh_token)
+    end
+  end
 end

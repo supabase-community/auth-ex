@@ -319,6 +319,15 @@ defmodule Supabase.GoTrue.UserHandler do
     end)
   end
 
+  def refresh_session(%Client{} = client, refresh_token) when is_binary(refresh_token) do
+    client
+    |> GoTrue.Request.base(@sign_in_uri)
+    |> Request.with_query(%{"grant_type" => "refresh_token"})
+    |> Request.with_method(:post)
+    |> Request.with_body(%{"refresh_token" => refresh_token})
+    |> Fetcher.request()
+  end
+
   defp generate_pkce do
     verifier = PKCE.generate_verifier()
     challenge = PKCE.generate_challenge(verifier)
