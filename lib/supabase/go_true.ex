@@ -12,6 +12,7 @@ defmodule Supabase.GoTrue do
 
   alias Supabase.Client
   alias Supabase.GoTrue.Schemas.ResendParams
+  alias Supabase.GoTrue.Schemas.ServerSettings
   alias Supabase.GoTrue.Schemas.SignInWithIdToken
   alias Supabase.GoTrue.Schemas.SignInWithOauth
   alias Supabase.GoTrue.Schemas.SignInWithOTP
@@ -265,6 +266,23 @@ defmodule Supabase.GoTrue do
   def refresh_session(%Client{} = client, refresh_token) do
     with {:ok, resp} <- UserHandler.refresh_session(client, refresh_token) do
       Session.parse(resp.body)
+    end
+  end
+
+  @doc """
+  Retrieves the server settings from the GoTrue API.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+
+  ## Examples
+      iex> Supabase.GoTrue.get_server_settings(client)
+      {:ok, %Supabase.GoTrue.ServerSettings{}}
+  """
+  @spec get_server_settings(Client.t()) :: {:ok, ServerSettings.t()} | {:error, term}
+  def get_server_settings(%Client{} = client) do
+    with {:ok, resp} <- UserHandler.get_server_settings(client) do
+      ServerSettings.parse(resp.body)
     end
   end
 

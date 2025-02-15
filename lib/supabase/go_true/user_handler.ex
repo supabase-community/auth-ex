@@ -27,6 +27,7 @@ defmodule Supabase.GoTrue.UserHandler do
   @verify_otp_uri "/verify"
   @reset_pass_uri "/recover"
   @resend_signup_uri "/resend"
+  @settings_uri "/settings"
 
   def get_user(%Client{} = client, access_token) when is_binary(access_token) do
     client
@@ -325,6 +326,13 @@ defmodule Supabase.GoTrue.UserHandler do
     |> Request.with_query(%{"grant_type" => "refresh_token"})
     |> Request.with_method(:post)
     |> Request.with_body(%{"refresh_token" => refresh_token})
+    |> Fetcher.request()
+  end
+
+  def get_server_settings(%Client{} = client) do
+    client
+    |> GoTrue.Request.base(@settings_uri)
+    |> Request.with_method(:get)
     |> Fetcher.request()
   end
 

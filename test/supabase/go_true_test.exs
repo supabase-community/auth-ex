@@ -3,10 +3,12 @@ defmodule Supabase.GoTrueTest do
 
   import Mox
 
+  import Supabase.GoTrue.ServerSettingsFixture
   import Supabase.GoTrue.SessionFixture
   import Supabase.GoTrue.UserFixture
 
   alias Supabase.GoTrue
+  alias Supabase.GoTrue.Schemas.ServerSettings
   alias Supabase.GoTrue.Session
   alias Supabase.GoTrue.User
 
@@ -678,6 +680,34 @@ defmodule Supabase.GoTrueTest do
 
       assert {:error, %Supabase.Error{}} =
                GoTrue.refresh_session(client, session.refresh_token)
+    end
+  end
+
+  describe "get_server_settings/1" do
+    test "successfully retrieves the server settings", %{client: client} do
+      @mock
+      |> expect(:request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/settings"
+
+        body = server_settings_fixture_json()
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, %ServerSettings{}} = GoTrue.get_server_settings(client)
+    end
+
+    test "returns an unexpected error", %{client: client} do
+      @mock
+      |> expect(:request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/settings"
+
+        {:error, %Mint.TransportError{reason: :timeout}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = GoTrue.get_server_settings(client)
     end
   end
 end
