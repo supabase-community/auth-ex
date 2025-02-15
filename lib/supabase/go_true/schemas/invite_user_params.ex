@@ -18,7 +18,7 @@ defmodule Supabase.GoTrue.Schemas.InviteUserParams do
 
   embedded_schema do
     field(:data, :map)
-    field(:redirect_to, :map)
+    field(:redirect_to, :string)
   end
 
   def parse(attrs) do
@@ -31,13 +31,10 @@ defmodule Supabase.GoTrue.Schemas.InviteUserParams do
   defp parse_uri(changeset) do
     redirect_to = get_change(changeset, :redirect_to)
 
-    if redirect_to do
-      case URI.new(redirect_to) do
-        {:ok, uri} -> put_change(changeset, :redirect_to, uri)
-        {:error, reason} -> add_error(changeset, :redirect_to, "Invalid URI: #{reason}")
-      end
-    else
-      changeset
+    cond do
+      is_nil(redirect_to) -> changeset
+      not is_binary(redirect_to) -> add_error(changeset, :redirect_to, "needs to be a binary")
+      true -> put_change(changeset, :redirect_to, URI.parse(redirect_to) |> URI.to_string())
     end
   end
 end

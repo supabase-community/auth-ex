@@ -31,12 +31,12 @@ defmodule Supabase.GoTrue.Schemas.SignInRequest do
     field(:access_token, :string)
     field(:nonce, :string)
     field(:id_token, :string)
-    field :provider_id, :string
-    field :domain, :string
-    field :create_user, :boolean
-    field :redirect_to, :string
-    field :channel, :string
-    field :data, :map, default: %{}
+    field(:provider_id, :string)
+    field(:domain, :string)
+    field(:create_user, :boolean)
+    field(:redirect_to, :string)
+    field(:channel, :string)
+    field(:data, :map, default: %{})
     field(:code_challenge, :string)
     field(:code_challenge_method, :string)
 
@@ -64,7 +64,7 @@ defmodule Supabase.GoTrue.Schemas.SignInRequest do
     %__MODULE__{}
     |> cast(attrs, [:provider_id, :domain])
     |> put_embed(:gotrue_meta_security, gotrue_meta, required: true)
-    |> validate_required_inclusion([:provider, :domain])
+    |> validate_required_inclusion([:provider_id, :domain])
     |> apply_action(:insert)
   end
 
@@ -86,7 +86,7 @@ defmodule Supabase.GoTrue.Schemas.SignInRequest do
     %__MODULE__{}
     |> cast(attrs, [:provider_id, :domain])
     |> put_embed(:gotrue_meta_security, gotrue_meta, required: true)
-    |> validate_required_inclusion([:provider, :domain])
+    |> validate_required_inclusion([:provider_id, :domain])
     |> apply_action(:insert)
   end
 

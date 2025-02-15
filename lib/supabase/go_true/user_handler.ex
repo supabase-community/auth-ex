@@ -6,6 +6,7 @@ defmodule Supabase.GoTrue.UserHandler do
   alias Supabase.Fetcher.Request
   alias Supabase.GoTrue
   alias Supabase.GoTrue.PKCE
+  alias Supabase.GoTrue.Schemas.ResendParams
   alias Supabase.GoTrue.Schemas.SignInRequest
   alias Supabase.GoTrue.Schemas.SignInWithIdToken
   alias Supabase.GoTrue.Schemas.SignInWithOauth
@@ -58,7 +59,7 @@ defmodule Supabase.GoTrue.UserHandler do
       |> Fetcher.request()
       |> then(fn
         {:ok, resp} ->
-          if is_nil(signin.email), do: {:ok, resp["data"]["message_id"]}, else: :ok
+          if is_nil(signin.email), do: {:ok, resp.body["data"]["message_id"]}, else: :ok
 
         err ->
           err
@@ -76,7 +77,7 @@ defmodule Supabase.GoTrue.UserHandler do
       |> Fetcher.request()
       |> then(fn
         {:ok, resp} ->
-          if is_nil(signin.email), do: {:ok, resp["data"]["message_id"]}, else: :ok
+          if is_nil(signin.email), do: {:ok, resp.body["data"]["message_id"]}, else: :ok
 
         err ->
           err
@@ -111,7 +112,7 @@ defmodule Supabase.GoTrue.UserHandler do
       |> Request.with_query(%{"redirect_to" => body.redirect_to})
       |> Fetcher.request()
       |> then(fn
-        {:ok, resp} -> {:ok, resp["data"]["url"]}
+        {:ok, resp} -> {:ok, resp.body["data"]["url"]}
         err -> err
       end)
     end
@@ -196,7 +197,7 @@ defmodule Supabase.GoTrue.UserHandler do
   def recover_password(%Client{} = client, email, %{} = opts) do
     body = %{
       email: email,
-      go_true_meta_security: %{captcha_token: opts[:captcha_token]}
+      gotrue_meta_security: %{captcha_token: opts[:captcha_token]}
     }
 
     builder =
@@ -209,11 +210,11 @@ defmodule Supabase.GoTrue.UserHandler do
     with {:ok, _} <- Fetcher.request(builder), do: :ok
   end
 
-  def resend_signup(%Client{} = client, email, %{} = opts) do
+  def resend(%Client{} = client, email, %ResendParams{} = opts) do
     body = %{
       email: email,
       type: opts.type,
-      go_true_meta_security: %{captcha_token: opts[:captcha_token]}
+      gotrue_meta_security: %{captcha_token: get_in(opts.options.captcha_token)}
     }
 
     builder =
@@ -221,7 +222,7 @@ defmodule Supabase.GoTrue.UserHandler do
       |> GoTrue.Request.base(@resend_signup_uri)
       |> Request.with_method(:post)
       |> Request.with_body(body)
-      |> Request.with_query(%{"redirect_to" => opts[:redirect_to]})
+      |> Request.with_query(%{"redirect_to" => get_in(opts.options.redirect_to)})
 
     with {:ok, _} <- Fetcher.request(builder), do: :ok
   end
@@ -299,7 +300,10 @@ defmodule Supabase.GoTrue.UserHandler do
     client
     |> GoTrue.Request.base(@oauth_uri)
     |> Request.with_query(query)
-    |> then(& &1.url)
+    |> then(fn %{query: query, url: url} ->
+      query = URI.encode_query(query)
+      URI.append_query(url, query)
+    end)
   end
 
   def get_url_for_provider(%Client{} = client, %SignInWithOauth{} = oauth) do
@@ -309,7 +313,10 @@ defmodule Supabase.GoTrue.UserHandler do
     client
     |> GoTrue.Request.base(@oauth_uri)
     |> Request.with_query(query)
-    |> then(& &1.url)
+    |> then(fn %{query: query, url: url} ->
+      query = URI.encode_query(query)
+      URI.append_query(url, query)
+    end)
   end
 
   defp generate_pkce do

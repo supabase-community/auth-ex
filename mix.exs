@@ -14,9 +14,13 @@ defmodule SupabaseAuth.MixProject do
       docs: docs(),
       package: package(),
       description: description(),
+      elixirc_paths: elixirc_paths(Mix.env()),
       dialyzer: [plt_local_path: "priv/plts", ignore_warnings: ".dialyzerignore"]
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help compile.app" to learn about applications.
   def application do
@@ -31,6 +35,7 @@ defmodule SupabaseAuth.MixProject do
       {:supabase_potion, "~> 0.6"},
       {:plug, "~> 1.15", optional: true},
       {:phoenix_live_view, "~> 1.0", optional: true},
+      {:mox, "~> 1.0", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false}

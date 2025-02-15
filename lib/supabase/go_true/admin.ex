@@ -34,12 +34,12 @@ defmodule Supabase.GoTrue.Admin do
   """
   @impl true
   def sign_out(%Client{} = client, %Session{} = session, scope) when scope in @scopes do
-      case AdminHandler.sign_out(client, session.access_token, scope) do
-        {:ok, _} -> :ok
-        {:error, %{code: :not_found}} -> :ok
-        {:error, %{code: :unauthorized}} -> :ok
-        err -> err
-      end
+    case AdminHandler.sign_out(client, session.access_token, scope) do
+      {:ok, _} -> :ok
+      {:error, %{code: :not_found}} -> :ok
+      {:error, %{code: :unauthorized}} -> :ok
+      err -> err
+    end
   end
 
   @doc """
@@ -144,7 +144,7 @@ defmodule Supabase.GoTrue.Admin do
   """
   @impl true
   def list_users(%Client{} = client, params \\ %{}) do
-    with {:ok, params} <- PaginationParams.page_params(params),
+    with {:ok, params} <- PaginationParams.page_params(Map.new(params)),
          {:ok, response} <- AdminHandler.list_users(client, params),
          {:ok, users} <- User.parse_list(response.body["users"]) do
       total = Response.get_header(response, "x-total-count")

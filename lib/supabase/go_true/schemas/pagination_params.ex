@@ -22,7 +22,7 @@ defmodule Supabase.GoTrue.Schemas.PaginationParams do
   def pagination(attrs) do
     schema = %{next_page: :integer, last_page: :integer, total: :integer}
 
-    {%{}, schema}
+    {%{next_page: nil}, schema}
     |> cast(attrs, Map.keys(schema))
     |> validate_required([:total, :last_page])
     |> apply_action(:parse)
