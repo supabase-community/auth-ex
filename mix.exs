@@ -36,6 +36,7 @@ defmodule SupabaseAuth.MixProject do
       {:plug, "~> 1.15", optional: true},
       {:phoenix_live_view, "~> 1.0", optional: true},
       {:mox, "~> 1.0", only: :test},
+      {:peri, "~> 0.4.0-rc1"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false}
