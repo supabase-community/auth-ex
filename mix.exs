@@ -1,7 +1,7 @@
 defmodule SupabaseAuth.MixProject do
   use Mix.Project
 
-  @version "0.4.0"
+  @version "0.4.1"
   @source_url "https://github.com/supabase-community/auth-ex"
 
   def project do
@@ -57,7 +57,7 @@ defmodule SupabaseAuth.MixProject do
   defp docs do
     [
       main: "Supabase.GoTrue",
-      extras: ["README.md"]
+      extras: ["README.md", "CHANGELOG.md"]
     ]
   end
 
