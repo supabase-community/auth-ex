@@ -165,26 +165,30 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       |> Module.concat()
 
     auth_module = Module.concat([web_module, "UserAuth"])
+    endpoint_module = Module.concat([web_module, "Endpoint"])
 
     bindings = [
       app_name: app_name,
-      strategy: config.strategy,
-      provider: config.provider,
-      live?: config.live,
+      strategy: config[:strategy],
+      live?: config[:live],
       web_module: web_module,
       web_app_name: web_app_name,
-      auth_module: auth_module
+      auth_module: auth_module,
+      endpoint_module: endpoint_module,
+      supabase_client: config[:client],
+      supabase_url: config[:supabase_url],
+      supabase_key: config[:supabase_key]
     ]
 
     prompt_for_conflicts(bindings)
 
-    paths = Mix.Phoenix.generator_paths()
+    paths = [".", :supabase_gotrue]
 
     bindings
     |> copy_new_files(paths)
-    |> inject_conn_case_helpers(paths)
-    |> inject_routes(paths)
-    |> maybe_inject_router_import()
+    # |> inject_conn_case_helpers(paths)
+    # |> inject_routes(paths)
+    # |> maybe_inject_router_import()
     |> print_shell_instructions()
   end
 
@@ -252,30 +256,33 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       # "session_controller_test.exs": [web_test_pre, "controllers", "session_controller_test.exs"],
     ]
 
-    if opts.live? do
-      # live_pre = Path.join([web_pre, "live"])
-      # live_test_pre = Path.join([web_test_pre, "live"])
+    files =
+      if opts[:live?] do
+        # live_pre = Path.join([web_pre, "live"])
+        # live_test_pre = Path.join([web_test_pre, "live"])
 
-      default ++
-        [
-          # "login_live.ex": [live_pre, "login_live.ex"]
-          # "login_live_test.exs": [live_test_pre, "login_live_test.exs"],
-        ]
-    else
-      # html_pre = Path.join([controller_pre, "session_html"])
-      # html_test_pre = Path.join([web_test_pre, "controllers", "session_html"])
+        default
+        # [
+        #   "login_live.ex": [live_pre, "login_live.ex"]
+        #   "login_live_test.exs": [live_test_pre, "login_live_test.exs"],
+        # ]
+      else
+        # html_pre = Path.join([controller_pre, "session_html"])
+        # html_test_pre = Path.join([web_test_pre, "controllers", "session_html"])
 
-      default ++
-        [
-          # "session_html.ex": [controller_pre, "session_html.ex"],
-          # "new.html.heex": [html_pre, "new.html.heex"]
-        ]
-    end
+        default
+        # [
+        #   "session_html.ex": [controller_pre, "session_html.ex"],
+        #   "new.html.heex": [html_pre, "new.html.heex"]
+        # ]
+      end
+
+    for {source, dest} <- files, do: {:eex, to_string(source), Path.join(dest)}
   end
 
   defp copy_new_files(bindings, paths) do
     files = files_to_be_generated(bindings)
-    Mix.Phoenix.copy_from(paths, "priv/templates/supabase.gen.auth", bindings, files)
+    Mix.Phoenix.copy_from(paths, "priv/templates/supabase.gen.auth/", bindings, files)
     bindings
   end
 
@@ -283,7 +290,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     test_file = "test/support/conn_case.ex"
 
     paths
-    |> Mix.Phoenix.eval_from("priv/templates/phx.gen.auth/conn_case.exs", binding)
+    |> Mix.Phoenix.eval_from("priv/templates/supabase.gen.auth/conn_case.exs", binding)
     |> inject_before_final_end(test_file)
 
     binding

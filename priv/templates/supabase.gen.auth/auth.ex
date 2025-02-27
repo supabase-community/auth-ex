@@ -27,72 +27,60 @@ defmodule <%= inspect auth_module %> do
   if you are not using LiveView.
   """
 
-  <%= if :password in strategy do %>
-  @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
+  <%= if "password" in strategy do %>
+  @doc "Logs the User in using the password strategy.\n" <> @extra_login_doc
   def log_in_user_with_password(conn, params \\ %{}) do
-    client = auth_client()
-
-    with {:ok, client} <- client.get_client(),
+    with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_with_password(client, params) do
       do_login(conn, session, params)
     end
   end
   <% end %>
 
-  <%= if :otp in strategy do %>
-  @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
-  def log_in_user_with_otp(%Client{} = client, conn, params \\ %{}) do
-    client = auth_client()
-
-    with {:ok, client} <- client.get_client(),
+  <%= if "otp" in strategy do %>
+  @doc "Logs the User in using the otp strategy.\n" <> @extra_login_doc
+  def log_in_user_with_otp(conn, params \\ %{}) do
+    with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_with_otp(client, params) do
       do_login(conn, session, params)
     end
   end
   <% end %>
 
-  <%= if :sso in strategy do %>
-  @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
+  <%= if "sso" in strategy do %>
+  @doc "Logs the User in using the sso strategy.\n" <> @extra_login_doc
   def log_in_user_with_sso(%Client{} = client, conn, params \\ %{}) do
-    client = auth_client()
-
-    with {:ok, client} <- client.get_client(),
+    with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_with_sso(client, params) do
       do_login(conn, session, params)
     end
   end
   <% end %>
 
-  <%= if :id_token in strategy do %>
-  @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
+  <%= if "id_token" in strategy do %>
+  @doc "Logs the User in using the id_token strategy.\n" <> @extra_login_doc
   def log_in_user_with_id_token(%Client{} = client, conn, params \\ %{}) do
-    client = auth_client()
-
-    with {:ok, client} <- client.get_client(),
+    with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_with_id_token(client, params) do
       do_login(conn, session, params)
     end
   end
   <% end %>
 
-  <%= if :oauth in strategy do %>
-  @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
+  <%= if "oauth" in strategy do %>
+  @doc "Logs the User in using the oauth strategy.\n" <> @extra_login_doc
   def log_in_user_with_oauth(%Client{} = client, conn, params \\ %{}) do
-    client = auth_client()
-
-    with {:ok, client} <- client.get_client(),
+    with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_with_oauth(client, params) do
       do_login(conn, session, params)
     end
   end
   <% end %>
 
-  <%= if :anon in strategy do %>
-  @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
+  <%= if "anon" in strategy do %>
+  @doc "Logs the User in using the anon strategy.\n" <> @extra_login_doc
   def log_in_user_anonymously(%Client{} = client, conn, params \\ %{}) do
-    client = auth_client()
-
-    with {:ok, client} <- client.get_client(),
+    with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_anonymously(client, params) do
       do_login(conn, session, params)
     end
@@ -105,10 +93,9 @@ defmodule <%= inspect auth_module %> do
     conn
     |> renew_session()
     |> put_token_in_session(session.access_token)
-    |> maybe_write_session_cookie(session, params)
+    |> maybe_write_remember_me_cookie(session, params)
     |> redirect(to: user_return_to || signed_in_path())
   end
-
 
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
     put_resp_cookie(conn, @remember_me_cookie, token, @remember_me_options)
@@ -147,8 +134,7 @@ defmodule <%= inspect auth_module %> do
   It clears all session data for safety. See renew_session.
   """
   def log_out_user(conn, scope) do
-    client = auth_client()
-    {:ok, client} = client.get_client()
+    {:ok, client} = get_client()
     user_token = get_session(conn, :user_token)
     session = %Session{access_token: user_token}
     user_token && Admin.sign_out(client, session, scope)
@@ -172,8 +158,7 @@ defmodule <%= inspect auth_module %> do
   end
 
   defp fetch_user_from_session_token(user_token) do
-    client = auth_client()
-    {:ok, client} = client.get_client()
+    {:ok, client} = get_client()
 
     case GoTrue.get_user(client, %Session{access_token: user_token}) do
       {:ok, %User{} = user} -> user
@@ -254,7 +239,7 @@ defmodule <%= inspect auth_module %> do
     socket = mount_current_user(socket, session)
 
     if socket.assigns.current_user do
-      {:halt, Phoenix.LiveView.redirect(socket, to: signed_in_path(socket))}
+      {:halt, Phoenix.LiveView.redirect(socket, to: signed_in_path())}
     else
       {:cont, socket}
     end
@@ -269,8 +254,7 @@ defmodule <%= inspect auth_module %> do
   end
 
   defp maybe_get_current_user(session) do
-    client = auth_client()
-    {:ok, client} = client.get_client()
+    {:ok, client} = get_client()
 
     case GoTrue.get_user(client, session) do
       {:ok, %User{} = user} -> user
@@ -285,7 +269,7 @@ defmodule <%= inspect auth_module %> do
   def redirect_if_user_is_authenticated(conn, _opts) do
     if conn.assigns[:current_user] do
       conn
-      |> redirect(to: signed_in_path(conn))
+      |> redirect(to: signed_in_path())
       |> halt()
     else
       conn
@@ -319,14 +303,15 @@ defmodule <%= inspect auth_module %> do
 
   defp maybe_store_return_to(conn), do: conn
 
-  defp signed_in_path(_conn), do: ~p"/"
+  defp signed_in_path(), do: ~p"/"
 
-  defp auth_client do
-    Application.get_env(:supabase, :authentication_client) ||
-      raise """
-      You need to define a `Supabase` "auth" client in your `config.exs` to use the authentication functions.
-
-      Check the docs from `supabase.gen.auth` task for more information.
-      """
+  <%= if supabase_client do %>
+  defp get_client, do: <%= supabase_client %>.get_client()
+  <% else %>
+  defp get_client do
+    url = <%= inspect supabase_url %>
+    key = <%= inspect supabase_key %>
+    Supabase.init_client(url, key)
   end
+  <% end %>
 end

@@ -51,7 +51,7 @@ defmodule SupabaseAuth.MixProject do
         "GitHub" => @source_url,
         "Docs" => "https://hexdocs.pm/supabase_gotrue"
       },
-      files: ~w[lib mix.exs README.md LICENSE]
+      files: ~w[lib priv/templates mix.exs README.md LICENSE]
     }
   end
 
