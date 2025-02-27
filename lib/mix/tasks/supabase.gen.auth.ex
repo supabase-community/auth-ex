@@ -196,7 +196,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
     default = [
       "auth.ex": [web_pre, "user_auth.ex"],
-      "auth_test.exs": [web_test_pre, "user_auth_test.exs"],
+      "auth_test.exs": [web_test_pre, "user_auth_test.exs"]
     ]
 
     # TODO merge if live?

@@ -19,13 +19,13 @@ defmodule Supabase.GoTrue.Schemas.SignInWithSSO do
   @type options :: %__MODULE__.Options{
           redirect_to: String.t(),
           captcha_token: String.t()
-  }
+        }
 
   @type t :: %__MODULE__{
           provider_id: String.t(),
           domain: String.t(),
           options: options
-  }
+        }
 
   embedded_schema do
     field(:provider_id, :string)
