@@ -27,7 +27,7 @@ defmodule <%= inspect auth_module %> do
   if you are not using LiveView.
   """
 
-  <%= if strategy == :password do %>
+  <%= if :password in strategy do %>
   @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
   def log_in_user_with_password(conn, params \\ %{}) do
     client = auth_client()
@@ -39,7 +39,7 @@ defmodule <%= inspect auth_module %> do
   end
   <% end %>
 
-  <%= if strategy == :otp do %>
+  <%= if :otp in strategy do %>
   @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
   def log_in_user_with_otp(%Client{} = client, conn, params \\ %{}) do
     client = auth_client()
@@ -51,7 +51,7 @@ defmodule <%= inspect auth_module %> do
   end
   <% end %>
 
-  <%= if strategy == :sso do %>
+  <%= if :sso in strategy do %>
   @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
   def log_in_user_with_sso(%Client{} = client, conn, params \\ %{}) do
     client = auth_client()
@@ -63,7 +63,7 @@ defmodule <%= inspect auth_module %> do
   end
   <% end %>
 
-  <%= if strategy == :id_token do %>
+  <%= if :id_token in strategy do %>
   @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
   def log_in_user_with_id_token(%Client{} = client, conn, params \\ %{}) do
     client = auth_client()
@@ -75,7 +75,7 @@ defmodule <%= inspect auth_module %> do
   end
   <% end %>
 
-  <%= if strategy == :oauth do %>
+  <%= if :oauth in strategy do %>
   @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
   def log_in_user_with_oauth(%Client{} = client, conn, params \\ %{}) do
     client = auth_client()
@@ -87,7 +87,7 @@ defmodule <%= inspect auth_module %> do
   end
   <% end %>
 
-  <%= if strategy == :anon do %>
+  <%= if :anon in strategy do %>
   @doc "Logs the User in using the <%= inspect strategy %>.\n" <> @extra_login_doc
   def log_in_user_anonymously(%Client{} = client, conn, params \\ %{}) do
     client = auth_client()
@@ -244,7 +244,7 @@ defmodule <%= inspect auth_module %> do
       socket =
         socket
         |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"<%= route_prefix %>/login")
+        |> Phoenix.LiveView.redirect(to: ~p"/login")
 
       {:halt, socket}
     end
@@ -302,7 +302,7 @@ defmodule <%= inspect auth_module %> do
       conn
       |> put_flash(:error, "You must log in to access this page.")
       |> maybe_store_return_to()
-      |> redirect(to: ~p"<%= route_prefix %>/log-in")
+      |> redirect(to: ~p"/login")
       |> halt()
     end
   end
