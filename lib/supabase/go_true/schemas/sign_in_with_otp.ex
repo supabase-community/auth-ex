@@ -24,18 +24,18 @@ defmodule Supabase.GoTrue.Schemas.SignInWithOTP do
           captcha_token: String.t(),
           channel: String.t(),
           should_create_user: boolean()
-  }
+        }
 
   @type t :: %__MODULE__{
           email: String.t(),
           phone: String.t(),
           options: options
-  }
+        }
 
   @primary_key false
   embedded_schema do
-    field :email, :string
-    field :phone, :string
+    field(:email, :string)
+    field(:phone, :string)
 
     embeds_one :options, Options, primary_key: false do
       field(:data, :map)
@@ -46,7 +46,8 @@ defmodule Supabase.GoTrue.Schemas.SignInWithOTP do
     end
   end
 
-  def to_sign_in_params(%__MODULE__{email: email} = signin, code_challenge, code_method) when not is_nil(email) do
+  def to_sign_in_params(%__MODULE__{email: email} = signin, code_challenge, code_method)
+      when not is_nil(email) do
     signin
     |> Map.take([:email])
     |> Map.put(:data, signin.options.data)
@@ -56,7 +57,8 @@ defmodule Supabase.GoTrue.Schemas.SignInWithOTP do
     |> Map.merge(%{code_challange: code_challenge, code_challenge_method: code_method})
   end
 
-  def to_sign_in_params(%__MODULE__{phone: phone} = signin, code_challenge, code_method) when not is_nil(phone) do
+  def to_sign_in_params(%__MODULE__{phone: phone} = signin, code_challenge, code_method)
+      when not is_nil(phone) do
     signin
     |> Map.take([:phone])
     |> Map.put(:data, signin.options.data)

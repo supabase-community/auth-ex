@@ -41,6 +41,7 @@ if Code.ensure_loaded?(Plug) do
         alias Supabase.GoTrue.User
 
         Code.ensure_loaded!(unquote(client))
+
         if not function_exported?(unquote(client), :get_client, 0) do
           raise Supabase.GoTrue.MissingConfig, key: :client, module: unquote(module)
         end
