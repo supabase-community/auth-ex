@@ -34,6 +34,7 @@ defmodule Supabase.GoTrue.UserHandler do
   @identities_uri "/identities"
   @identity_authorize_uri "/identities/authorize"
   @token_uri "/token"
+  @reauthenticate_uri "/reauthenticate"
 
   def get_user(%Client{} = client, access_token) when is_binary(access_token) do
     client
@@ -471,6 +472,32 @@ defmodule Supabase.GoTrue.UserHandler do
   end
 
   def get_user_identities(%Client{}, nil) do
+    {:error, %Supabase.Error{message: "Missing access token", code: :unauthorized}}
+  end
+
+  @doc """
+  Sends a reauthentication request for the authenticated user.
+
+  This sends a reauthentication OTP to the user's email or phone number. 
+  Requires the user to be authenticated with a valid session.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `access_token` - The access token of the current session.
+  """
+  def reauthenticate(%Client{} = client, access_token) when is_binary(access_token) do
+    client
+    |> GoTrue.Request.base(@reauthenticate_uri)
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_method(:get)
+    |> Fetcher.request()
+    |> case do
+      {:ok, _} -> :ok
+      err -> err
+    end
+  end
+
+  def reauthenticate(%Client{}, nil) do
     {:error, %Supabase.Error{message: "Missing access token", code: :unauthorized}}
   end
 end
