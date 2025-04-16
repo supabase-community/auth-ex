@@ -31,6 +31,8 @@ defmodule Supabase.GoTrue.UserHandler do
   @resend_signup_uri "/resend"
   @settings_uri "/settings"
   @health_uri "/health"
+  @identities_uri "/identities"
+  @identity_authorize_uri "/identities/authorize"
 
   def get_user(%Client{} = client, access_token) when is_binary(access_token) do
     client
@@ -352,5 +354,92 @@ defmodule Supabase.GoTrue.UserHandler do
     challenge = PKCE.generate_challenge(verifier)
     method = if verifier == challenge, do: "plain", else: "s256"
     {challenge, method}
+  end
+
+  @doc """
+  Get a URL to link a new identity to the user's account.
+
+  This endpoint requires authentication.
+  """
+  def link_identity(%Client{} = client, access_token, %SignInWithOauth{} = oauth)
+      when is_binary(access_token) and client.auth.flow_type == :pkce do
+    {challenge, method} = generate_pkce()
+    pkce_query = %{code_challenge: challenge, code_challenge_method: method}
+    oauth_query = SignInWithOauth.options_to_query(oauth)
+    query = pkce_query |> Map.merge(oauth_query) |> Map.new(fn {k, v} -> {to_string(k), v} end)
+
+    client
+    |> GoTrue.Request.base(@single_user_uri <> @identity_authorize_uri)
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_query(query)
+    |> Fetcher.request()
+    |> case do
+      {:ok, response} ->
+        {:ok, %{url: response.body["url"], provider: oauth.provider}}
+
+      error ->
+        error
+    end
+  end
+
+  def link_identity(%Client{} = client, access_token, %SignInWithOauth{} = oauth) when is_binary(access_token) do
+    oauth_query = SignInWithOauth.options_to_query(oauth)
+    query = Map.new(oauth_query, fn {k, v} -> {to_string(k), v} end)
+
+    client
+    |> GoTrue.Request.base(@single_user_uri <> @identity_authorize_uri)
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_query(query)
+    |> Fetcher.request()
+    |> case do
+      {:ok, response} ->
+        {:ok, %{url: response.body["url"], provider: oauth.provider}}
+
+      error ->
+        error
+    end
+  end
+
+  def link_identity(%Client{}, nil, _) do
+    {:error, %Supabase.Error{message: "Missing access token", code: :unauthorized}}
+  end
+
+  @doc """
+  Unlink an identity from the user's account.
+
+  This endpoint requires authentication.
+  """
+  def unlink_identity(%Client{} = client, access_token, identity_id)
+      when is_binary(access_token) and is_binary(identity_id) do
+    client
+    |> GoTrue.Request.base(@single_user_uri <> @identities_uri <> "/#{identity_id}")
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_method(:delete)
+    |> Fetcher.request()
+    |> case do
+      {:ok, _} -> :ok
+      err -> err
+    end
+  end
+
+  def unlink_identity(%Client{}, nil, _) do
+    {:error, %Supabase.Error{message: "Missing access token", code: :unauthorized}}
+  end
+
+  @doc """
+  Get all identities for the authenticated user.
+
+  This endpoint requires authentication.
+  """
+  def get_user_identities(%Client{} = client, access_token) when is_binary(access_token) do
+    client
+    |> GoTrue.Request.base(@single_user_uri <> @identities_uri)
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_method(:get)
+    |> Fetcher.request()
+  end
+
+  def get_user_identities(%Client{}, nil) do
+    {:error, %Supabase.Error{message: "Missing access token", code: :unauthorized}}
   end
 end

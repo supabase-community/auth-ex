@@ -332,4 +332,63 @@ defmodule Supabase.GoTrue do
     Application.get_env(:supabase_gotrue, :auth_module) ||
       raise(Supabase.GoTrue.MissingConfig, key: :auth_module)
   end
+
+  @doc """
+  Gets a URL to link a new identity to the authenticated user's account.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+    - `session` - The session to use for the request.
+    - `credentials` - The OAuth credentials to use for identity linking. Check `Supabase.GoTrue.Schemas.SignInWithOauth` for more information.
+
+  ## Examples
+      iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
+      iex> credentials = %Supabase.GoTrue.SignInWithOauth{provider: :github}
+      iex> Supabase.GoTrue.link_identity(client, session, credentials)
+      {:ok, %{provider: :github, url: "https://..."}}
+  """
+  @spec link_identity(Client.t(), Session.t(), map) :: {:ok, map} | {:error, term}
+  def link_identity(%Client{} = client, %Session{} = session, credentials) do
+    with {:ok, credentials} <- SignInWithOauth.parse(credentials) do
+      UserHandler.link_identity(client, session.access_token, credentials)
+    end
+  end
+
+  @doc """
+  Unlinks an identity from the authenticated user's account.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+    - `session` - The session to use for the request.
+    - `identity_id` - The ID of the identity to unlink.
+
+  ## Examples
+      iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
+      iex> identity_id = "1234567890"
+      iex> Supabase.GoTrue.unlink_identity(client, session, identity_id)
+      :ok
+  """
+  @spec unlink_identity(Client.t(), Session.t(), String.t()) :: :ok | {:error, term}
+  def unlink_identity(%Client{} = client, %Session{} = session, identity_id) do
+    UserHandler.unlink_identity(client, session.access_token, identity_id)
+  end
+
+  @doc """
+  Gets all identities for the authenticated user.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+    - `session` - The session to use for the request.
+
+  ## Examples
+      iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
+      iex> Supabase.GoTrue.get_user_identities(client, session)
+      {:ok, [%Supabase.GoTrue.User.Identity{}, ...]}
+  """
+  @spec get_user_identities(Client.t(), Session.t()) :: {:ok, list(User.Identity.t())} | {:error, term}
+  def get_user_identities(%Client{} = client, %Session{} = session) do
+    with {:ok, response} <- UserHandler.get_user_identities(client, session.access_token) do
+      User.Identity.parse_list(response.body)
+    end
+  end
 end

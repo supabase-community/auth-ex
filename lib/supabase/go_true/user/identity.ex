@@ -54,4 +54,24 @@ defmodule Supabase.GoTrue.User.Identity do
   end
 
   def providers, do: @providers
+
+  def parse(attrs) do
+    attrs
+    |> changeset()
+    |> apply_action(:parse)
+  end
+
+  def parse_list(list_attrs) do
+    results =
+      Enum.reduce_while(list_attrs, [], fn attrs, acc ->
+        changeset = changeset(attrs)
+
+        case result = apply_action(changeset, :parse) do
+          {:ok, identity} -> {:cont, [identity | acc]}
+          {:error, _} -> {:halt, result}
+        end
+      end)
+
+    if is_list(results), do: {:ok, results}, else: results
+  end
 end
