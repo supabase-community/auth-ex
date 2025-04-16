@@ -15,6 +15,14 @@ defmodule Supabase.GoTrue.AdminHandler do
     @users <> "/#{id}"
   end
 
+  defp factors_endpoint(user_id) do
+    @users <> "/#{user_id}/factors"
+  end
+
+  defp factor_endpoint(user_id, factor_id) do
+    factors_endpoint(user_id) <> "/#{factor_id}"
+  end
+
   defp sign_out(scope) do
     "/logout?scope=#{scope}"
   end
@@ -91,6 +99,23 @@ defmodule Supabase.GoTrue.AdminHandler do
     |> GoTrue.Request.base(uri)
     |> Request.with_body(params)
     |> Request.with_method(:put)
+    |> Fetcher.request()
+  end
+
+  @doc """
+  Deletes a user's MFA factor.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+    * `factor_id` - The ID of the factor to delete.
+  """
+  def delete_factor(%Client{} = client, user_id, factor_id) do
+    uri = factor_endpoint(user_id, factor_id)
+
+    client
+    |> GoTrue.Request.base(uri)
+    |> Request.with_method(:delete)
     |> Fetcher.request()
   end
 end

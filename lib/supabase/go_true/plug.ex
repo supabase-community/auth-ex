@@ -20,6 +20,7 @@ if Code.ensure_loaded?(Plug) do
 
     defmacro __using__(opts) do
       alias Supabase.GoTrue.MissingConfig
+
       module = __CALLER__.module
       MissingConfig.ensure_opts!(opts, module)
 
@@ -29,11 +30,10 @@ if Code.ensure_loaded?(Plug) do
       endpoint = opts[:endpoint]
       session_cookie_name = opts[:session_cookie] || "_supabase_go_true_session_cookie"
       session_cookie_options = opts[:session_cookie_options] || [sign: true, same_site: "Lax"]
-
       # credo:disable-for-next-line
       quote do
-        import Plug.Conn
         import Phoenix.Controller
+        import Plug.Conn
 
         alias Supabase.GoTrue
         alias Supabase.GoTrue.Admin
@@ -41,6 +41,7 @@ if Code.ensure_loaded?(Plug) do
         alias Supabase.GoTrue.User
 
         Code.ensure_loaded!(unquote(client))
+
         if not function_exported?(unquote(client), :get_client, 0) do
           raise Supabase.GoTrue.MissingConfig, key: :client, module: unquote(module)
         end

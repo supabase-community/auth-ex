@@ -10,6 +10,8 @@ defmodule Supabase.GoTrue do
   And also refer to functions and submodules documentation for more information.
   """
 
+  @behaviour Supabase.GoTrueBehaviour
+
   alias Supabase.Client
   alias Supabase.GoTrue.Schemas.ResendParams
   alias Supabase.GoTrue.Schemas.ServerHealth
@@ -25,8 +27,6 @@ defmodule Supabase.GoTrue do
   alias Supabase.GoTrue.Session
   alias Supabase.GoTrue.User
   alias Supabase.GoTrue.UserHandler
-
-  @behaviour Supabase.GoTrueBehaviour
 
   @doc """
   Get the user associated with the current session.

@@ -1,6 +1,7 @@
 defmodule Supabase.GoTrue.UserHandler do
   @moduledoc false
 
+  alias Phoenix.LiveView.Socket
   alias Supabase.Client
   alias Supabase.Fetcher
   alias Supabase.Fetcher.Request
@@ -49,8 +50,7 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  def sign_in_with_otp(%Client{} = client, %SignInWithOTP{} = signin)
-      when client.auth.flow_type == :pkce do
+  def sign_in_with_otp(%Client{} = client, %SignInWithOTP{} = signin) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     with {:ok, body} <- SignInRequest.create(signin, challenge, method) do
@@ -88,8 +88,7 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  def sign_in_with_sso(%Client{} = client, %SignInWithSSO{} = signin)
-      when client.auth.flow_type == :pkce do
+  def sign_in_with_sso(%Client{} = client, %SignInWithSSO{} = signin) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     with {:ok, body} <- SignInRequest.create(signin, challenge, method) do
@@ -143,8 +142,7 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  defp sign_in_request(%Client{} = client, %SignInRequest{} = body, grant_type)
-       when grant_type in @grant_types do
+  defp sign_in_request(%Client{} = client, %SignInRequest{} = body, grant_type) when grant_type in @grant_types do
     client
     |> GoTrue.Request.base(@sign_in_uri)
     |> Request.with_method(:post)
@@ -156,8 +154,7 @@ defmodule Supabase.GoTrue.UserHandler do
     |> Fetcher.request()
   end
 
-  def sign_up(%Client{} = client, %SignUpWithPassword{} = signup)
-      when client.auth.flow_type == :pkce do
+  def sign_up(%Client{} = client, %SignUpWithPassword{} = signup) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     with {:ok, body} <- SignUpRequest.create(signup, challenge, method),
@@ -184,8 +181,7 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  def recover_password(%Client{} = client, email, %{} = opts)
-      when client.auth.flow_type == :pkce do
+  def recover_password(%Client{} = client, email, %{} = opts) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     body = %{
@@ -238,14 +234,13 @@ defmodule Supabase.GoTrue.UserHandler do
     with {:ok, _} <- Fetcher.request(builder), do: :ok
   end
 
-  def update_user(%Client{} = client, conn, %{} = params)
-      when client.auth.flow_type == :pkce do
+  def update_user(%Client{} = client, conn, %{} = params) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     access_token =
       case conn do
         %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
-        %Phoenix.LiveView.Socket{} -> conn.assigns.user_token
+        %Socket{} -> conn.assigns.user_token
       end
 
     body = Map.merge(params, %{code_challenge: challenge, code_challenge_method: method})
@@ -266,7 +261,7 @@ defmodule Supabase.GoTrue.UserHandler do
         %Plug.Conn{} ->
           {:ok, auth_module.fetch_current_user(conn, nil)}
 
-        %Phoenix.LiveView.Socket{} ->
+        %Socket{} ->
           {:ok, auth_module.mount_current_user(session, conn)}
       end
     end
@@ -276,7 +271,7 @@ defmodule Supabase.GoTrue.UserHandler do
     access_token =
       case conn do
         %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
-        %Phoenix.LiveView.Socket{} -> conn.assigns.user_token
+        %Socket{} -> conn.assigns.user_token
       end
 
     builder =
@@ -295,18 +290,17 @@ defmodule Supabase.GoTrue.UserHandler do
         %Plug.Conn{} ->
           {:ok, auth_module.fetch_current_user(conn, nil)}
 
-        %Phoenix.LiveView.Socket{} ->
+        %Socket{} ->
           {:ok, auth_module.mount_current_user(session, conn)}
       end
     end
   end
 
-  def get_url_for_provider(%Client{} = client, %SignInWithOauth{} = oauth)
-      when client.auth.flow_type == :pkce do
+  def get_url_for_provider(%Client{} = client, %SignInWithOauth{} = oauth) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
     pkce_query = %{code_challenge: challenge, code_challenge_method: method}
     oauth_query = SignInWithOauth.options_to_query(oauth)
-    query = Map.merge(pkce_query, oauth_query) |> Map.new(fn {k, v} -> {to_string(k), v} end)
+    query = pkce_query |> Map.merge(oauth_query) |> Map.new(fn {k, v} -> {to_string(k), v} end)
 
     client
     |> GoTrue.Request.base(@oauth_uri)

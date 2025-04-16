@@ -15,7 +15,6 @@ defmodule Supabase.GoTrue.Schemas.SignInWithOTP do
   use Ecto.Schema
 
   import Ecto.Changeset
-
   import Supabase.GoTrue.Validations
 
   @type options :: %__MODULE__.Options{
@@ -24,18 +23,18 @@ defmodule Supabase.GoTrue.Schemas.SignInWithOTP do
           captcha_token: String.t(),
           channel: String.t(),
           should_create_user: boolean()
-  }
+        }
 
   @type t :: %__MODULE__{
           email: String.t(),
           phone: String.t(),
           options: options
-  }
+        }
 
   @primary_key false
   embedded_schema do
-    field :email, :string
-    field :phone, :string
+    field(:email, :string)
+    field(:phone, :string)
 
     embeds_one :options, Options, primary_key: false do
       field(:data, :map)

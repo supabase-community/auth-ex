@@ -34,7 +34,7 @@ defmodule Supabase.GoTrue.Schemas.InviteUserParams do
     cond do
       is_nil(redirect_to) -> changeset
       not is_binary(redirect_to) -> add_error(changeset, :redirect_to, "needs to be a binary")
-      true -> put_change(changeset, :redirect_to, URI.parse(redirect_to) |> URI.to_string())
+      true -> put_change(changeset, :redirect_to, redirect_to |> URI.parse() |> URI.to_string())
     end
   end
 end

@@ -86,8 +86,8 @@ defmodule Supabase.GoTrue.User do
     field(:encrypted_password, :string)
     field(:role, :string)
 
-    embeds_many(:factors, Supabase.GoTrue.User.Factor)
-    embeds_many(:identities, Supabase.GoTrue.User.Identity)
+    embeds_many(:factors, Factor)
+    embeds_many(:identities, Identity)
 
     timestamps(inserted_at: :created_at)
   end
