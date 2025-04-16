@@ -18,4 +18,5 @@ defmodule Supabase.GoTrue.AdminBehaviour do
   @callback get_user_by_id(Client.t(), Ecto.UUID.t()) :: Supabase.result(User.t())
   @callback update_user_by_id(Client.t(), Ecto.UUID.t(), map) :: Supabase.result(User.t())
   @callback delete_user(Client.t(), Ecto.UUID.t(), keyword) :: Supabase.result(User.t())
+  @callback delete_factor(Client.t(), Ecto.UUID.t(), String.t()) :: :ok | {:error, Supabase.Error.t()}
 end

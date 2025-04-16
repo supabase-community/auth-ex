@@ -46,18 +46,21 @@ defmodule Supabase.GoTrue.Schemas.GenerateLink do
   end
 
   def parse(attrs) do
-    [
-      &sign_up_params/1,
-      &invite_or_magic_link_params/1,
-      &recovery_params/1,
-      &email_change_params/1
-    ]
-    |> Enum.reduce_while(nil, fn schema, _ ->
-      case result = schema.(attrs) do
-        {:ok, _} -> {:halt, result}
-        {:error, _} -> {:cont, result}
+    Enum.reduce_while(
+      [
+        &sign_up_params/1,
+        &invite_or_magic_link_params/1,
+        &recovery_params/1,
+        &email_change_params/1
+      ],
+      nil,
+      fn schema, _ ->
+        case result = schema.(attrs) do
+          {:ok, _} -> {:halt, result}
+          {:error, _} -> {:cont, result}
+        end
       end
-    end)
+    )
   end
 
   def sign_up_params(attrs) do

@@ -13,6 +13,7 @@ defmodule Supabase.GoTrue.Request do
 
   defp http_client do
     alias Supabase.Fetcher.Adapter.Finch
+
     Application.get_env(:supabase_gotrue, :http_client, Finch)
   end
 end

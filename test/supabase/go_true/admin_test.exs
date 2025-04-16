@@ -2,16 +2,14 @@ defmodule Supabase.GoTrue.AdminTest do
   use ExUnit.Case, async: false
 
   import Mox
-
-  import Supabase.GoTrue.UserFixture
-  import Supabase.GoTrue.Admin.UserFixture
   import Supabase.GoTrue.Admin.LinkFixture
+  import Supabase.GoTrue.Admin.UserFixture
+  import Supabase.GoTrue.UserFixture
 
+  alias Supabase.Fetcher.Request
   alias Supabase.GoTrue.Admin
   alias Supabase.GoTrue.Session
   alias Supabase.GoTrue.User
-
-  alias Supabase.Fetcher.Request
 
   setup :verify_on_exit!
 
@@ -35,8 +33,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "successfully signs out an user", %{client: client} do
       scope = :global
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/logout"
         assert req.url.query =~ "scope=#{scope}"
@@ -51,8 +48,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "interpret missing session as successfully signed out", %{client: client} do
       scope = :global
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/logout"
         assert req.url.query =~ "scope=#{scope}"
@@ -67,8 +63,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "interpret unauthenticated session as successfully signed out", %{client: client} do
       scope = :global
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/logout"
         assert req.url.query =~ "scope=#{scope}"
@@ -83,8 +78,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "unexpected error is returned", %{client: client} do
       scope = :global
 
-      @mock
-      |> expect(:request, fn %Request{}, _opts ->
+      expect(@mock, :request, fn %Request{}, _opts ->
         {:error, %Mint.TransportError{reason: :closed}}
       end)
 
@@ -97,8 +91,7 @@ defmodule Supabase.GoTrue.AdminTest do
 
   describe "invite_user_by_email/3" do
     test "successfully invites an user with no custom options", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/invite"
 
@@ -112,8 +105,7 @@ defmodule Supabase.GoTrue.AdminTest do
     end
 
     test "successfully invites an user with custom options", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/invite"
         assert Request.get_header(req, "redirect_to") =~ "http://example.com"
@@ -140,8 +132,7 @@ defmodule Supabase.GoTrue.AdminTest do
     end
 
     test "unexpected error should be returned", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{}, _opts ->
+      expect(@mock, :request, fn %Request{}, _opts ->
         {:error, %Mint.TransportError{reason: :closed}}
       end)
 
@@ -159,8 +150,7 @@ defmodule Supabase.GoTrue.AdminTest do
         redirect_to: "http://example.com/confirmar"
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/admin/generate_link"
 
@@ -192,8 +182,7 @@ defmodule Supabase.GoTrue.AdminTest do
         redirect_to: "http://example.com/confirmar"
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/admin/generate_link"
 
@@ -226,8 +215,7 @@ defmodule Supabase.GoTrue.AdminTest do
         redirect_to: "http://example.com/confirmar"
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/admin/generate_link"
 
@@ -261,8 +249,7 @@ defmodule Supabase.GoTrue.AdminTest do
           redirect_to: "http://example.com/confirmar"
         }
 
-        @mock
-        |> expect(:request, fn %Request{} = req, _opts ->
+        expect(@mock, :request, fn %Request{} = req, _opts ->
           assert req.method == :post
           assert req.url.path =~ "/admin/generate_link"
 
@@ -296,8 +283,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "successfully creates an user", %{client: client} do
       data = user_create_fixture(email: "john@example.com")
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/admin/users"
 
@@ -318,8 +304,7 @@ defmodule Supabase.GoTrue.AdminTest do
     end
 
     test "unexpected error is returned", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{}, _opts ->
+      expect(@mock, :request, fn %Request{}, _opts ->
         {:error, %Mint.TransportError{reason: :closed}}
       end)
 
@@ -332,8 +317,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "successfully deletes an user", %{client: client} do
       user = user_fixture(id: "123")
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :delete
         assert req.url.path =~ "/admin/users/123"
 
@@ -346,8 +330,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "successfully soft deletes an user", %{client: client} do
       user = user_fixture(id: "123")
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :delete
         assert req.url.path =~ "/admin/users/123"
         assert req.body == Jason.encode_to_iodata!(%{should_soft_delete: true})
@@ -361,8 +344,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "returns an error when user doesn't exist", %{client: client} do
       user = user_fixture(id: "123")
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :delete
         assert req.url.path =~ "/admin/users/123"
 
@@ -375,8 +357,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "returns an unexpected error", %{client: client} do
       user = user_fixture(id: "123")
 
-      @mock
-      |> expect(:request, fn %Request{}, _opts ->
+      expect(@mock, :request, fn %Request{}, _opts ->
         {:error, %Mint.TransportError{reason: :closed}}
       end)
 
@@ -388,8 +369,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "successfully gets an user", %{client: client} do
       user = user_fixture(id: "123")
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/admin/users/123"
 
@@ -405,8 +385,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "returns an error when user doesn't exist", %{client: client} do
       user = user_fixture(id: "123")
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/admin/users/123"
 
@@ -419,8 +398,7 @@ defmodule Supabase.GoTrue.AdminTest do
     test "returns an unexpected error", %{client: client} do
       user = user_fixture(id: "123")
 
-      @mock
-      |> expect(:request, fn %Request{}, _opts ->
+      expect(@mock, :request, fn %Request{}, _opts ->
         {:error, %Mint.TransportError{reason: :closed}}
       end)
 
@@ -430,8 +408,7 @@ defmodule Supabase.GoTrue.AdminTest do
 
   describe "list_users/2" do
     test "successfully list users without custom pagination options", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/admin/users"
 
@@ -456,8 +433,7 @@ defmodule Supabase.GoTrue.AdminTest do
     end
 
     test "successfully list users with custom pagination options", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/admin/users"
         assert Request.get_query_param(req, "page") == "2"
@@ -485,8 +461,7 @@ defmodule Supabase.GoTrue.AdminTest do
     end
 
     test "returns an unexpected error", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{}, _opts ->
+      expect(@mock, :request, fn %Request{}, _opts ->
         {:error, %Mint.TransportError{reason: :closed}}
       end)
 
@@ -501,8 +476,7 @@ defmodule Supabase.GoTrue.AdminTest do
 
       assert user.email != data.email
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :put
         assert req.url.path =~ "/admin/users/123"
 
@@ -520,8 +494,7 @@ defmodule Supabase.GoTrue.AdminTest do
       user = user_fixture(id: "123")
       data = %{email: "another@example.com"}
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :put
         assert req.url.path =~ "/admin/users/123"
 
@@ -542,12 +515,52 @@ defmodule Supabase.GoTrue.AdminTest do
       user = user_fixture(id: "123")
       data = %{email: "another@example.com"}
 
-      @mock
-      |> expect(:request, fn %Request{}, _opts ->
+      expect(@mock, :request, fn %Request{}, _opts ->
         {:error, %Mint.TransportError{reason: :closed}}
       end)
 
       assert {:error, %Supabase.Error{}} = Admin.update_user_by_id(client, user.id, data)
+    end
+  end
+
+  describe "delete_factor/3" do
+    test "successfully deletes a user's MFA factor", %{client: client} do
+      user_id = "123"
+      factor_id = "fac_123456789"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :delete
+        assert req.url.path =~ "/admin/users/#{user_id}/factors/#{factor_id}"
+
+        {:ok, %Finch.Response{body: ~s|{}|, status: 204, headers: []}}
+      end)
+
+      assert :ok = Admin.delete_factor(client, user_id, factor_id)
+    end
+
+    test "returns an error when the factor doesn't exist", %{client: client} do
+      user_id = "123"
+      factor_id = "fac_123456789"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :delete
+        assert req.url.path =~ "/admin/users/#{user_id}/factors/#{factor_id}"
+
+        {:ok, %Finch.Response{body: ~s|{}|, status: 404, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Admin.delete_factor(client, user_id, factor_id)
+    end
+
+    test "returns an unexpected error", %{client: client} do
+      user_id = "123"
+      factor_id = "fac_123456789"
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        {:error, %Mint.TransportError{reason: :closed}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Admin.delete_factor(client, user_id, factor_id)
     end
   end
 end
