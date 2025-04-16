@@ -828,4 +828,48 @@ defmodule Supabase.GoTrueTest do
                GoTrue.exchange_code_for_session(client, auth_code, code_verifier)
     end
   end
+
+  describe "reauthenticate/2" do
+    test "successfully sends reauthentication request", %{client: client} do
+      session = %Session{access_token: "valid_token"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/reauthenticate"
+        assert List.keyfind(req.headers, "authorization", 0) == {"authorization", "Bearer valid_token"}
+
+        {:ok, %Finch.Response{status: 200, body: "{}", headers: []}}
+      end)
+
+      assert :ok = GoTrue.reauthenticate(client, session)
+    end
+
+    test "returns an error when unauthorized", %{client: client} do
+      session = %Session{access_token: "invalid_token"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/reauthenticate"
+        assert List.keyfind(req.headers, "authorization", 0) == {"authorization", "Bearer invalid_token"}
+
+        {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = GoTrue.reauthenticate(client, session)
+    end
+
+    test "returns an error on unexpected error", %{client: client} do
+      session = %Session{access_token: "valid_token"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/reauthenticate"
+        assert List.keyfind(req.headers, "authorization", 0) == {"authorization", "Bearer valid_token"}
+
+        {:error, %Mint.TransportError{reason: :timeout}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = GoTrue.reauthenticate(client, session)
+    end
+  end
 end

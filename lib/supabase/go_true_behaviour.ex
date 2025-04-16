@@ -17,4 +17,5 @@ defmodule Supabase.GoTrueBehaviour do
   @callback sign_in_with_password(Client.t(), map) :: sign_in_response
   @callback sign_up(Client.t(), map) :: {:ok, User.t(), binary} | {:error, Supabase.Error.t()}
   @callback exchange_code_for_session(Client.t(), String.t(), String.t(), map()) :: sign_in_response
+  @callback reauthenticate(Client.t(), Session.t()) :: :ok | {:error, Supabase.Error.t()}
 end

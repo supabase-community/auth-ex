@@ -419,4 +419,26 @@ defmodule Supabase.GoTrue do
       Session.parse(resp.body)
     end
   end
+
+  @doc """
+  Sends a reauthentication request for the authenticated user.
+
+  This method is typically used when performing sensitive operations that require 
+  recent authentication. It sends a one-time password (OTP) to the user's email
+  or phone number, which they need to verify to confirm their identity.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `session` - The current user session containing the access token.
+
+  ## Examples
+      iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
+      iex> Supabase.GoTrue.reauthenticate(client, session)
+      :ok
+  """
+  @impl true
+  @spec reauthenticate(Client.t(), Session.t()) :: :ok | {:error, term}
+  def reauthenticate(%Client{} = client, %Session{} = session) do
+    UserHandler.reauthenticate(client, session.access_token)
+  end
 end
