@@ -50,6 +50,15 @@ defmodule Supabase.GoTrue.Session do
 
   @spec parse(map) :: {:ok, t} | {:error, Ecto.Changeset.t()}
   def parse(attrs) do
+    # Calculate expires_at if not provided but expires_in is available
+    attrs =
+      if is_nil(attrs[:expires_at]) && attrs[:expires_in] do
+        now = System.os_time(:second)
+        Map.put(attrs, :expires_at, now + attrs[:expires_in])
+      else
+        attrs
+      end
+
     %__MODULE__{}
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
