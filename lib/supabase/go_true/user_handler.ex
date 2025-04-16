@@ -33,6 +33,7 @@ defmodule Supabase.GoTrue.UserHandler do
   @health_uri "/health"
   @identities_uri "/identities"
   @identity_authorize_uri "/identities/authorize"
+  @token_uri "/token"
 
   def get_user(%Client{} = client, access_token) when is_binary(access_token) do
     client
@@ -354,6 +355,36 @@ defmodule Supabase.GoTrue.UserHandler do
     challenge = PKCE.generate_challenge(verifier)
     method = if verifier == challenge, do: "plain", else: "s256"
     {challenge, method}
+  end
+
+  @doc """
+  Exchanges an authorization code for a session.
+
+  Used in the PKCE (Proof Key for Code Exchange) flow to convert an authorization code
+  into a valid session using a code_verifier that matches the previously sent code_challenge.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `auth_code` - The authorization code received from the OAuth provider.
+    * `code_verifier` - The original code verifier that was used to generate the code challenge.
+    * `opts` - Additional options:
+      * `redirect_to` - The URL to redirect to after successful authentication.
+  """
+  def exchange_code_for_session(%Client{} = client, auth_code, code_verifier, opts \\ %{}) do
+    body = %{
+      auth_code: auth_code,
+      code_verifier: code_verifier,
+      redirect_to: opts[:redirect_to]
+    }
+
+    client
+    |> GoTrue.Request.base(@token_uri)
+    |> Request.with_method(:post)
+    |> Request.with_body(body)
+    |> Request.with_query(%{
+      "grant_type" => "pkce"
+    })
+    |> Fetcher.request()
   end
 
   @doc """
