@@ -563,4 +563,129 @@ defmodule Supabase.GoTrue.AdminTest do
       assert {:error, %Supabase.Error{}} = Admin.delete_factor(client, user_id, factor_id)
     end
   end
+
+  describe "list_identities/2" do
+    test "successfully lists user identities", %{client: client} do
+      user_id = "123"
+
+      identities_json =
+        Jason.encode!([
+          %{
+            id: "ident_1",
+            user_id: user_id,
+            identity_data: %{email: "user@github.com"},
+            provider: "github",
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z"
+          },
+          %{
+            id: "ident_2",
+            user_id: user_id,
+            identity_data: %{email: "user@google.com"},
+            provider: "google",
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z"
+          }
+        ])
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/admin/users/#{user_id}/identities"
+
+        {:ok, %Finch.Response{body: identities_json, status: 200, headers: []}}
+      end)
+
+      assert {:ok, identities} = Admin.list_identities(client, user_id)
+      assert length(identities) == 2
+      assert Enum.all?(identities, fn identity -> is_struct(identity, User.Identity) end)
+      # Instead of relying on exact order, check that both providers exist
+      assert Enum.any?(identities, fn identity -> identity.provider == :github end)
+      assert Enum.any?(identities, fn identity -> identity.provider == :google end)
+    end
+
+    test "returns an error when the user doesn't exist", %{client: client} do
+      user_id = "123"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/admin/users/#{user_id}/identities"
+
+        {:ok, %Finch.Response{body: ~s|{}|, status: 404, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Admin.list_identities(client, user_id)
+    end
+
+    test "returns an unexpected error", %{client: client} do
+      user_id = "123"
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        {:error, %Mint.TransportError{reason: :closed}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Admin.list_identities(client, user_id)
+    end
+  end
+
+  describe "delete_identity/3" do
+    test "successfully deletes a user identity", %{client: client} do
+      user_id = "123"
+      identity_id = "ident_123456789"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :delete
+        assert req.url.path =~ "/admin/users/#{user_id}/identities/#{identity_id}"
+
+        {:ok, %Finch.Response{body: ~s|{}|, status: 204, headers: []}}
+      end)
+
+      assert :ok = Admin.delete_identity(client, user_id, identity_id)
+    end
+
+    test "returns an error when the identity doesn't exist", %{client: client} do
+      user_id = "123"
+      identity_id = "ident_123456789"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :delete
+        assert req.url.path =~ "/admin/users/#{user_id}/identities/#{identity_id}"
+
+        {:ok, %Finch.Response{body: ~s|{}|, status: 404, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Admin.delete_identity(client, user_id, identity_id)
+    end
+
+    test "returns an error when trying to delete the last identity", %{client: client} do
+      user_id = "123"
+      identity_id = "ident_123456789"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :delete
+        assert req.url.path =~ "/admin/users/#{user_id}/identities/#{identity_id}"
+
+        error_json =
+          Jason.encode!(%{
+            message: "Cannot delete the last identity",
+            status: 400,
+            code: "single_identity_not_deletable"
+          })
+
+        {:ok, %Finch.Response{body: error_json, status: 400, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Admin.delete_identity(client, user_id, identity_id)
+    end
+
+    test "returns an unexpected error", %{client: client} do
+      user_id = "123"
+      identity_id = "ident_123456789"
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        {:error, %Mint.TransportError{reason: :closed}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Admin.delete_identity(client, user_id, identity_id)
+    end
+  end
 end

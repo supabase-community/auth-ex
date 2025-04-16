@@ -23,6 +23,14 @@ defmodule Supabase.GoTrue.AdminHandler do
     factors_endpoint(user_id) <> "/#{factor_id}"
   end
 
+  defp identities_endpoint(user_id) do
+    @users <> "/#{user_id}/identities"
+  end
+
+  defp identity_endpoint(user_id, identity_id) do
+    identities_endpoint(user_id) <> "/#{identity_id}"
+  end
+
   defp sign_out(scope) do
     "/logout?scope=#{scope}"
   end
@@ -112,6 +120,39 @@ defmodule Supabase.GoTrue.AdminHandler do
   """
   def delete_factor(%Client{} = client, user_id, factor_id) do
     uri = factor_endpoint(user_id, factor_id)
+
+    client
+    |> GoTrue.Request.base(uri)
+    |> Request.with_method(:delete)
+    |> Fetcher.request()
+  end
+
+  @doc """
+  Lists all identities for a specific user.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+  """
+  def list_identities(%Client{} = client, user_id) do
+    uri = identities_endpoint(user_id)
+
+    client
+    |> GoTrue.Request.base(uri)
+    |> Request.with_method(:get)
+    |> Fetcher.request()
+  end
+
+  @doc """
+  Deletes a specific identity from a user.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+    * `identity_id` - The ID of the identity to delete.
+  """
+  def delete_identity(%Client{} = client, user_id, identity_id) do
+    uri = identity_endpoint(user_id, identity_id)
 
     client
     |> GoTrue.Request.base(uri)
