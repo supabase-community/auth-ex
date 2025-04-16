@@ -391,4 +391,32 @@ defmodule Supabase.GoTrue do
       User.Identity.parse_list(response.body)
     end
   end
+
+  @doc """
+  Exchanges an authorization code for a session.
+
+  Used in the PKCE (Proof Key for Code Exchange) flow to convert an authorization code
+  into a valid session using a code_verifier that matches the previously sent code_challenge.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `auth_code` - The authorization code received from the OAuth provider.
+    * `code_verifier` - The original code verifier that was used to generate the code challenge.
+    * `opts` - Additional options:
+      * `redirect_to` - The URL to redirect to after successful authentication.
+      
+  ## Examples
+      iex> auth_code = "received_auth_code"
+      iex> code_verifier = "original_code_verifier"
+      iex> Supabase.GoTrue.exchange_code_for_session(client, auth_code, code_verifier)
+      {:ok, %Supabase.GoTrue.Session{}}
+  """
+  @impl true
+  @spec exchange_code_for_session(Client.t(), String.t(), String.t(), map()) ::
+          {:ok, Session.t()} | {:error, term}
+  def exchange_code_for_session(%Client{} = client, auth_code, code_verifier, opts \\ %{}) do
+    with {:ok, resp} <- UserHandler.exchange_code_for_session(client, auth_code, code_verifier, opts) do
+      Session.parse(resp.body)
+    end
+  end
 end

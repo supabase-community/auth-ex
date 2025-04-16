@@ -754,4 +754,78 @@ defmodule Supabase.GoTrueTest do
       assert {:ok, %ServerHealth{}} = GoTrue.get_server_health(client)
     end
   end
+
+  describe "exchange_code_for_session/4" do
+    test "successfully exchanges code for session", %{client: client} do
+      auth_code = "auth_code_123"
+      code_verifier = "verifier_123"
+      redirect_to = "http://localhost:3000/callback"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "pkce"
+
+        assert %{
+                 "auth_code" => ^auth_code,
+                 "code_verifier" => ^code_verifier,
+                 "redirect_to" => ^redirect_to
+               } = Jason.decode!(req.body)
+
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(access_token: "456", user: user)
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = session} =
+               GoTrue.exchange_code_for_session(client, auth_code, code_verifier, %{redirect_to: redirect_to})
+
+      assert session.access_token == "456"
+      assert session.user.id == "123"
+    end
+
+    test "returns an error on invalid code", %{client: client} do
+      auth_code = "invalid_auth_code"
+      code_verifier = "verifier_123"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "pkce"
+
+        assert %{
+                 "auth_code" => ^auth_code,
+                 "code_verifier" => ^code_verifier,
+                 "redirect_to" => nil
+               } = Jason.decode!(req.body)
+
+        {:ok,
+         %Finch.Response{
+           status: 400,
+           body: ~s({"error":"invalid_grant","error_description":"Invalid grant"}),
+           headers: []
+         }}
+      end)
+
+      assert {:error, %Supabase.Error{}} =
+               GoTrue.exchange_code_for_session(client, auth_code, code_verifier)
+    end
+
+    test "returns an error on unexpected error", %{client: client} do
+      auth_code = "auth_code_123"
+      code_verifier = "verifier_123"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "pkce"
+
+        {:error, %Mint.TransportError{reason: :timeout}}
+      end)
+
+      assert {:error, %Supabase.Error{}} =
+               GoTrue.exchange_code_for_session(client, auth_code, code_verifier)
+    end
+  end
 end
