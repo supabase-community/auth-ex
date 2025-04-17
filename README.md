@@ -16,6 +16,15 @@ def deps do
 end
 ```
 
+## Documentation
+
+Comprehensive documentation is available at [HexDocs](https://hexdocs.pm/supabase_gotrue).
+
+### Guides
+
+* [Authentication Guide](https://hexdocs.pm/supabase_gotrue/auth_guide.html) - Complete overview of authentication methods and integration
+* [MFA Guide](https://hexdocs.pm/supabase_gotrue/mfa_guide.html) - Learn how to implement Multi-Factor Authentication
+
 ## Usage
 
 Firstly you need to initialize your Supabase client(s) as can be found on the [Supabase Potion documentation](https://hexdocs.pm/supabase_potion/readme.html#usage).

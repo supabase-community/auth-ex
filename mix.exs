@@ -51,14 +51,28 @@ defmodule SupabaseAuth.MixProject do
         "GitHub" => @source_url,
         "Docs" => "https://hexdocs.pm/supabase_gotrue"
       },
-      files: ~w[lib mix.exs README.md LICENSE]
+      files: ~w[lib mix.exs README.md LICENSE CHANGELOG.md]
     }
   end
 
   defp docs do
     [
       main: "Supabase.GoTrue",
-      extras: ["README.md", "CHANGELOG.md"]
+      extras: [
+        "README.md",
+        "CHANGELOG.md",
+        "pages/auth_guide.md",
+        "pages/mfa_guide.md"
+      ],
+      groups_for_extras: [
+        Guides: [
+          "pages/auth_guide.md",
+          "pages/mfa_guide.md"
+        ]
+      ],
+      source_url: @source_url,
+      source_ref: "v#{@version}",
+      formatters: ["html"]
     ]
   end
 
