@@ -186,9 +186,9 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
     bindings
     |> copy_new_files(paths)
-    # |> inject_conn_case_helpers(paths)
-    # |> inject_routes(paths)
-    # |> maybe_inject_router_import()
+    |> inject_conn_case_helpers(paths)
+    |> inject_routes(paths)
+    |> maybe_inject_router_import()
     |> print_shell_instructions()
   end
 
@@ -246,35 +246,29 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   defp files_to_be_generated(opts) do
     app_name = opts[:app_name]
     web_pre = Mix.Phoenix.web_path(app_name)
-    # web_test_pre = Mix.Phoenix.web_test_path(app_name)
-    # controller_pre = Path.join([web_pre, "controllers"])
+    controller_pre = Path.join([web_pre, "controllers"])
 
     default = [
-      "auth.ex": [web_pre, "user_auth.ex"]
-      # "auth_test.exs": [web_test_pre, "user_auth_test.exs"],
-      # "session_controller.ex": [controller_pre, "session_controller.ex"]
-      # "session_controller_test.exs": [web_test_pre, "controllers", "session_controller_test.exs"],
+      "auth.ex": [web_pre, "user_auth.ex"],
+      "session_controller.ex": [controller_pre, "session_controller.ex"]
     ]
 
     files =
       if opts[:live?] do
-        # live_pre = Path.join([web_pre, "live"])
-        # live_test_pre = Path.join([web_test_pre, "live"])
+        live_pre = Path.join([web_pre, "live"])
 
-        default
-        # [
-        #   "login_live.ex": [live_pre, "login_live.ex"]
-        #   "login_live_test.exs": [live_test_pre, "login_live_test.exs"],
-        # ]
+        default ++
+          [
+            "login_live.ex": [live_pre, "login_live.ex"]
+          ]
       else
-        # html_pre = Path.join([controller_pre, "session_html"])
-        # html_test_pre = Path.join([web_test_pre, "controllers", "session_html"])
+        html_pre = Path.join([controller_pre, "session_html"])
 
-        default
-        # [
-        #   "session_html.ex": [controller_pre, "session_html.ex"],
-        #   "new.html.heex": [html_pre, "new.html.heex"]
-        # ]
+        default ++
+          [
+            "session_html.ex": [controller_pre, "session_html.ex"],
+            "new.html.heex": [html_pre, "new.html.heex"]
+          ]
       end
 
     for {source, dest} <- files, do: {:eex, to_string(source), Path.join(dest)}
