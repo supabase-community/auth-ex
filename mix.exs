@@ -36,6 +36,7 @@ defmodule SupabaseAuth.MixProject do
       {:plug, "~> 1.15", optional: true},
       {:phoenix_live_view, "~> 1.0", optional: true},
       {:mox, "~> 1.0", only: :test},
+      {:peri, "~> 0.3"},
       {:styler, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -51,7 +52,7 @@ defmodule SupabaseAuth.MixProject do
         "GitHub" => @source_url,
         "Docs" => "https://hexdocs.pm/supabase_gotrue"
       },
-      files: ~w[lib mix.exs README.md LICENSE CHANGELOG.md]
+      files: ~w[lib mix.exs priv/templates README.md LICENSE CHANGELOG.md]
     }
   end
 
