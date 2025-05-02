@@ -1,4 +1,5 @@
 defmodule Supabase.GoTrue.MissingConfig do
+  @moduledoc false
   defexception [:message]
 
   def ensure_opts!(opts, module) do

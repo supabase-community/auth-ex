@@ -1,32 +1,48 @@
 defmodule Supabase.GoTrue.User do
   @moduledoc """
-  This schema is used to validate and parse the parameters for a user.
+  Represents a user profile in the Supabase authentication system.
 
-  ## Fields
-    * `id` - The user's ID.
-    * `app_metadata` - The metadata to associate with the user.
-    * `user_metadata` - The user's metadata.
-    * `aud` - The user's audience.
-    * `confirmation_sent_at` - The time the confirmation was sent.
-    * `recovery_sent_at` - The time the recovery was sent.
-    * `email_change_sent_at` - The time the email change was sent.
-    * `new_email` - The new email.
-    * `new_phone` - The new phone.
-    * `invited_at` - The time the user was invited.
-    * `action_link` - The action link.
-    * `email` - The user's email.
-    * `phone` - The user's phone.
-    * `created_at` - The time the user was created.
-    * `confirmed_at` - The time the user was confirmed.
-    * `email_confirmed_at` - The time the email was confirmed.
-    * `phone_confirmed_at` - The time the phone was confirmed.
-    * `last_sign_in_at` - The time the user last signed in.
-    * `last_sign_in_ip` - The user's last sign-in IP.
-    * `current_sign_in_at` - The time the user last signed in.
-    * `current_sign_in_ip` - The user's current sign-in IP.
-    * `sign_in_count` - The number of times the user has signed in.
-    * `factors` - The user's factors. Check the `Supabase.GoTrue.User.Factor` schema for more information.
-    * `identities` - The user's identities. Check the `Supabase.GoTrue.User.Identity` schema for more information.
+  This schema contains all the user information stored in the GoTrue service, including
+  authentication details, profile data, and linked identities. The User struct is typically
+  accessed through `Supabase.GoTrue.get_user/2` after a successful authentication.
+
+  ## Important Fields
+
+  * `id` - Unique identifier (UUID) for the user
+  * `email` - User's email address (if applicable)
+  * `phone` - User's phone number (if applicable)
+  * `user_metadata` - Custom user attributes, editable by the user
+  * `app_metadata` - Application-controlled attributes, not editable by the user
+  * `created_at` - Timestamp when the user was created
+  * `last_sign_in_at` - Timestamp of the user's most recent sign-in
+  * `confirmed_at` - Timestamp when the user was confirmed (email verification)
+  * `factors` - Multi-factor authentication methods associated with the user
+  * `identities` - External identity providers linked to this user (GitHub, Google, etc.)
+
+  ## Confirmation Status
+
+  A user's verification status for email and phone can be determined using the following fields:
+
+  * `email_confirmed_at` - Non-nil when email is verified
+  * `phone_confirmed_at` - Non-nil when phone is verified
+
+  ## Example Usage
+
+  ```elixir
+  # Retrieve user details from a session
+  {:ok, user} = Supabase.GoTrue.get_user(client, session)
+
+  # Check if email is verified
+  email_verified = user.email_confirmed_at != nil
+
+  # Access custom user metadata
+  profile_pic = user.user_metadata["avatar_url"]
+  ```
+
+  ## Related Schemas
+
+  * `Supabase.GoTrue.User.Factor` - MFA factors associated with the user
+  * `Supabase.GoTrue.User.Identity` - External identity providers linked to the user
   """
 
   use Ecto.Schema
@@ -86,8 +102,8 @@ defmodule Supabase.GoTrue.User do
     field(:encrypted_password, :string)
     field(:role, :string)
 
-    embeds_many(:factors, Supabase.GoTrue.User.Factor)
-    embeds_many(:identities, Supabase.GoTrue.User.Identity)
+    embeds_many(:factors, Factor)
+    embeds_many(:identities, Identity)
 
     timestamps(inserted_at: :created_at)
   end
@@ -106,12 +122,67 @@ defmodule Supabase.GoTrue.User do
     |> validate_required(@required_fields)
   end
 
+  @doc """
+  Parses and validates a map of user attributes into a User struct.
+
+  This function validates that all required fields are present and correctly formatted,
+  returning either a valid User struct or a changeset with validation errors.
+
+  ## Parameters
+
+  * `attrs` - Map containing user attributes returned from the GoTrue API
+
+  ## Returns
+
+  * `{:ok, user}` - Successfully parsed user
+  * `{:error, changeset}` - Failed validation with error details
+
+  ## Examples
+
+      iex> attrs = %{
+      ...>   "id" => "550e8400-e29b-41d4-a716-446655440000",
+      ...>   "email" => "user@example.com",
+      ...>   "app_metadata" => %{},
+      ...>   "user_metadata" => %{"name" => "Test User"},
+      ...>   "aud" => "authenticated",
+      ...>   "created_at" => "2023-01-01T00:00:00Z"
+      ...> }
+      iex> {:ok, user} = Supabase.GoTrue.User.parse(attrs)
+      iex> user.email
+      "user@example.com"
+  """
   def parse(attrs) do
     attrs
     |> changeset()
     |> apply_action(:parse)
   end
 
+  @doc """
+  Parses a list of user attribute maps into a list of User structs.
+
+  This function attempts to validate and parse each map in the provided list.
+  If all validations succeed, it returns a list of User structs. If any 
+  validation fails, it returns the first error encountered.
+
+  ## Parameters
+
+  * `list_attrs` - List of maps containing user attributes
+
+  ## Returns
+
+  * `{:ok, [user, ...]}` - Successfully parsed list of users
+  * `{:error, changeset}` - First validation error encountered
+
+  ## Examples
+
+      iex> attrs_list = [
+      ...>   %{"id" => "user1", "app_metadata" => %{}, "aud" => "auth", "created_at" => "2023-01-01T00:00:00Z"},
+      ...>   %{"id" => "user2", "app_metadata" => %{}, "aud" => "auth", "created_at" => "2023-01-01T00:00:00Z"}
+      ...> ]
+      iex> {:ok, users} = Supabase.GoTrue.User.parse_list(attrs_list)
+      iex> length(users)
+      2
+  """
   def parse_list(list_attrs) do
     results =
       Enum.reduce_while(list_attrs, [], fn attrs, acc ->

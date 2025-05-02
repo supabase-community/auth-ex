@@ -32,6 +32,7 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
 
     defmacro __using__(opts) do
       alias Supabase.GoTrue.MissingConfig
+
       module = __CALLER__.module
       MissingConfig.ensure_opts!(opts, module)
 

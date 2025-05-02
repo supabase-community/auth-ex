@@ -2,19 +2,17 @@ defmodule Supabase.GoTrueTest do
   use ExUnit.Case, async: true
 
   import Mox
-
   import Supabase.GoTrue.ServerHealthFixture
   import Supabase.GoTrue.ServerSettingsFixture
   import Supabase.GoTrue.SessionFixture
   import Supabase.GoTrue.UserFixture
 
+  alias Supabase.Fetcher.Request
   alias Supabase.GoTrue
   alias Supabase.GoTrue.Schemas.ServerHealth
   alias Supabase.GoTrue.Schemas.ServerSettings
   alias Supabase.GoTrue.Session
   alias Supabase.GoTrue.User
-
-  alias Supabase.Fetcher.Request
 
   setup :verify_on_exit!
 
@@ -36,8 +34,7 @@ defmodule Supabase.GoTrueTest do
 
   describe "get_user/2" do
     test "successfully retrieves an existing user", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/user"
 
@@ -52,8 +49,7 @@ defmodule Supabase.GoTrueTest do
     end
 
     test "returns an error when user doesn't exists", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/user"
 
@@ -65,8 +61,7 @@ defmodule Supabase.GoTrueTest do
     end
 
     test "returns an unexpected error", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/user"
 
@@ -82,8 +77,7 @@ defmodule Supabase.GoTrueTest do
     test "successfully sings in an user with ID token", %{client: client} do
       data = %{provider: :apple, token: "123"}
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/token"
 
@@ -96,7 +90,7 @@ defmodule Supabase.GoTrueTest do
 
         assert Request.get_query_param(req, "grant_type") == "id_token"
 
-        user = user_fixture(id: "123") |> Map.from_struct()
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
         body = session_fixture_json(access_token: "123", user: user)
 
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
@@ -110,8 +104,7 @@ defmodule Supabase.GoTrueTest do
     test "returns an error on authentication error", %{client: client} do
       data = %{provider: :apple, token: "123"}
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/token"
 
@@ -133,8 +126,7 @@ defmodule Supabase.GoTrueTest do
     test "returns an error on unexpected error", %{client: client} do
       data = %{provider: :apple, token: "123"}
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/token"
 
@@ -185,8 +177,7 @@ defmodule Supabase.GoTrueTest do
         }
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/otp"
 
@@ -213,8 +204,7 @@ defmodule Supabase.GoTrueTest do
         }
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/otp"
 
@@ -252,8 +242,7 @@ defmodule Supabase.GoTrueTest do
         }
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/otp"
 
@@ -291,8 +280,7 @@ defmodule Supabase.GoTrueTest do
           options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
         }
 
-        @mock
-        |> expect(:request, fn %Request{} = req, _opts ->
+        expect(@mock, :request, fn %Request{} = req, _opts ->
           assert req.method == :post
           assert req.url.path =~ "/verify"
           assert Request.get_query_param(req, "redirect_to") == "http://localhost:3000"
@@ -310,7 +298,7 @@ defmodule Supabase.GoTrueTest do
 
           assert t == Atom.to_string(type)
 
-          user = user_fixture(id: "123") |> Map.from_struct()
+          user = [id: "123"] |> user_fixture() |> Map.from_struct()
           body = session_fixture_json(access_token: "123", user: user)
 
           {:ok, %Finch.Response{status: 201, body: body, headers: []}}
@@ -331,8 +319,7 @@ defmodule Supabase.GoTrueTest do
           options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
         }
 
-        @mock
-        |> expect(:request, fn %Request{} = req, _opts ->
+        expect(@mock, :request, fn %Request{} = req, _opts ->
           assert req.method == :post
           assert req.url.path =~ "/verify"
           assert Request.get_query_param(req, "redirect_to") == "http://localhost:3000"
@@ -350,7 +337,7 @@ defmodule Supabase.GoTrueTest do
 
           assert t == Atom.to_string(type)
 
-          user = user_fixture(id: "123") |> Map.from_struct()
+          user = [id: "123"] |> user_fixture() |> Map.from_struct()
           body = session_fixture_json(access_token: "123", user: user)
 
           {:ok, %Finch.Response{status: 201, body: body, headers: []}}
@@ -369,8 +356,7 @@ defmodule Supabase.GoTrueTest do
         options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/verify"
         assert Request.get_query_param(req, "redirect_to") == "http://localhost:3000"
@@ -385,7 +371,7 @@ defmodule Supabase.GoTrueTest do
                  "type" => "signup"
                } = Jason.decode!(req.body)
 
-        user = user_fixture(id: "123") |> Map.from_struct()
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
         body = session_fixture_json(access_token: "123", user: user)
 
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
@@ -404,8 +390,7 @@ defmodule Supabase.GoTrueTest do
         options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/verify"
         assert Request.get_query_param(req, "redirect_to") == "http://localhost:3000"
@@ -435,8 +420,7 @@ defmodule Supabase.GoTrueTest do
         options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/sso"
 
@@ -469,8 +453,7 @@ defmodule Supabase.GoTrueTest do
         options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/token"
 
@@ -483,7 +466,7 @@ defmodule Supabase.GoTrueTest do
 
         assert Request.get_query_param(req, "grant_type") == "password"
 
-        user = user_fixture(id: "123") |> Map.from_struct()
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
         body = session_fixture_json(access_token: "123", user: user)
 
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
@@ -501,8 +484,7 @@ defmodule Supabase.GoTrueTest do
         options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/token"
 
@@ -526,8 +508,7 @@ defmodule Supabase.GoTrueTest do
     test "successfully signs in an user anonymously", %{client: client} do
       data = %{captcha_token: "123"}
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/signup"
 
@@ -535,7 +516,7 @@ defmodule Supabase.GoTrueTest do
                  "options" => %{"captcha_token" => "123"}
                } = Jason.decode!(req.body)
 
-        user = user_fixture(id: "123", identities: []) |> Map.from_struct()
+        user = [id: "123", identities: []] |> user_fixture() |> Map.from_struct()
         body = session_fixture_json(access_token: "123", user: user)
 
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
@@ -549,8 +530,7 @@ defmodule Supabase.GoTrueTest do
     test "returns an error on unexpected error", %{client: client} do
       data = %{captcha_token: "123"}
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/signup"
 
@@ -567,8 +547,7 @@ defmodule Supabase.GoTrueTest do
     test "returns an error on authentication error", %{client: client} do
       data = %{captcha_token: "123"}
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/signup"
 
@@ -592,8 +571,7 @@ defmodule Supabase.GoTrueTest do
         options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
       }
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/signup"
 
@@ -621,8 +599,7 @@ defmodule Supabase.GoTrueTest do
     test "successfully sends a recovery password email", %{client: client} do
       email = "another@example.com"
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/recover"
 
@@ -635,16 +612,13 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert :ok =
-               GoTrue.reset_password_for_email(client, email,
-                 redirect_to: "http://localhost:3000"
-               )
+               GoTrue.reset_password_for_email(client, email, redirect_to: "http://localhost:3000")
     end
 
     test "returns an error on unexpected error", %{client: client} do
       email = "another@example.com"
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/recover"
 
@@ -652,9 +626,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:error, %Supabase.Error{}} =
-               GoTrue.reset_password_for_email(client, email,
-                 redirect_to: "http://localhost:3000"
-               )
+               GoTrue.reset_password_for_email(client, email, redirect_to: "http://localhost:3000")
     end
   end
 
@@ -662,8 +634,7 @@ defmodule Supabase.GoTrueTest do
     test "successfully resends a signup confirm email", %{client: client} do
       email = "another@example.com"
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/resend"
 
@@ -683,12 +654,11 @@ defmodule Supabase.GoTrueTest do
 
   describe "refresh_session/2" do
     test "successfully refreshes the current session", %{client: client} do
-      user = user_fixture(id: "123") |> Map.from_struct()
+      user = [id: "123"] |> user_fixture() |> Map.from_struct()
       refresh_token = "456"
       session = session_fixture(refresh_token: refresh_token, user: user)
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/token"
         assert Request.get_query_param(req, "grant_type") == "refresh_token"
@@ -708,12 +678,11 @@ defmodule Supabase.GoTrueTest do
     end
 
     test "returns an unauthenticated error", %{client: client} do
-      user = user_fixture(id: "123") |> Map.from_struct()
+      user = [id: "123"] |> user_fixture() |> Map.from_struct()
       refresh_token = "456"
       session = session_fixture(refresh_token: refresh_token, user: user)
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/token"
         assert Request.get_query_param(req, "grant_type") == "refresh_token"
@@ -727,12 +696,11 @@ defmodule Supabase.GoTrueTest do
     end
 
     test "returns an unexpected error", %{client: client} do
-      user = user_fixture(id: "123") |> Map.from_struct()
+      user = [id: "123"] |> user_fixture() |> Map.from_struct()
       refresh_token = "456"
       session = session_fixture(refresh_token: refresh_token, user: user)
 
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/token"
         assert Request.get_query_param(req, "grant_type") == "refresh_token"
@@ -748,8 +716,7 @@ defmodule Supabase.GoTrueTest do
 
   describe "get_server_settings/1" do
     test "successfully retrieves the server settings", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/settings"
 
@@ -762,8 +729,7 @@ defmodule Supabase.GoTrueTest do
     end
 
     test "returns an unexpected error", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/settings"
 
@@ -776,8 +742,7 @@ defmodule Supabase.GoTrueTest do
 
   describe "get_server_health/1" do
     test "successfully retrieves the server health", %{client: client} do
-      @mock
-      |> expect(:request, fn %Request{} = req, _opts ->
+      expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/health"
 
@@ -787,6 +752,124 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:ok, %ServerHealth{}} = GoTrue.get_server_health(client)
+    end
+  end
+
+  describe "exchange_code_for_session/4" do
+    test "successfully exchanges code for session", %{client: client} do
+      auth_code = "auth_code_123"
+      code_verifier = "verifier_123"
+      redirect_to = "http://localhost:3000/callback"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "pkce"
+
+        assert %{
+                 "auth_code" => ^auth_code,
+                 "code_verifier" => ^code_verifier,
+                 "redirect_to" => ^redirect_to
+               } = Jason.decode!(req.body)
+
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(access_token: "456", user: user)
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = session} =
+               GoTrue.exchange_code_for_session(client, auth_code, code_verifier, %{redirect_to: redirect_to})
+
+      assert session.access_token == "456"
+      assert session.user.id == "123"
+    end
+
+    test "returns an error on invalid code", %{client: client} do
+      auth_code = "invalid_auth_code"
+      code_verifier = "verifier_123"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "pkce"
+
+        assert %{
+                 "auth_code" => ^auth_code,
+                 "code_verifier" => ^code_verifier,
+                 "redirect_to" => nil
+               } = Jason.decode!(req.body)
+
+        {:ok,
+         %Finch.Response{
+           status: 400,
+           body: ~s({"error":"invalid_grant","error_description":"Invalid grant"}),
+           headers: []
+         }}
+      end)
+
+      assert {:error, %Supabase.Error{}} =
+               GoTrue.exchange_code_for_session(client, auth_code, code_verifier)
+    end
+
+    test "returns an error on unexpected error", %{client: client} do
+      auth_code = "auth_code_123"
+      code_verifier = "verifier_123"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "pkce"
+
+        {:error, %Mint.TransportError{reason: :timeout}}
+      end)
+
+      assert {:error, %Supabase.Error{}} =
+               GoTrue.exchange_code_for_session(client, auth_code, code_verifier)
+    end
+  end
+
+  describe "reauthenticate/2" do
+    test "successfully sends reauthentication request", %{client: client} do
+      session = %Session{access_token: "valid_token"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/reauthenticate"
+        assert List.keyfind(req.headers, "authorization", 0) == {"authorization", "Bearer valid_token"}
+
+        {:ok, %Finch.Response{status: 200, body: "{}", headers: []}}
+      end)
+
+      assert :ok = GoTrue.reauthenticate(client, session)
+    end
+
+    test "returns an error when unauthorized", %{client: client} do
+      session = %Session{access_token: "invalid_token"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/reauthenticate"
+        assert List.keyfind(req.headers, "authorization", 0) == {"authorization", "Bearer invalid_token"}
+
+        {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = GoTrue.reauthenticate(client, session)
+    end
+
+    test "returns an error on unexpected error", %{client: client} do
+      session = %Session{access_token: "valid_token"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/reauthenticate"
+        assert List.keyfind(req.headers, "authorization", 0) == {"authorization", "Bearer valid_token"}
+
+        {:error, %Mint.TransportError{reason: :timeout}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = GoTrue.reauthenticate(client, session)
     end
   end
 end

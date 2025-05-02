@@ -15,7 +15,6 @@ defmodule Supabase.GoTrue.Schemas.SignInWithOTP do
   use Ecto.Schema
 
   import Ecto.Changeset
-
   import Supabase.GoTrue.Validations
 
   @type options :: %__MODULE__.Options{

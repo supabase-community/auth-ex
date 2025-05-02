@@ -1,6 +1,7 @@
 defmodule Supabase.GoTrue.UserHandler do
   @moduledoc false
 
+  alias Phoenix.LiveView.Socket
   alias Supabase.Client
   alias Supabase.Fetcher
   alias Supabase.Fetcher.Request
@@ -30,6 +31,10 @@ defmodule Supabase.GoTrue.UserHandler do
   @resend_signup_uri "/resend"
   @settings_uri "/settings"
   @health_uri "/health"
+  @identities_uri "/identities"
+  @identity_authorize_uri "/identities/authorize"
+  @token_uri "/token"
+  @reauthenticate_uri "/reauthenticate"
 
   def get_user(%Client{} = client, access_token) when is_binary(access_token) do
     client
@@ -49,8 +54,7 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  def sign_in_with_otp(%Client{} = client, %SignInWithOTP{} = signin)
-      when client.auth.flow_type == :pkce do
+  def sign_in_with_otp(%Client{} = client, %SignInWithOTP{} = signin) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     with {:ok, body} <- SignInRequest.create(signin, challenge, method) do
@@ -88,8 +92,7 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  def sign_in_with_sso(%Client{} = client, %SignInWithSSO{} = signin)
-      when client.auth.flow_type == :pkce do
+  def sign_in_with_sso(%Client{} = client, %SignInWithSSO{} = signin) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     with {:ok, body} <- SignInRequest.create(signin, challenge, method) do
@@ -143,8 +146,7 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  defp sign_in_request(%Client{} = client, %SignInRequest{} = body, grant_type)
-       when grant_type in @grant_types do
+  defp sign_in_request(%Client{} = client, %SignInRequest{} = body, grant_type) when grant_type in @grant_types do
     client
     |> GoTrue.Request.base(@sign_in_uri)
     |> Request.with_method(:post)
@@ -156,8 +158,7 @@ defmodule Supabase.GoTrue.UserHandler do
     |> Fetcher.request()
   end
 
-  def sign_up(%Client{} = client, %SignUpWithPassword{} = signup)
-      when client.auth.flow_type == :pkce do
+  def sign_up(%Client{} = client, %SignUpWithPassword{} = signup) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     with {:ok, body} <- SignUpRequest.create(signup, challenge, method),
@@ -184,8 +185,7 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  def recover_password(%Client{} = client, email, %{} = opts)
-      when client.auth.flow_type == :pkce do
+  def recover_password(%Client{} = client, email, %{} = opts) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     body = %{
@@ -238,14 +238,13 @@ defmodule Supabase.GoTrue.UserHandler do
     with {:ok, _} <- Fetcher.request(builder), do: :ok
   end
 
-  def update_user(%Client{} = client, conn, %{} = params)
-      when client.auth.flow_type == :pkce do
+  def update_user(%Client{} = client, conn, %{} = params) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
 
     access_token =
       case conn do
         %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
-        %Phoenix.LiveView.Socket{} -> conn.assigns.user_token
+        %Socket{} -> conn.assigns.user_token
       end
 
     body = Map.merge(params, %{code_challenge: challenge, code_challenge_method: method})
@@ -266,7 +265,7 @@ defmodule Supabase.GoTrue.UserHandler do
         %Plug.Conn{} ->
           {:ok, auth_module.fetch_current_user(conn, nil)}
 
-        %Phoenix.LiveView.Socket{} ->
+        %Socket{} ->
           {:ok, auth_module.mount_current_user(session, conn)}
       end
     end
@@ -276,7 +275,7 @@ defmodule Supabase.GoTrue.UserHandler do
     access_token =
       case conn do
         %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
-        %Phoenix.LiveView.Socket{} -> conn.assigns.user_token
+        %Socket{} -> conn.assigns.user_token
       end
 
     builder =
@@ -295,18 +294,17 @@ defmodule Supabase.GoTrue.UserHandler do
         %Plug.Conn{} ->
           {:ok, auth_module.fetch_current_user(conn, nil)}
 
-        %Phoenix.LiveView.Socket{} ->
+        %Socket{} ->
           {:ok, auth_module.mount_current_user(session, conn)}
       end
     end
   end
 
-  def get_url_for_provider(%Client{} = client, %SignInWithOauth{} = oauth)
-      when client.auth.flow_type == :pkce do
+  def get_url_for_provider(%Client{} = client, %SignInWithOauth{} = oauth) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
     pkce_query = %{code_challenge: challenge, code_challenge_method: method}
     oauth_query = SignInWithOauth.options_to_query(oauth)
-    query = Map.merge(pkce_query, oauth_query) |> Map.new(fn {k, v} -> {to_string(k), v} end)
+    query = pkce_query |> Map.merge(oauth_query) |> Map.new(fn {k, v} -> {to_string(k), v} end)
 
     client
     |> GoTrue.Request.base(@oauth_uri)
@@ -358,5 +356,148 @@ defmodule Supabase.GoTrue.UserHandler do
     challenge = PKCE.generate_challenge(verifier)
     method = if verifier == challenge, do: "plain", else: "s256"
     {challenge, method}
+  end
+
+  @doc """
+  Exchanges an authorization code for a session.
+
+  Used in the PKCE (Proof Key for Code Exchange) flow to convert an authorization code
+  into a valid session using a code_verifier that matches the previously sent code_challenge.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `auth_code` - The authorization code received from the OAuth provider.
+    * `code_verifier` - The original code verifier that was used to generate the code challenge.
+    * `opts` - Additional options:
+      * `redirect_to` - The URL to redirect to after successful authentication.
+  """
+  def exchange_code_for_session(%Client{} = client, auth_code, code_verifier, opts \\ %{}) do
+    body = %{
+      auth_code: auth_code,
+      code_verifier: code_verifier,
+      redirect_to: opts[:redirect_to]
+    }
+
+    client
+    |> GoTrue.Request.base(@token_uri)
+    |> Request.with_method(:post)
+    |> Request.with_body(body)
+    |> Request.with_query(%{
+      "grant_type" => "pkce"
+    })
+    |> Fetcher.request()
+  end
+
+  @doc """
+  Get a URL to link a new identity to the user's account.
+
+  This endpoint requires authentication.
+  """
+  def link_identity(%Client{} = client, access_token, %SignInWithOauth{} = oauth)
+      when is_binary(access_token) and client.auth.flow_type == :pkce do
+    {challenge, method} = generate_pkce()
+    pkce_query = %{code_challenge: challenge, code_challenge_method: method}
+    oauth_query = SignInWithOauth.options_to_query(oauth)
+    query = pkce_query |> Map.merge(oauth_query) |> Map.new(fn {k, v} -> {to_string(k), v} end)
+
+    client
+    |> GoTrue.Request.base(@single_user_uri <> @identity_authorize_uri)
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_query(query)
+    |> Fetcher.request()
+    |> case do
+      {:ok, response} ->
+        {:ok, %{url: response.body["url"], provider: oauth.provider}}
+
+      error ->
+        error
+    end
+  end
+
+  def link_identity(%Client{} = client, access_token, %SignInWithOauth{} = oauth) when is_binary(access_token) do
+    oauth_query = SignInWithOauth.options_to_query(oauth)
+    query = Map.new(oauth_query, fn {k, v} -> {to_string(k), v} end)
+
+    client
+    |> GoTrue.Request.base(@single_user_uri <> @identity_authorize_uri)
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_query(query)
+    |> Fetcher.request()
+    |> case do
+      {:ok, response} ->
+        {:ok, %{url: response.body["url"], provider: oauth.provider}}
+
+      error ->
+        error
+    end
+  end
+
+  def link_identity(%Client{}, nil, _) do
+    {:error, %Supabase.Error{message: "Missing access token", code: :unauthorized}}
+  end
+
+  @doc """
+  Unlink an identity from the user's account.
+
+  This endpoint requires authentication.
+  """
+  def unlink_identity(%Client{} = client, access_token, identity_id)
+      when is_binary(access_token) and is_binary(identity_id) do
+    client
+    |> GoTrue.Request.base(@single_user_uri <> @identities_uri <> "/#{identity_id}")
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_method(:delete)
+    |> Fetcher.request()
+    |> case do
+      {:ok, _} -> :ok
+      err -> err
+    end
+  end
+
+  def unlink_identity(%Client{}, nil, _) do
+    {:error, %Supabase.Error{message: "Missing access token", code: :unauthorized}}
+  end
+
+  @doc """
+  Get all identities for the authenticated user.
+
+  This endpoint requires authentication.
+  """
+  def get_user_identities(%Client{} = client, access_token) when is_binary(access_token) do
+    client
+    |> GoTrue.Request.base(@single_user_uri <> @identities_uri)
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_method(:get)
+    |> Fetcher.request()
+  end
+
+  def get_user_identities(%Client{}, nil) do
+    {:error, %Supabase.Error{message: "Missing access token", code: :unauthorized}}
+  end
+
+  @doc """
+  Sends a reauthentication request for the authenticated user.
+
+  This sends a reauthentication OTP to the user's email or phone number. 
+  Requires the user to be authenticated with a valid session.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `access_token` - The access token of the current session.
+  """
+  def reauthenticate(%Client{} = client, access_token) when is_binary(access_token) do
+    client
+    |> GoTrue.Request.base(@reauthenticate_uri)
+    |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+    |> Request.with_method(:get)
+    |> Fetcher.request()
+    |> case do
+      {:ok, _} -> :ok
+      err -> err
+    end
+  end
+
+  def reauthenticate(%Client{}, nil) do
+    {:error, %Supabase.Error{message: "Missing access token", code: :unauthorized}}
   end
 end

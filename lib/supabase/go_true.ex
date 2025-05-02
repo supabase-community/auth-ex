@@ -1,14 +1,44 @@
 defmodule Supabase.GoTrue do
   @moduledoc """
-  This module provides the functionality to interact with the GoTrue API,
-  allowing management of users, sessions, and authentication.
+  The main interface for interacting with Supabase's GoTrue authentication service.
+  This module provides comprehensive functionality for user authentication, session management, 
+  and identity handling in Elixir applications.
 
-  It also aims to provide integrations with Plug and Phoenix LiveView applications.
+  ## Features
 
-  For detailed information about the GoTrue API, check the official documentation at https://supabase.io/docs/reference/javascript/auth-api
+  * Multiple authentication methods: password, OAuth, OTP, SSO, and anonymous
+  * Session management: creation, refresh, and validation
+  * User management: registration, profile updates, and password recovery
+  * Multi-factor authentication support
+  * Identity linking/unlinking for social providers
+  * Server health and settings information
 
-  And also refer to functions and submodules documentation for more information.
+  ## Integration Options
+
+  * **HTTP API client**: Core functions for direct API interaction
+  * **Plug integration**: For traditional web applications (`Supabase.GoTrue.Plug`)
+  * **Phoenix LiveView**: For real-time applications (`Supabase.GoTrue.LiveView`)
+
+  ## Example Usage
+
+  Basic authentication with email and password:
+
+      {:ok, session} = Supabase.GoTrue.sign_in_with_password(client, %{
+        email: "user@example.com",
+        password: "secure-password"
+      })
+
+  Retrieve the current user:
+
+      {:ok, user} = Supabase.GoTrue.get_user(client, session)
+
+  See individual function documentation for more examples and options.
+
+  For comprehensive information about the GoTrue API, check the official documentation at:
+  https://supabase.com/docs/reference/javascript/auth-api
   """
+
+  @behaviour Supabase.GoTrueBehaviour
 
   alias Supabase.Client
   alias Supabase.GoTrue.Schemas.ResendParams
@@ -26,19 +56,32 @@ defmodule Supabase.GoTrue do
   alias Supabase.GoTrue.User
   alias Supabase.GoTrue.UserHandler
 
-  @behaviour Supabase.GoTrueBehaviour
-
   @doc """
-  Get the user associated with the current session.
+  Retrieves the currently authenticated user's profile.
+
+  This function makes an API request to get the most up-to-date user information
+  associated with the provided session. This is useful for checking the current
+  state of the user including verification status, metadata, and linked identities.
 
   ## Parameters
-    - `client` - The `Supabase` client to use for the request.
-    - `session` - The session to use for the request. Check `Supabase.GoTrue.Session` for more information.
+
+  * `client` - The Supabase client to use for the request
+  * `session` - An active session containing a valid access token
+
+  ## Returns
+
+  * `{:ok, user}` - Successfully retrieved user profile
+  * `{:error, error}` - Failed to retrieve user profile
 
   ## Examples
-      iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
-      iex> Supabase.GoTrue.get_user(pid | client_name, session)
-      {:ok, %Supabase.GoTrue.User{}}
+
+      iex> session = %Supabase.GoTrue.Session{access_token: "eyJhbG..."}
+      iex> {:ok, user} = Supabase.GoTrue.get_user(client, session)
+      iex> user.email
+      "user@example.com"
+      
+      # If the session is invalid or expired
+      iex> {:error, %Supabase.Error{code: :unauthorized}} = Supabase.GoTrue.get_user(client, invalid_session)
   """
   @impl true
   def get_user(%Client{} = client, %Session{} = session) do
@@ -145,16 +188,42 @@ defmodule Supabase.GoTrue do
   end
 
   @doc """
-  Signs in a user with email/phone and password.
+  Authenticates a user with email/phone and password.
+
+  This is the most common authentication method used for traditional credential-based
+  authentication. Upon successful authentication, a session is created containing
+  access and refresh tokens.
 
   ## Parameters
-    - `client` - The `Supabase` client to use for the request.
-    - `credentials` - The credentials to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInWithPassword` for more information.
+
+  * `client` - The Supabase client to use for the request
+  * `credentials` - Map with authentication details:
+    * `email` - User's email address (required if phone not provided)
+    * `phone` - User's phone number (required if email not provided)
+    * `password` - User's password (required)
+    * `gotrue_meta_security` - Optional captcha details
+
+  ## Returns
+
+  * `{:ok, session}` - Successfully authenticated, returns session with tokens
+  * `{:error, error}` - Authentication failed
 
   ## Examples
-      iex> credentials = %Supabase.GoTrue.SignInWithPassword{}
-      iex> Supabase.GoTrue.sign_in_with_password(pid | client_name, credentials)
-      {:ok, %Supabase.GoTrue.Session{}}
+
+      # Sign in with email
+      iex> credentials = %{email: "user@example.com", password: "secure-password"}
+      iex> {:ok, session} = Supabase.GoTrue.sign_in_with_password(client, credentials)
+      iex> session.access_token
+      "eyJhbG..."
+      
+      # Sign in with phone
+      iex> credentials = %{phone: "+15555550123", password: "secure-password"}
+      iex> {:ok, session} = Supabase.GoTrue.sign_in_with_password(client, credentials)
+
+  ## Related
+
+  * `sign_up/2` - Create a new user account with email/password
+  * `reset_password_for_email/3` - Reset a forgotten password
   """
   @impl true
   def sign_in_with_password(%Client{} = client, credentials) do
@@ -331,5 +400,114 @@ defmodule Supabase.GoTrue do
   def get_auth_module! do
     Application.get_env(:supabase_gotrue, :auth_module) ||
       raise(Supabase.GoTrue.MissingConfig, key: :auth_module)
+  end
+
+  @doc """
+  Gets a URL to link a new identity to the authenticated user's account.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+    - `session` - The session to use for the request.
+    - `credentials` - The OAuth credentials to use for identity linking. Check `Supabase.GoTrue.Schemas.SignInWithOauth` for more information.
+
+  ## Examples
+      iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
+      iex> credentials = %Supabase.GoTrue.SignInWithOauth{provider: :github}
+      iex> Supabase.GoTrue.link_identity(client, session, credentials)
+      {:ok, %{provider: :github, url: "https://..."}}
+  """
+  @spec link_identity(Client.t(), Session.t(), map) :: {:ok, map} | {:error, term}
+  def link_identity(%Client{} = client, %Session{} = session, credentials) do
+    with {:ok, credentials} <- SignInWithOauth.parse(credentials) do
+      UserHandler.link_identity(client, session.access_token, credentials)
+    end
+  end
+
+  @doc """
+  Unlinks an identity from the authenticated user's account.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+    - `session` - The session to use for the request.
+    - `identity_id` - The ID of the identity to unlink.
+
+  ## Examples
+      iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
+      iex> identity_id = "1234567890"
+      iex> Supabase.GoTrue.unlink_identity(client, session, identity_id)
+      :ok
+  """
+  @spec unlink_identity(Client.t(), Session.t(), String.t()) :: :ok | {:error, term}
+  def unlink_identity(%Client{} = client, %Session{} = session, identity_id) do
+    UserHandler.unlink_identity(client, session.access_token, identity_id)
+  end
+
+  @doc """
+  Gets all identities for the authenticated user.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+    - `session` - The session to use for the request.
+
+  ## Examples
+      iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
+      iex> Supabase.GoTrue.get_user_identities(client, session)
+      {:ok, [%Supabase.GoTrue.User.Identity{}, ...]}
+  """
+  @spec get_user_identities(Client.t(), Session.t()) :: {:ok, list(User.Identity.t())} | {:error, term}
+  def get_user_identities(%Client{} = client, %Session{} = session) do
+    with {:ok, response} <- UserHandler.get_user_identities(client, session.access_token) do
+      User.Identity.parse_list(response.body)
+    end
+  end
+
+  @doc """
+  Exchanges an authorization code for a session.
+
+  Used in the PKCE (Proof Key for Code Exchange) flow to convert an authorization code
+  into a valid session using a code_verifier that matches the previously sent code_challenge.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `auth_code` - The authorization code received from the OAuth provider.
+    * `code_verifier` - The original code verifier that was used to generate the code challenge.
+    * `opts` - Additional options:
+      * `redirect_to` - The URL to redirect to after successful authentication.
+      
+  ## Examples
+      iex> auth_code = "received_auth_code"
+      iex> code_verifier = "original_code_verifier"
+      iex> Supabase.GoTrue.exchange_code_for_session(client, auth_code, code_verifier)
+      {:ok, %Supabase.GoTrue.Session{}}
+  """
+  @impl true
+  @spec exchange_code_for_session(Client.t(), String.t(), String.t(), map()) ::
+          {:ok, Session.t()} | {:error, term}
+  def exchange_code_for_session(%Client{} = client, auth_code, code_verifier, opts \\ %{}) do
+    with {:ok, resp} <- UserHandler.exchange_code_for_session(client, auth_code, code_verifier, opts) do
+      Session.parse(resp.body)
+    end
+  end
+
+  @doc """
+  Sends a reauthentication request for the authenticated user.
+
+  This method is typically used when performing sensitive operations that require 
+  recent authentication. It sends a one-time password (OTP) to the user's email
+  or phone number, which they need to verify to confirm their identity.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `session` - The current user session containing the access token.
+
+  ## Examples
+      iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
+      iex> Supabase.GoTrue.reauthenticate(client, session)
+      :ok
+  """
+  @impl true
+  @spec reauthenticate(Client.t(), Session.t()) :: :ok | {:error, term}
+  def reauthenticate(%Client{} = client, %Session{} = session) do
+    UserHandler.reauthenticate(client, session.access_token)
   end
 end

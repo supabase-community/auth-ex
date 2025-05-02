@@ -6,6 +6,8 @@ defmodule Supabase.GoTrue.Admin do
   You can find more information about the GoTrue admin API at https://supabase.io/docs/reference/javascript/auth-admin-api
   """
 
+  @behaviour Supabase.GoTrue.AdminBehaviour
+
   alias Supabase.Client
   alias Supabase.Fetcher.Response
   alias Supabase.GoTrue.AdminHandler
@@ -15,8 +17,6 @@ defmodule Supabase.GoTrue.Admin do
   alias Supabase.GoTrue.Schemas.PaginationParams
   alias Supabase.GoTrue.Session
   alias Supabase.GoTrue.User
-
-  @behaviour Supabase.GoTrue.AdminBehaviour
 
   @scopes ~w[global local others]a
 
@@ -201,5 +201,57 @@ defmodule Supabase.GoTrue.Admin do
          {:ok, response} <- AdminHandler.update_user(client, user_id, params) do
       User.parse(response.body)
     end
+  end
+
+  @doc """
+  Deletes a multi-factor authentication factor for a user.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+    * `factor_id` - The ID of the factor to delete.
+    
+  ## Examples
+      iex> Supabase.GoTrue.Admin.delete_factor(pid | client_name, "user_id", "factor_id")
+      :ok
+  """
+  @impl true
+  def delete_factor(%Client{} = client, user_id, factor_id) do
+    with {:ok, _} <- AdminHandler.delete_factor(client, user_id, factor_id), do: :ok
+  end
+
+  @doc """
+  Lists all identities for a specific user.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+    
+  ## Examples
+      iex> Supabase.GoTrue.Admin.list_identities(pid | client_name, "user_id")
+      {:ok, [%Supabase.GoTrue.User.Identity{}, ...]}
+  """
+  @impl true
+  def list_identities(%Client{} = client, user_id) do
+    with {:ok, response} <- AdminHandler.list_identities(client, user_id) do
+      User.Identity.parse_list(response.body)
+    end
+  end
+
+  @doc """
+  Deletes a specific identity from a user.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+    * `identity_id` - The ID of the identity to delete.
+    
+  ## Examples
+      iex> Supabase.GoTrue.Admin.delete_identity(pid | client_name, "user_id", "identity_id")
+      :ok
+  """
+  @impl true
+  def delete_identity(%Client{} = client, user_id, identity_id) do
+    with {:ok, _} <- AdminHandler.delete_identity(client, user_id, identity_id), do: :ok
   end
 end

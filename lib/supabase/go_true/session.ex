@@ -1,16 +1,40 @@
 defmodule Supabase.GoTrue.Session do
   @moduledoc """
-  This schema is used to validate and parse the parameters for a session.
+  Represents an authenticated session with Supabase's GoTrue service.
+
+  A session contains the tokens and metadata necessary for authenticating 
+  subsequent API requests. It is returned after a successful sign-in or sign-up operation
+  and can be refreshed using `Supabase.GoTrue.refresh_session/2`.
 
   ## Fields
-    * `provider_token` - The provider token.
-    * `provider_refresh_token` - The provider refresh token.
-    * `access_token` - The access token.
-    * `refresh_token` - The refresh token.
-    * `expires_in` - The expiration time.
-    * `expires_at` - The expiration date.
-    * `token_type` - The token type.
-    * `user` - The user. Check the `Supabase.GoTrue.User` schema for more information.
+
+  * `access_token` - JWT token used for API authorization (required)
+  * `refresh_token` - Token used to obtain a new access token when it expires (required)
+  * `expires_in` - Number of seconds until the access token expires (required)
+  * `expires_at` - Unix timestamp (in seconds) when the token expires
+  * `token_type` - Type of token, usually "bearer" (required)
+  * `provider_token` - OAuth provider-specific token (if applicable)
+  * `provider_refresh_token` - OAuth provider-specific refresh token (if applicable)
+  * `user` - The authenticated user's profile information (`Supabase.GoTrue.User`)
+
+  ## Usage
+
+  ```elixir
+  # Store the session securely after sign-in
+  {:ok, session} = Supabase.GoTrue.sign_in_with_password(client, credentials)
+
+  # Use the session for authenticated requests
+  {:ok, user} = Supabase.GoTrue.get_user(client, session)
+
+  # Refresh the session before it expires
+  {:ok, refreshed_session} = Supabase.GoTrue.refresh_session(client, session.refresh_token)
+  ```
+
+  ## Security Notes
+
+  * The access_token contains sensitive information and should be secured appropriately
+  * Sessions should be refreshed before they expire to maintain authentication
+  * For web applications, it's recommended to store session tokens in HTTP-only cookies
   """
 
   use Ecto.Schema
@@ -50,6 +74,15 @@ defmodule Supabase.GoTrue.Session do
 
   @spec parse(map) :: {:ok, t} | {:error, Ecto.Changeset.t()}
   def parse(attrs) do
+    # Calculate expires_at if not provided but expires_in is available
+    attrs =
+      if is_nil(attrs[:expires_at]) && attrs[:expires_in] do
+        now = System.os_time(:second)
+        Map.put(attrs, :expires_at, now + attrs[:expires_in])
+      else
+        attrs
+      end
+
     %__MODULE__{}
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)

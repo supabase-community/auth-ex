@@ -1,7 +1,7 @@
 defmodule SupabaseAuth.MixProject do
   use Mix.Project
 
-  @version "0.4.0"
+  @version "0.4.1"
   @source_url "https://github.com/supabase-community/auth-ex"
 
   def project do
@@ -36,7 +36,8 @@ defmodule SupabaseAuth.MixProject do
       {:plug, "~> 1.15", optional: true},
       {:phoenix_live_view, "~> 1.0", optional: true},
       {:mox, "~> 1.0", only: :test},
-      {:peri, "~> 0.4.0-rc1"},
+      {:peri, "~> 0.3"},
+      {:styler, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false}
@@ -51,14 +52,28 @@ defmodule SupabaseAuth.MixProject do
         "GitHub" => @source_url,
         "Docs" => "https://hexdocs.pm/supabase_gotrue"
       },
-      files: ~w[lib priv/templates mix.exs README.md LICENSE]
+      files: ~w[lib mix.exs priv/templates README.md LICENSE CHANGELOG.md]
     }
   end
 
   defp docs do
     [
       main: "Supabase.GoTrue",
-      extras: ["README.md"]
+      extras: [
+        "README.md",
+        "CHANGELOG.md",
+        "pages/auth_guide.md",
+        "pages/mfa_guide.md"
+      ],
+      groups_for_extras: [
+        Guides: [
+          "pages/auth_guide.md",
+          "pages/mfa_guide.md"
+        ]
+      ],
+      source_url: @source_url,
+      source_ref: "v#{@version}",
+      formatters: ["html"]
     ]
   end
 

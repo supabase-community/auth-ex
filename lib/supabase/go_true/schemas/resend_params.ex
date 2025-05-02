@@ -6,7 +6,6 @@ defmodule Supabase.GoTrue.Schemas.ResendParams do
   use Ecto.Schema
 
   import Ecto.Changeset
-
   import Supabase.GoTrue.Validations
 
   @type otp_type :: :sms | :signup | :phone_change | :email_change
@@ -41,7 +40,6 @@ defmodule Supabase.GoTrue.Schemas.ResendParams do
   end
 
   defp options_changeset(changeset, :options) do
-    %__MODULE__.Options{}
-    |> cast(changeset.params["options"], [:email_redirect_to, :captcha_token])
+    cast(%__MODULE__.Options{}, changeset.params["options"], [:email_redirect_to, :captcha_token])
   end
 end
