@@ -1,4 +1,6 @@
 defmodule Mix.Tasks.Supabase.Gen.Auth do
+  @shortdoc "Generates authentication logic backed by Supabase."
+
   @moduledoc """
   Generates authentication logic backed by Supabase and related views for `Phoenix`.
 
@@ -118,13 +120,11 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   > All generated files also comes with test files following the same structure.
   """
 
-  @shortdoc "Generates authentication logic backed by Supabase."
-
   use Mix.Task
 
-  alias Mix.Tasks.Phx.Gen.Auth.Injector
-
   import Peri
+
+  alias Mix.Tasks.Phx.Gen.Auth.Injector
 
   @switches [
     live: :boolean,
@@ -161,7 +161,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       |> to_string()
       |> String.split("_", trim: true)
       |> Enum.map(&Macro.camelize/1)
-      |> then(&List.update_at(&1, -1, fn last -> last <> "Web" end))
+      |> List.update_at(-1, fn last -> last <> "Web" end)
       |> Module.concat()
 
     auth_module = Module.concat([web_module, "UserAuth"])
@@ -196,7 +196,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
   defschema :config,
     live: {:boolean, {:default, false}},
-    strategy: {{:list, {:enum, @strategies}}, {:default, [:password]}},
+    strategy: {{:list, {:enum, @strategies}}, {:default, ["password"]}},
     client: {:string, {:transform, &String.to_atom/1}},
     supabase_url: :string,
     supabase_key: :string
@@ -206,7 +206,8 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     |> Enum.group_by(fn {k, _} -> k end)
     |> Enum.map(fn {k, v} ->
       {k,
-       Enum.map(v, fn {_, v} -> v end)
+       v
+       |> Enum.map(fn {_, v} -> v end)
        |> then(&if length(&1) == 1, do: hd(&1), else: &1)}
     end)
     |> config!()
@@ -327,19 +328,17 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   end
 
   defp print_unable_to_read_file_error(file_path, help_text) do
-    Mix.shell().error(
-      """
+    """
 
-      Unable to read file #{Path.relative_to_cwd(file_path)}.
+    Unable to read file #{Path.relative_to_cwd(file_path)}.
 
-      #{help_text}
-      """
-      |> indent_spaces(2)
-    )
+    #{help_text}
+    """
+    |> indent_spaces(2)
+    |> Mix.shell().error()
   end
 
-  defp indent_spaces(string, number_of_spaces)
-       when is_binary(string) and is_integer(number_of_spaces) do
+  defp indent_spaces(string, number_of_spaces) when is_binary(string) and is_integer(number_of_spaces) do
     indent = String.duplicate(" ", number_of_spaces)
 
     string
