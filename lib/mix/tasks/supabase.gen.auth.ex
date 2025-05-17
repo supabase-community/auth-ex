@@ -215,12 +215,17 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   defp generate_auth_only(bindings, paths) do
     web_prefix = Mix.Phoenix.web_path(bindings[:app_name])
     auth_file_path = Path.join(web_prefix, "user_auth.ex")
-
-    # Make sure directory exists
     File.mkdir_p!(Path.dirname(auth_file_path))
 
-    # Generate just the auth module
-    auth_content = Mix.Phoenix.eval_from(paths, "priv/templates/supabase.gen.auth/auth.ex", bindings)
+    source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
+    template_path = Path.join(source, "auth.ex")
+
+    auth_content =
+      if File.exists?(template_path) do
+        EEx.eval_file(template_path, bindings)
+      else
+        Mix.Phoenix.eval_from(paths, "priv/templates/supabase.gen.auth/auth.ex", bindings)
+      end
 
     Mix.shell().info([:green, "* creating ", :reset, Path.relative_to_cwd(auth_file_path)])
     File.write!(auth_file_path, auth_content)
@@ -361,17 +366,25 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
   defp copy_new_files(bindings, paths) do
     files = files_to_be_generated(bindings)
-    Mix.Phoenix.copy_from(paths, "priv/templates/supabase.gen.auth/", bindings, files)
+    source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
+    Mix.Phoenix.copy_from([source | paths], "", bindings, files)
     bindings
   end
 
   defp inject_conn_case_helpers(binding, paths) do
     test_file = "test/support/conn_case.ex"
 
-    paths
-    |> Mix.Phoenix.eval_from("priv/templates/supabase.gen.auth/conn_case.exs", binding)
-    |> inject_before_final_end(test_file)
+    source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
+    template_path = Path.join(source, "conn_case.exs")
 
+    conn_case_content =
+      if File.exists?(template_path) do
+        EEx.eval_file(template_path, binding)
+      else
+        Mix.Phoenix.eval_from(paths, "priv/templates/supabase.gen.auth/conn_case.exs", binding)
+      end
+
+    inject_before_final_end(conn_case_content, test_file)
     binding
   end
 
@@ -433,11 +446,17 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   defp inject_routes(binding, paths) do
     web_prefix = Mix.Phoenix.web_path(binding[:app_name])
     file_path = Path.join(web_prefix, "router.ex")
+    source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
+    template_path = Path.join(source, "routes.ex")
 
-    paths
-    |> Mix.Phoenix.eval_from("priv/templates/supabase.gen.auth/routes.ex", binding)
-    |> inject_before_final_end(file_path)
+    routes_content =
+      if File.exists?(template_path) do
+        EEx.eval_file(template_path, binding)
+      else
+        Mix.Phoenix.eval_from(paths, "priv/templates/supabase.gen.auth/routes.ex", binding)
+      end
 
+    inject_before_final_end(routes_content, file_path)
     binding
   end
 
