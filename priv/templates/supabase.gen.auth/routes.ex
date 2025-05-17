@@ -8,10 +8,19 @@
     get "/register", RegistrationController, :new
     post "/register", RegistrationController, :create
   end
+  <% else %>
+  scope "/", <%= web_module %> do
+    pipe_through :browser
+
+    live_session :current_user, on_mount: [{<%= inspect auth_module %>, :redirect_if_user_is_authenticated}] do
+      live "/register", RegistrationLive, :new
+      live "/register", RegistrationLive, :create
+    end
+  end
   <% end %>
 
   scope "/", <%= web_module %> do
-    pipe_through [:browser]
+    pipe_through :browser
 
     <%= if live? do %>
     live_session :current_user,

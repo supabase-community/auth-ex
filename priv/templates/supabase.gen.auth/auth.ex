@@ -49,7 +49,7 @@ defmodule <%= inspect auth_module %> do
 
   <%= if "sso" in strategy do %>
   @doc "Logs the User in using the sso strategy.\n" <> @extra_login_doc
-  def log_in_user_with_sso(%Client{} = client, conn, params \\ %{}) do
+  def log_in_user_with_sso(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_with_sso(client, params) do
       do_login(conn, session, params)
@@ -59,7 +59,7 @@ defmodule <%= inspect auth_module %> do
 
   <%= if "id_token" in strategy do %>
   @doc "Logs the User in using the id_token strategy.\n" <> @extra_login_doc
-  def log_in_user_with_id_token(%Client{} = client, conn, params \\ %{}) do
+  def log_in_user_with_id_token(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_with_id_token(client, params) do
       do_login(conn, session, params)
@@ -69,7 +69,7 @@ defmodule <%= inspect auth_module %> do
 
   <%= if "oauth" in strategy do %>
   @doc "Logs the User in using the oauth strategy.\n" <> @extra_login_doc
-  def log_in_user_with_oauth(%Client{} = client, conn, params \\ %{}) do
+  def log_in_user_with_oauth(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_with_oauth(client, params) do
       do_login(conn, session, params)
@@ -79,7 +79,7 @@ defmodule <%= inspect auth_module %> do
 
   <%= if "anon" in strategy do %>
   @doc "Logs the User in using the anon strategy.\n" <> @extra_login_doc
-  def log_in_user_anonymously(%Client{} = client, conn, params \\ %{}) do
+  def log_in_user_anonymously(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
          {:ok, session} <- GoTrue.sign_in_anonymously(client, params) do
       do_login(conn, session, params)

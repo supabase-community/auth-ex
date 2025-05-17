@@ -167,10 +167,13 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     auth_module = Module.concat([web_module, "UserAuth"])
     endpoint_module = Module.concat([web_module, "Endpoint"])
 
+    live_option = Keyword.get(opts, :live)
+    live? = if is_nil(live_option), do: prompt_for_live_option(), else: live_option
+
     bindings = [
       app_name: app_name,
       strategy: config[:strategy],
-      live?: config[:live],
+      live?: live?,
       web_module: web_module,
       web_app_name: web_app_name,
       auth_module: auth_module,
@@ -226,6 +229,16 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
       opts
     end)
+  end
+
+  defp prompt_for_live_option do
+    Mix.shell().info("""
+    An authentication system can be created in two different ways:
+    - Using Phoenix.LiveView
+    - Using Phoenix.Controller only
+    """)
+
+    Mix.shell().yes?("Do you want to create a LiveView based authentication system?")
   end
 
   defp generated_with_no_html? do
@@ -402,15 +415,87 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
         print_unable_to_read_file_error(file_path, help_text)
     end
 
+    maybe_inject_router_plug(binding)
+  end
+
+  defp maybe_inject_router_plug(binding) do
+    web_prefix = Mix.Phoenix.web_path(binding[:app_name])
+    file_path = Path.join(web_prefix, "router.ex")
+    plug_code = "plug :fetch_current_user"
+    anchor_line = "plug :put_secure_browser_headers"
+
+    help_text = """
+    Add the fetch_current_user plug to the :browser pipeline in #{Path.relative_to_cwd(file_path)}:
+
+        pipeline :browser do
+          ...
+          #{anchor_line}
+          #{plug_code}
+        end
+    """
+
+    with {:ok, file} <- read_file(file_path),
+         {:ok, new_file} <- inject_router_plug(file, plug_code, anchor_line) do
+      print_injecting(file_path, " - plug")
+      File.write!(file_path, new_file)
+    else
+      :already_injected ->
+        :ok
+
+      {:error, :unable_to_inject} ->
+        Mix.shell().info("""
+
+        #{help_text}
+        """)
+
+      {:error, {:file_read_error, _}} ->
+        print_injecting(file_path)
+        print_unable_to_read_file_error(file_path, help_text)
+    end
+
     binding
+  end
+
+  defp inject_router_plug(file, plug_code, anchor_line) when is_binary(file) do
+    # First check if the plug is already in the file
+    if String.contains?(file, plug_code) do
+      :already_injected
+    else
+      # Use a regex to find the anchor line and add the new plug after it
+      # This preserves indentation and newlines
+      new_file =
+        Regex.replace(
+          ~r/^(\s*)#{anchor_line}.*(\r\n|\n|$)/Um,
+          file,
+          "\\0\\1#{plug_code}\\2",
+          global: false
+        )
+
+      if file == new_file do
+        {:error, :unable_to_inject}
+      else
+        {:ok, new_file}
+      end
+    end
   end
 
   defp print_shell_instructions(binding) do
     Mix.shell().info("""
 
-    Once you are ready, visit "/register"
-    to create your account and then access inbucket (http://127.0.0.1:54324 locally) to
-    see the account confirmation email.
+    Your authentication system with Supabase has been generated!
+    To use it, you need to:
+
+    1. Make sure you have the required dependencies in your mix.exs:
+       - supabase_potion (for Supabase client)
+       - supabase_gotrue (for auth)
+       - phoenix_live_view (if using LiveView)
+
+    2. Configure your Supabase client in your config:
+       config :your_app, YourApp.Supabase,
+         base_url: "https://<project-ref>.supabase.co",
+         api_key: "<your-supabase-anon-key>"
+
+    3. Once configured, visit "/login" to test your authentication.
     """)
 
     binding

@@ -1,8 +1,7 @@
 defmodule <%= inspect web_module %>.LoginLive do
   use <%= inspect web_module %>, :live_view
-
-  alias Supabase.GoTrue
   
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="mx-auto max-w-sm space-y-4">
@@ -16,22 +15,14 @@ defmodule <%= inspect web_module %>.LoginLive do
         </:subtitle>
       </.header>
 
-      <%= for strategy <- get_available_strategies() do %>
-        <.login_form strategy={strategy} form={@form} />
-      <% end %>
+      <.login_form :for={s <- <%= inspect(strategy) %>} strategy={s} form={@form} />
     </div>
     """
   end
 
   def login_form(%{strategy: "password"} = assigns) do
     ~H"""
-    <.form
-      :let={f}
-      for={@form}
-      id="login_form_password"
-      action={~p"/login"}
-      as={:user}
-    >
+    <.form :let={f} for={@form} id="login_form_password" action={~p"/login"} as={:user}>
       <.input
         field={f[:email]}
         type="email"
@@ -51,7 +42,7 @@ defmodule <%= inspect web_module %>.LoginLive do
         type="checkbox"
         label="Keep me logged in"
       />
-      <.button class="w-full" variant="primary">
+      <.button class="w-full">
         Log in with password <span aria-hidden="true">→</span>
       </.button>
     </.form>
@@ -60,20 +51,14 @@ defmodule <%= inspect web_module %>.LoginLive do
 
   def login_form(%{strategy: "otp"} = assigns) do
     ~H"""
-    <.form
-      :let={f}
-      for={@form}
-      id="login_form_otp"
-      action={~p"/login"}
-      as={:user}
-    >
+    <.form :let={f} for={@form} id="login_form_otp" action={~p"/login"} as={:user}>
       <.input
         field={f[:email]}
         type="email"
         label="Email"
         required
       />
-      <.button class="w-full" variant="primary">
+      <.button class="w-full">
         Send one-time password <span aria-hidden="true">→</span>
       </.button>
     </.form>
@@ -91,7 +76,7 @@ defmodule <%= inspect web_module %>.LoginLive do
           phx-click="oauth_login"
           phx-value-provider={provider}
         >
-          <%= provider %>
+          {provider}
         </.button>
       </div>
     </div>
@@ -100,13 +85,8 @@ defmodule <%= inspect web_module %>.LoginLive do
 
   def login_form(%{strategy: "anon"} = assigns) do
     ~H"""
-    <.form
-      for={%{}}
-      id="login_form_anon"
-      action={~p"/login"}
-      as={:user}
-    >
-      <.button class="w-full" variant="secondary">
+    <.form for={%{}} id="login_form_anon" action={~p"/login"} as={:user}>
+      <.button class="w-full">
         Continue anonymously <span aria-hidden="true">→</span>
       </.button>
     </.form>
@@ -119,18 +99,15 @@ defmodule <%= inspect web_module %>.LoginLive do
     """
   end
 
+  @impl true
   def mount(_params, _session, socket) do
     form = to_form(%{"email" => nil}, as: "user")
     {:ok, assign(socket, form: form)}
   end
 
+  @impl true
   def handle_event("oauth_login", %{"provider" => provider}, socket) do
     # This would be handled by the controller
     {:noreply, push_navigate(socket, to: ~p"/login?provider=#{provider}")}
-  end
-
-  # Helper to get the list of configured strategies
-  defp get_available_strategies do
-    <%= inspect strategy %>
   end
 end
