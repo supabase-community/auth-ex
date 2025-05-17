@@ -20,20 +20,6 @@
   <% end %>
 
   scope "/", <%= web_module %> do
-    pipe_through [:browser, :require_authenticated_user]
-
-    <%= if live? do %>
-    live_session :require_authenticated_user,
-      on_mount: [{<%= inspect auth_module %>, :require_authenticated}] do
-      live "/settings", SettingsLive, :edit
-    end
-    <% else %>
-    get "/settings", SettingsController, :edit
-    put "/settings", SettingsController, :update
-    <% end %>
-  end
-
-  scope "/", <%= web_module %> do
     pipe_through [:browser]
 
     <%= if live? do %>

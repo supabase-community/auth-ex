@@ -8,10 +8,11 @@ defmodule <%= web_module %>.RegistrationController do
   end
 
   def create(conn, %{"user" => user_params}) do
+    {:ok, client} = UserAuth.get_client()
     %{"email" => email, "password" => password} = user_params
 
-    case <%= supabase_client || "{%Supabase.Client{}, #{supabase_url}, #{supabase_key}}" %> |> Supabase.GoTrue.sign_up(%{email: email, password: password}) do
-      {:ok, user} ->
+    case Supabase.GoTrue.sign_up(client, %{email: email, password: password}) do
+      {:ok, _user} ->
         conn
         |> put_flash(:info, "User created successfully. Please sign in.")
         |> redirect(to: ~p"/login")

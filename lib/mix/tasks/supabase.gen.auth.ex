@@ -103,12 +103,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   * `lib/my_app_web/controllers/session_controller.ex` - The session controller, with token handling.
   * `lib/my_app_web/live/login_live.ex` - The LiveView for the login page.
   * `lib/my_app_web/live/registration_live.ex` - The LiveView for the registration page.
-  * `lib/my_app_web/live/settings_live.ex` - The LiveView for the user settings page.
   * `test/support/conn_case.exs` - The test helper for the authentication, modifies the existing one in-place.
-
-  > ### Note {: .info}
-  >
-  > All generated files also comes with test files following the same structure.
 
   ### Non-LiveView (Traditional Phoenix Controllers & Views)
 
@@ -120,14 +115,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   * `lib/my_app_web/controllers/registration_controller.ex` - The registration controller.
   * `lib/my_app_web/controllers/registration_html.ex` - The registration view.
   * `lib/my_app_web/controllers/registration_html/new.html.heex` - The registration form.
-  * `lib/my_app_web/controllers/settings_controller.ex` - The settings controller.
-  * `lib/my_app_web/controllers/settings_html.ex` - The settings view.
-  * `lib/my_app_web/controllers/settings_html/edit.html.heex` - The settings form.
   * `test/support/conn_case.exs` - The test helper for the authentication, modifies the existing one in-place.
-
-  > ### Note {: .info}
-  >
-  > All generated files also comes with test files following the same structure.
   """
 
   use Mix.Task
@@ -333,31 +321,21 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       if opts[:live?] do
         live_pre = Path.join([web_pre, "live"])
 
-        default ++
-          [
-            "login_live.ex": [live_pre, "login_live.ex"],
-            "settings_live.ex": [live_pre, "settings_live.ex"]
-          ]
+        default ++ ["login_live.ex": [live_pre, "login_live.ex"]]
       else
         html_pre = Path.join([controller_pre, "session_html"])
         registration_html_pre = Path.join([controller_pre, "registration_html"])
-        settings_html_pre = Path.join([controller_pre, "settings_html"])
 
         default ++
           [
             # Session files
             "session_html.ex": [controller_pre, "session_html.ex"],
-            "new.html.heex": [html_pre, "new.html.heex"],
+            "session_new.html.heex": [html_pre, "new.html.heex"],
 
             # Registration files
             "registration_controller.ex": [controller_pre, "registration_controller.ex"],
             "registration_html.ex": [controller_pre, "registration_html.ex"],
-            "registration_html/new.html.heex": [registration_html_pre, "new.html.heex"],
-
-            # Settings files
-            "settings_controller.ex": [controller_pre, "settings_controller.ex"],
-            "settings_html.ex": [controller_pre, "settings_html.ex"],
-            "settings_html/edit.html.heex": [settings_html_pre, "edit.html.heex"]
+            "registration_new.html.heex": [registration_html_pre, "new.html.heex"]
           ]
       end
 
@@ -366,8 +344,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
   defp copy_new_files(bindings, paths) do
     files = files_to_be_generated(bindings)
-    source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
-    Mix.Phoenix.copy_from([source | paths], "", bindings, files)
+    Mix.Phoenix.copy_from(paths, "priv/templates/supabase.gen.auth", bindings, files)
     bindings
   end
 
@@ -377,12 +354,14 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
     template_path = Path.join(source, "conn_case.exs")
 
-    conn_case_content =
+    if_result =
       if File.exists?(template_path) do
         EEx.eval_file(template_path, binding)
       else
         Mix.Phoenix.eval_from(paths, "priv/templates/supabase.gen.auth/conn_case.exs", binding)
       end
+
+    conn_case_content = dbg(if_result)
 
     inject_before_final_end(conn_case_content, test_file)
     binding

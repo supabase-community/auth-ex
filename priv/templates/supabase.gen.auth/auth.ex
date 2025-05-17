@@ -306,9 +306,9 @@ defmodule <%= inspect auth_module %> do
   defp signed_in_path(), do: ~p"/"
 
   <%= if supabase_client do %>
-  defp get_client, do: <%= supabase_client %>.get_client()
+  def get_client, do: <%= supabase_client %>.get_client()
   <% else %>
-  defp get_client do
+  def get_client do
     url = <%= inspect supabase_url %>
     key = <%= inspect supabase_key %>
     Supabase.init_client(url, key)
