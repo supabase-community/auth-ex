@@ -245,7 +245,7 @@ defmodule <%= inspect auth_module %> do
     end
   end
 
-  def mount_current_user(session, socket) do
+  def mount_current_user(socket, session) do
     Phoenix.Component.assign_new(socket, :current_user, fn ->
       if user_token = session["user_token"] do
         maybe_get_current_user(%Session{access_token: user_token})

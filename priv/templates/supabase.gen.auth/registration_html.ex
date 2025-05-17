@@ -11,7 +11,7 @@ defmodule <%= web_module %>.RegistrationHTML do
 
   def user_form(assigns) do
     ~H"""
-    <.simple_form :let={f} for={@changeset} action={@action}>
+    <.simple_form :let={f} for={@changeset} action={@action} as={:user}>
       <.error :if={@changeset && @changeset.action}>
         Oops, something went wrong! Please check the errors below.
       </.error>
@@ -20,7 +20,9 @@ defmodule <%= web_module %>.RegistrationHTML do
       <.input field={f[:password]} type="password" label="Password" required />
 
       <:actions>
-        <.button phx-disable-with="Creating account..." class="w-full">Create an account</.button>
+        <.button phx-disable-with="Creating account..." class="w-full">
+          Create an account
+        </.button>
       </:actions>
     </.simple_form>
     """

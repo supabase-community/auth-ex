@@ -321,7 +321,8 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       if opts[:live?] do
         live_pre = Path.join([web_pre, "live"])
 
-        default ++ ["login_live.ex": [live_pre, "login_live.ex"]]
+        default ++
+          ["login_live.ex": [live_pre, "login_live.ex"], "registration_live.ex": [live_pre, "registration_live.ex"]]
       else
         html_pre = Path.join([controller_pre, "session_html"])
         registration_html_pre = Path.join([controller_pre, "registration_html"])

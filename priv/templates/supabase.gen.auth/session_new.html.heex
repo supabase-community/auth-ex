@@ -10,7 +10,7 @@
     </:subtitle>
   </.header>
 
-  <%= if "passowrd" in strategy do %>
+  <%= if "password" in strategy do %>
     <.form :let={f} for={@form} as={:user} id="login_form_password" action={~p"/login"}>
       <.input field={f[:email]} type="email" label="Email" autocomplete="username" required />
       <.input
@@ -21,7 +21,7 @@
         required
       />
       <.input field={f[:remember_me]} type="checkbox" label="Keep me logged in" />
-      <.button class="w-full" variant="primary">
+      <.button class="w-full">
         Log in with password <span aria-hidden="true">→</span>
       </.button>
     </.form>
@@ -30,7 +30,7 @@
   <%= if "otp" in strategy do %>
     <.form :let={f} for={@form} as={:user} id="login_form_otp" action={~p"/login"}>
       <.input field={f[:email]} type="email" label="Email" required />
-      <.button class="w-full" variant="primary">
+      <.button class="w-full">
         Send one-time password <span aria-hidden="true">→</span>
       </.button>
     </.form>
@@ -55,7 +55,7 @@
 
   <%= if "anon" in strategy do %>
     <.form for={%{}} id="login_form_anon" action={~p"/login"} as={:user}>
-      <.button class="w-full" variant="secondary">
+      <.button class="w-full">
         Continue anonymously <span aria-hidden="true">→</span>
       </.button>
     </.form>

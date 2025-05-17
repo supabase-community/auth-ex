@@ -12,14 +12,16 @@ defmodule <%= web_module %>.RegistrationController do
     %{"email" => email, "password" => password} = user_params
 
     case Supabase.GoTrue.sign_up(client, %{email: email, password: password}) do
-      {:ok, _user} ->
+      {:ok, _session} ->
         conn
         |> put_flash(:info, "User created successfully. Please sign in.")
         |> redirect(to: ~p"/login")
 
-      {:error, error} ->
+      {:error, %Supabase.Error{metadata: metadata}} ->
+        message = get_in(metadata, [:resp_body, "msg"])
+
         conn
-        |> put_flash(:error, "Registration failed: #{error.message}")
+        |> put_flash(:error, "Registration failed: #{message}")
         |> render(:new, changeset: nil)
     end
   end
