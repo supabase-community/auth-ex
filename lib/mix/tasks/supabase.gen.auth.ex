@@ -51,6 +51,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   * `--client` - The Supabase self managed client to use for authentication.
   * `--supabase-url` - The Supabase URL in case to use one-off client. Check the [configuration](#configuration) section below.
   * `--supabase-key` - The Supabase API key in case to use one-off client. Check the [configuration](#configuration) section below.
+  * `--auth-only` - Generate only the authentication module without views, controllers or routes.
 
   ## Configuration
 
@@ -98,22 +99,31 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   ### LiveView
 
   * `lib/my_app_web/router.ex` - The authentication routes, modifies the existing one in-place.
-  * `lib/my_app_web/auth.ex` - The authentication module.
-  * `lib/my_app_web/live/login_live.ex` - The LiveView for the login page.
+  * `lib/my_app_web/user_auth.ex` - The authentication module.
   * `lib/my_app_web/controllers/session_controller.ex` - The session controller, with token handling.
+  * `lib/my_app_web/live/login_live.ex` - The LiveView for the login page.
+  * `lib/my_app_web/live/registration_live.ex` - The LiveView for the registration page.
+  * `lib/my_app_web/live/settings_live.ex` - The LiveView for the user settings page.
   * `test/support/conn_case.exs` - The test helper for the authentication, modifies the existing one in-place.
 
   > ### Note {: .info}
   >
   > All generated files also comes with test files following the same structure.
 
-  ### dead Views
+  ### Non-LiveView (Traditional Phoenix Controllers & Views)
 
   * `lib/my_app_web/router.ex` - The authentication routes, modifies the existing one in-place.
-  * `lib/my_app_web/auth.ex` - The authentication module.
+  * `lib/my_app_web/user_auth.ex` - The authentication module.
   * `lib/my_app_web/controllers/session_controller.ex` - The session controller, with token handling.
   * `lib/my_app_web/controllers/session_html.ex` - The session view, with the login form.
   * `lib/my_app_web/controllers/session_html/new.html.heex` - The login form.
+  * `lib/my_app_web/controllers/registration_controller.ex` - The registration controller.
+  * `lib/my_app_web/controllers/registration_html.ex` - The registration view.
+  * `lib/my_app_web/controllers/registration_html/new.html.heex` - The registration form.
+  * `lib/my_app_web/controllers/settings_controller.ex` - The settings controller.
+  * `lib/my_app_web/controllers/settings_html.ex` - The settings view.
+  * `lib/my_app_web/controllers/settings_html/edit.html.heex` - The settings form.
+  * `test/support/conn_case.exs` - The test helper for the authentication, modifies the existing one in-place.
 
   > ### Note {: .info}
   >
@@ -131,10 +141,11 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     strategy: :keep,
     client: :string,
     supabase_url: :string,
-    supabase_key: :string
+    supabase_key: :string,
+    auth_only: :boolean
   ]
 
-  @aliases [s: :strategy, c: :client]
+  @aliases [s: :strategy, c: :client, a: :auth_only]
 
   @doc false
   @impl true
@@ -180,19 +191,64 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       endpoint_module: endpoint_module,
       supabase_client: config[:client],
       supabase_url: config[:supabase_url],
-      supabase_key: config[:supabase_key]
+      supabase_key: config[:supabase_key],
+      auth_only: config[:auth_only]
     ]
 
-    prompt_for_conflicts(bindings)
+    # If auth_only is true, only generate the auth module
+    if config[:auth_only] do
+      generate_auth_only(bindings, [".", :supabase_gotrue])
+    else
+      prompt_for_conflicts(bindings)
 
-    paths = [".", :supabase_gotrue]
+      paths = [".", :supabase_gotrue]
 
-    bindings
-    |> copy_new_files(paths)
-    |> inject_conn_case_helpers(paths)
-    |> inject_routes(paths)
-    |> maybe_inject_router_import()
-    |> print_shell_instructions()
+      bindings
+      |> copy_new_files(paths)
+      |> inject_conn_case_helpers(paths)
+      |> inject_routes(paths)
+      |> maybe_inject_router_import()
+      |> print_shell_instructions()
+    end
+  end
+
+  defp generate_auth_only(bindings, paths) do
+    web_prefix = Mix.Phoenix.web_path(bindings[:app_name])
+    auth_file_path = Path.join(web_prefix, "user_auth.ex")
+
+    # Make sure directory exists
+    File.mkdir_p!(Path.dirname(auth_file_path))
+
+    # Generate just the auth module
+    auth_content = Mix.Phoenix.eval_from(paths, "priv/templates/supabase.gen.auth/auth.ex", bindings)
+
+    Mix.shell().info([:green, "* creating ", :reset, Path.relative_to_cwd(auth_file_path)])
+    File.write!(auth_file_path, auth_content)
+
+    Mix.shell().info("""
+
+    Your authentication module with Supabase has been generated!
+    To use it, you need to:
+
+    1. Make sure you have the required dependencies in your mix.exs:
+       - supabase_potion (for Supabase client)
+       - supabase_gotrue (for auth)
+
+    2. Configure your Supabase client in your config:
+       config :your_app, YourApp.Supabase,
+         base_url: "https://<project-ref>.supabase.co",
+         api_key: "<your-supabase-anon-key>"
+
+    3. Import the auth module in your router:
+       import #{inspect(bindings[:auth_module])}
+
+    4. Add the fetch_current_user plug to your browser pipeline:
+       pipeline :browser do
+         ...
+         plug :put_secure_browser_headers
+         plug :fetch_current_user
+       end
+    """)
   end
 
   @strategies ~w(password oauth anon id_token sso otp)
@@ -202,7 +258,8 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     strategy: {{:list, {:enum, @strategies}}, {:default, ["password"]}},
     client: {:string, {:transform, &String.to_atom/1}},
     supabase_url: :string,
-    supabase_key: :string
+    supabase_key: :string,
+    auth_only: {:boolean, {:default, false}}
 
   defp validate_options!(options) do
     options
@@ -273,15 +330,29 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
         default ++
           [
-            "login_live.ex": [live_pre, "login_live.ex"]
+            "login_live.ex": [live_pre, "login_live.ex"],
+            "settings_live.ex": [live_pre, "settings_live.ex"]
           ]
       else
         html_pre = Path.join([controller_pre, "session_html"])
+        registration_html_pre = Path.join([controller_pre, "registration_html"])
+        settings_html_pre = Path.join([controller_pre, "settings_html"])
 
         default ++
           [
+            # Session files
             "session_html.ex": [controller_pre, "session_html.ex"],
-            "new.html.heex": [html_pre, "new.html.heex"]
+            "new.html.heex": [html_pre, "new.html.heex"],
+
+            # Registration files
+            "registration_controller.ex": [controller_pre, "registration_controller.ex"],
+            "registration_html.ex": [controller_pre, "registration_html.ex"],
+            "registration_html/new.html.heex": [registration_html_pre, "new.html.heex"],
+
+            # Settings files
+            "settings_controller.ex": [controller_pre, "settings_controller.ex"],
+            "settings_html.ex": [controller_pre, "settings_html.ex"],
+            "settings_html/edit.html.heex": [settings_html_pre, "edit.html.heex"]
           ]
       end
 

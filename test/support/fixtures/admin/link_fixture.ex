@@ -16,6 +16,6 @@ defmodule Supabase.GoTrue.Admin.LinkFixture do
   end
 
   def link_fixture_json(attrs \\ %{}) do
-    link_fixture(attrs) |> Jason.encode!()
+    attrs |> link_fixture() |> Jason.encode!()
   end
 end

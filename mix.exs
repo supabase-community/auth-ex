@@ -34,6 +34,7 @@ defmodule SupabaseAuth.MixProject do
     [
       {:supabase_potion, "~> 0.6"},
       {:plug, "~> 1.15", optional: true},
+      {:phoenix, "~> 1.7", optional: true},
       {:phoenix_live_view, "~> 1.0", optional: true},
       {:mox, "~> 1.0", only: :test},
       {:peri, "~> 0.3"},

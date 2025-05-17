@@ -1,6 +1,6 @@
 # Used by "mix format"
 [
-  inputs: ["mix.exs", "config/*.exs", "lib/**/*.ex", "test/**/*.exs"],
-  import_deps: [:peri],
-  plugins: [Styler]
+  inputs: ["*.{ex,exs}", "{config,lib,test}/**/*.{ex,exs}", "priv/templates/**/*.{ex,exs,heex}"],
+  import_deps: [:peri, :phoenix],
+  plugins: [Styler, Phoenix.LiveView.HTMLFormatter]
 ]

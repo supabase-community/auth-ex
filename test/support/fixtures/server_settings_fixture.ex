@@ -41,12 +41,15 @@ defmodule Supabase.GoTrue.ServerSettingsFixture do
       }
     }
 
-    Enum.into(Map.new(attrs), default)
+    attrs
+    |> Map.new()
+    |> Enum.into(default)
     |> then(&struct(ServerSettings, &1))
   end
 
   def server_settings_fixture_json(attrs \\ %{}) do
-    server_settings_fixture(attrs)
+    attrs
+    |> server_settings_fixture()
     |> Jason.encode!()
   end
 end
