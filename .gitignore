@@ -41,3 +41,5 @@ result
 .lexical/
 
 /priv/plts/
+
+/priv/example/

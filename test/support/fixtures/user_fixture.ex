@@ -38,11 +38,13 @@ defmodule Supabase.GoTrue.UserFixture do
       created_at: ~N[2024-01-01 00:00:00]
     }
 
-    Enum.into(Map.new(attrs), default)
+    attrs
+    |> Map.new()
+    |> Enum.into(default)
     |> then(&struct(User, &1))
   end
 
   def user_fixture_json(attrs \\ %{}) do
-    user_fixture(attrs) |> Jason.encode!()
+    attrs |> user_fixture() |> Jason.encode!()
   end
 end

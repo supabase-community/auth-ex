@@ -1,0 +1,14 @@
+<.header>
+  Register
+  <:subtitle>
+    Already have an account?
+    <.link navigate={~p"/login"} class="font-semibold text-brand hover:underline">
+      Sign in
+    </.link>
+    to your account now.
+  </:subtitle>
+</.header>
+
+<div class="mt-8">
+  <.user_form changeset={@changeset} action={~p"/register"} />
+</div>

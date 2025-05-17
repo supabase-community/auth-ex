@@ -3,7 +3,8 @@ defmodule Supabase.GoTrue.Validations do
 
   import Ecto.Changeset
 
-  @spec validate_required_inclusion(changeset :: Ecto.Changeset.t(), fields :: [atom()]) :: Ecto.Changeset.t()
+  @spec validate_required_inclusion(changeset :: Ecto.Changeset.t(), fields :: [atom()]) ::
+          Ecto.Changeset.t()
   def validate_required_inclusion(%{valid?: false} = c, _), do: c
 
   def validate_required_inclusion(changeset, fields) do

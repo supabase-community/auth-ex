@@ -15,7 +15,7 @@ defmodule SupabaseAuth.MixProject do
       package: package(),
       description: description(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      dialyzer: [plt_local_path: "priv/plts", ignore_warnings: ".dialyzerignore"]
+      dialyzer: [plt_local_path: "priv/plts", ignore_warnings: ".dialyzerignore", plt_add_apps: [:mix, :ex_unit]]
     ]
   end
 
@@ -34,8 +34,10 @@ defmodule SupabaseAuth.MixProject do
     [
       {:supabase_potion, "~> 0.6"},
       {:plug, "~> 1.15", optional: true},
+      {:phoenix, "~> 1.7", optional: true},
       {:phoenix_live_view, "~> 1.0", optional: true},
       {:mox, "~> 1.0", only: :test},
+      {:peri, "~> 0.3"},
       {:styler, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -51,7 +53,7 @@ defmodule SupabaseAuth.MixProject do
         "GitHub" => @source_url,
         "Docs" => "https://hexdocs.pm/supabase_gotrue"
       },
-      files: ~w[lib mix.exs README.md LICENSE CHANGELOG.md]
+      files: ~w[lib mix.exs priv/templates README.md LICENSE CHANGELOG.md]
     }
   end
 
