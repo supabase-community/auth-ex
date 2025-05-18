@@ -355,16 +355,14 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
     template_path = Path.join(source, "conn_case.exs")
 
-    if_result =
+    content =
       if File.exists?(template_path) do
         EEx.eval_file(template_path, binding)
       else
         Mix.Phoenix.eval_from(paths, "priv/templates/supabase.gen.auth/conn_case.exs", binding)
       end
 
-    conn_case_content = dbg(if_result)
-
-    inject_before_final_end(conn_case_content, test_file)
+    inject_before_final_end(content, test_file)
     binding
   end
 
