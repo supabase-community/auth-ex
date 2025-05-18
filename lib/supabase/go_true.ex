@@ -93,13 +93,27 @@ defmodule Supabase.GoTrue do
   @doc """
   Signs in a user with ID token.
 
+  This method allows authentication using ID tokens issued by supported external providers like Google, Apple, Azure, etc. 
+  The provider's ID token is verified and used to create or authenticate a user in the Supabase system.
+
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
-    - `credentials` - The credentials to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInWithIdToken` for more information.
+    - `credentials` - The credentials to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInWithIdToken` for more information:
+      * `provider` - Provider name identifying which provider should be used to verify the provided token (e.g., 'google', 'apple', 'azure')
+      * `token` - OIDC ID token issued by the specified provider
+      * `access_token` - Optional if the ID token contains an `at_hash` claim
+      * `nonce` - Optional if the ID token contains a `nonce` claim
+
+  ## Returns
+    - `{:ok, session}` - Successfully authenticated with ID token, returns a valid session
+    - `{:error, error}` - Authentication failed
 
   ## Examples
-      iex> credentials = %Supabase.GoTrue.SignInWithIdToken{}
-      iex> Supabase.GoTrue.sign_in_with_id_token(pid | client_name, credentials)
+      iex> credentials = %{
+      ...>   provider: "google", 
+      ...>   token: "eyJhbGciO..." # ID token from Google
+      ...> }
+      iex> Supabase.GoTrue.sign_in_with_id_token(client, credentials)
       {:ok, %Supabase.GoTrue.Session{}}
   """
   @impl true
@@ -113,14 +127,27 @@ defmodule Supabase.GoTrue do
   @doc """
   Signs in a user with OAuth.
 
+  This method initiates authentication with an OAuth provider (like GitHub, Google, etc.)
+  and returns a URL to redirect the user to complete the authentication process.
+
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
-    - `credentials` - The credentials to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInWithOauth` for more information.
+    - `credentials` - The credentials to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInWithOauth` for more information:
+      * `provider` - One of the supported OAuth providers (e.g., 'github', 'google', 'facebook')
+      * `redirect_to` - Optional URL to redirect the user after successful authentication
+      * `scopes` - Optional space-separated list of OAuth scopes to request
+
+  ## Returns
+    - `{:ok, provider, url}` - Successfully generated OAuth URL; `provider` is the provider atom, `url` is the authorization URL to redirect to
+    - `{:error, error}` - Failed to generate OAuth URL
 
   ## Examples
-      iex> credentials = %Supabase.GoTrue.SignInWithOauth{}
-      iex> Supabase.GoTrue.sign_in_with_oauth(pid | client_name, credentials)
-      {:ok, atom, URI.t()}
+      iex> credentials = %{
+      ...>   provider: :github,
+      ...>   redirect_to: "https://example.com/callback"
+      ...> }
+      iex> Supabase.GoTrue.sign_in_with_oauth(client, credentials)
+      {:ok, :github, "https://auth.supabase.com/authorize?provider=github&..."}
   """
   @impl true
   def sign_in_with_oauth(%Client{} = client, credentials) do
@@ -201,7 +228,8 @@ defmodule Supabase.GoTrue do
     * `email` - User's email address (required if phone not provided)
     * `phone` - User's phone number (required if email not provided)
     * `password` - User's password (required)
-    * `gotrue_meta_security` - Optional captcha details
+    * `options` - Optional parameters:
+      * `captcha_token` - Verification token from CAPTCHA challenge
 
   ## Returns
 
@@ -218,6 +246,14 @@ defmodule Supabase.GoTrue do
       
       # Sign in with phone
       iex> credentials = %{phone: "+15555550123", password: "secure-password"}
+      iex> {:ok, session} = Supabase.GoTrue.sign_in_with_password(client, credentials)
+      
+      # Sign in with additional options
+      iex> credentials = %{
+      ...>   email: "user@example.com", 
+      ...>   password: "secure-password",
+      ...>   options: %{captcha_token: "verify-token-123"}
+      ...> }
       iex> {:ok, session} = Supabase.GoTrue.sign_in_with_password(client, credentials)
 
   ## Related
