@@ -414,7 +414,7 @@ defmodule Supabase.GoTrueTest do
   end
 
   describe "sign_in_with_sso/2" do
-    test "successfully signin an user with SSO", %{client: client} do
+    test "successfully signin an user with SSO provider_id", %{client: client} do
       data = %{
         provider_id: "apple",
         options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
@@ -442,6 +442,45 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:ok, "http://localhost:3000"} = GoTrue.sign_in_with_sso(client, data)
+    end
+
+    test "successfully signin an user with SSO domain", %{client: client} do
+      data = %{
+        domain: "example.org",
+        options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/sso"
+
+        assert %{
+                 "data" => %{},
+                 "gotrue_meta_security" => %{"captcha_token" => "123"},
+                 "domain" => "example.org"
+               } = Jason.decode!(req.body)
+
+        body = """
+        {
+          "data": {
+            "url": "http://localhost:3000/sso"
+          }
+        }
+        """
+
+        {:ok, %Finch.Response{status: 201, body: body, headers: []}}
+      end)
+
+      assert {:ok, "http://localhost:3000/sso"} = GoTrue.sign_in_with_sso(client, data)
+    end
+
+    test "returns error for SSO signin with invalid parameters", %{client: client} do
+      # Missing both domain and provider_id
+      data = %{
+        options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
+      }
+
+      assert {:error, _} = GoTrue.sign_in_with_sso(client, data)
     end
   end
 

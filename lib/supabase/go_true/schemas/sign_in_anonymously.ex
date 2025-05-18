@@ -1,6 +1,15 @@
 defmodule Supabase.GoTrue.Schemas.SignInAnonymously do
   @moduledoc """
-  This schema is used to validate and parse the parameters for signing in anonymously.
+  Parameters for anonymous sign-in.
+
+  This schema is used by `Supabase.GoTrue.sign_in_anonymously/2` to define the 
+  parameters for creating a new anonymous user. Anonymous users can later be 
+  converted to permanent users by linking identities or adding credentials.
+
+  ## Fields
+
+  * `data` - Additional user metadata to include with the sign-in request
+  * `captcha_token` - Verification token from CAPTCHA challenge if enabled
   """
 
   use Ecto.Schema

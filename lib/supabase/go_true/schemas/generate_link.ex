@@ -1,23 +1,5 @@
 defmodule Supabase.GoTrue.Schemas.GenerateLink do
-  @moduledoc """
-  This module is responsible for generating links for different actions.
-
-  ## Fields
-    * `action_link` - The link to the action.
-    * `email_otp` - The email one-time password.
-    * `hashed_token` - The hashed token.
-    * `redirect_to` - The redirect URL.
-    * `verification_type` - The type of verification.
-      - `signup`
-      - `invite`
-      - `magicLink`
-      - `recovery`
-      - `email_change_current`
-      - `email_change_new`
-    * `options` - The options for the link.
-      - `data` - The data for the link.
-      - `redirect_to` - The redirect URL.
-  """
+  @moduledoc false
 
   import Ecto.Changeset
 

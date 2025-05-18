@@ -1,6 +1,16 @@
 defmodule Supabase.GoTrue.Schemas.ResendParams do
   @moduledoc """
-  This schema is used to validate and parse the parameters for resending a confirmation email.
+  Parameters for resending confirmation or verification emails/SMS.
+
+  This schema is used by `Supabase.GoTrue.resend/3` to define the parameters
+  for resending verification codes or confirmation emails to users.
+
+  ## Fields
+
+  * `type` - The type of verification to resend (`:sms`, `:signup`, `:phone_change`, `:email_change`)
+  * `options` - Additional options:
+    * `email_redirect_to` - URL to redirect after email confirmation
+    * `captcha_token` - Token from CAPTCHA verification if enabled
   """
 
   use Ecto.Schema
@@ -26,6 +36,7 @@ defmodule Supabase.GoTrue.Schemas.ResendParams do
     field(:type, Ecto.Enum, values: ~w[sms signup phone_change email_change]a)
 
     embeds_one :options, Options, primary_key: false do
+      @moduledoc false
       field(:email_redirect_to, :string)
       field(:captcha_token, :string)
     end

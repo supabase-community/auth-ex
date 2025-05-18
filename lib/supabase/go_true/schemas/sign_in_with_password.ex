@@ -1,15 +1,5 @@
 defmodule Supabase.GoTrue.Schemas.SignInWithPassword do
-  @moduledoc """
-  This schema is used to validate and parse the parameters for signing in with a password.
-
-  ## Fields
-    * `email` - The user's email.
-    * `phone` - The user's phone.
-    * `password` - The user's password.
-    * `options` - The options for the sign in.
-      - `data` - The data for the sign in.
-      - `captcha_token` - The captcha token.
-  """
+  @moduledoc false
 
   use Ecto.Schema
 
@@ -34,6 +24,7 @@ defmodule Supabase.GoTrue.Schemas.SignInWithPassword do
     field(:password, :string)
 
     embeds_one :options, Options, primary_key: false do
+      @moduledoc false
       field(:data, :map)
       field(:captcha_token, :string)
     end
