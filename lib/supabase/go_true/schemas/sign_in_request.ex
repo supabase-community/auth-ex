@@ -1,16 +1,5 @@
 defmodule Supabase.GoTrue.Schemas.SignInRequest do
-  @moduledoc """
-  This schema is used to validate and parse the parameters for signing in a user.
-
-  ## Fields
-
-  Fields depends on the sign in method, so check their modules to
-  see the available fields.
-  - Sign in with ID Token: `Supabase.GoTrue.Schemas.SignInWithIdToken`
-  - Sign in with OTP: `Supabase.GoTrue.Schemas.SignInWithOTP`
-  - Sign in with Password: `Supabase.GoTrue.Schemas.SignInWithPassword`
-  - Sign in with SSO: `Supabase.GoTrue.Schemas.SignInWithSSO`
-  """
+  @moduledoc false
 
   use Ecto.Schema
 
@@ -41,6 +30,7 @@ defmodule Supabase.GoTrue.Schemas.SignInRequest do
     field(:code_challenge_method, :string)
 
     embeds_one :gotrue_meta_security, GoTrueMetaSecurity, primary_key: false do
+      @moduledoc false
       @derive Jason.Encoder
       field(:captcha_token, :string)
     end

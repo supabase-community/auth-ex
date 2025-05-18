@@ -1,6 +1,30 @@
 defmodule Supabase.GoTrue.Schemas.ServerSettings do
   @moduledoc """
-  This schema is used to validate and parse the parameters for server settings.
+  Represents the configuration settings of the GoTrue authentication server.
+
+  This struct is returned by `Supabase.GoTrue.get_server_settings/1` and contains
+  information about the server's configuration, including available authentication
+  methods and provider settings.
+
+  ## Fields
+
+  * `disable_signup` - Whether new user signups are allowed
+  * `mailer_autoconfirm` - Whether email signups are automatically confirmed
+  * `phone_autoconfirm` - Whether phone signups are automatically confirmed
+  * `sms_provider` - The provider used for SMS messaging
+  * `saml_enabled` - Whether SAML authentication is enabled
+  * `external` - Settings for external authentication providers
+    * See `external_t()` type for all provider fields
+
+  ## External Providers
+
+  The `external` field contains boolean flags indicating which authentication
+  providers are enabled, such as:
+
+  * `anonymous_users` - Anonymous authentication
+  * `email` - Email/password authentication
+  * `phone` - Phone authentication
+  * Third-party providers (`google`, `github`, etc.)
   """
 
   use Ecto.Schema
@@ -54,6 +78,7 @@ defmodule Supabase.GoTrue.Schemas.ServerSettings do
     field(:saml_enabled, :boolean)
 
     embeds_one :external, External, primary_key: false do
+      @moduledoc false
       @derive Jason.Encoder
       field(:anonymous_users, :boolean)
       field(:apple, :boolean)

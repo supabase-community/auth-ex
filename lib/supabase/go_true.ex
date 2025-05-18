@@ -98,11 +98,13 @@ defmodule Supabase.GoTrue do
 
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
-    - `credentials` - The credentials to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInWithIdToken` for more information:
-      * `provider` - Provider name identifying which provider should be used to verify the provided token (e.g., 'google', 'apple', 'azure')
+    - `credentials` - The credentials to use for the sign in:
+      * `provider` - Provider name identifying which provider should be used to verify the provided token (e.g., 'google', 'apple', 'azure', 'facebook', 'kakao')
       * `token` - OIDC ID token issued by the specified provider
       * `access_token` - Optional if the ID token contains an `at_hash` claim
       * `nonce` - Optional if the ID token contains a `nonce` claim
+      * `options` - Optional parameters:
+        * `captcha_token` - Verification token from CAPTCHA challenge
 
   ## Returns
     - `{:ok, session}` - Successfully authenticated with ID token, returns a valid session
@@ -132,10 +134,13 @@ defmodule Supabase.GoTrue do
 
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
-    - `credentials` - The credentials to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInWithOauth` for more information:
-      * `provider` - One of the supported OAuth providers (e.g., 'github', 'google', 'facebook')
-      * `redirect_to` - Optional URL to redirect the user after successful authentication
-      * `scopes` - Optional space-separated list of OAuth scopes to request
+    - `credentials` - The credentials to use for the sign in:
+      * `provider` - One of the supported OAuth providers (e.g., 'apple', 'azure', 'bitbucket', 'discord', 'email', 'facebook', 'figma', 'github', 'gitlab', 'google', 'kakao', 'keycloak', 'linkedin', 'notion', 'phone', 'slack', 'spotify', 'twitch', 'twitter', 'workos', 'zoom', 'fly')
+      * `options` - Optional parameters:
+        * `redirect_to` - URL to redirect the user after successful authentication
+        * `scopes` - List of OAuth scopes to request
+        * `query_params` - Additional query parameters to include in the OAuth URL
+        * `skip_browser_redirect` - Whether to skip redirecting the browser to the authorization URL
 
   ## Returns
     - `{:ok, provider, url}` - Successfully generated OAuth URL; `provider` is the provider atom, `url` is the authorization URL to redirect to
@@ -158,16 +163,37 @@ defmodule Supabase.GoTrue do
   end
 
   @doc """
-  Signs in a user with OTP.
+  Signs in a user with OTP (One-Time Password).
+
+  This method sends a one-time password to the user's email or phone number for authentication.
+  The user will need to verify this code to complete the authentication process using the
+  `verify_otp/2` function.
 
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
-    - `credentials` - The credentials to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInWithOTP` for more information.
+    - `credentials` - The credentials to use for the sign in:
+      * `email` - User's email address (required if phone not provided)
+      * `phone` - User's phone number (required if email not provided)
+      * `options` - Optional parameters:
+        * `data` - Additional data to include with the sign in request
+        * `email_redirect_to` - URL to redirect user after email verification
+        * `captcha_token` - Verification token from CAPTCHA challenge
+        * `channel` - Delivery channel for phone OTPs (defaults to "sms")
+        * `should_create_user` - Whether to create a new user if one doesn't exist (defaults to true)
+
+  ## Returns
+    - `:ok` - Successfully sent OTP via email
+    - `{:ok, message_id}` - Successfully sent OTP via SMS, returns message ID
+    - `{:error, error}` - Failed to send OTP
 
   ## Examples
-      iex> credentials = %Supabase.GoTrue.SignInWithOTP{}
-      iex> Supabase.GoTrue.sign_in_with_otp(pid | client_name, credentials)
+      iex> credentials = %{email: "user@example.com"}
+      iex> Supabase.GoTrue.sign_in_with_otp(client, credentials)
       :ok
+      
+      iex> credentials = %{phone: "+15555550123", options: %{channel: "sms"}}
+      iex> Supabase.GoTrue.sign_in_with_otp(client, credentials)
+      {:ok, "message-id-123"}
   """
   @impl true
   def sign_in_with_otp(%Client{} = client, credentials) do
@@ -177,15 +203,47 @@ defmodule Supabase.GoTrue do
   end
 
   @doc """
-  Verifies an OTP code.
+  Verifies an OTP (One-Time Password) code.
+
+  This function completes the authentication process started with `sign_in_with_otp/2`
+  by verifying the OTP code that was sent to the user's email or phone.
 
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
-    - `params` - The parameters to use for the verification. Check `Supabase.GoTrue.Schemas.VerifyOTP` for more information.
+    - `params` - The parameters to use for the verification. Use one of the following formats:
+      
+      For email verification:
+      * `email` - The email address that received the OTP
+      * `token` - The OTP code that was sent
+      * `type` - The verification type (`:signup`, `:invite`, `:magiclink`, `:recovery`, `:email_change`)
+      * `options` - Optional parameters:
+        * `redirect_to` - URL to redirect to after verification
+        * `captcha_token` - Verification token from CAPTCHA challenge
+      
+      For phone verification:
+      * `phone` - The phone number that received the OTP
+      * `token` - The OTP code that was sent
+      * `type` - The verification type (`:sms`, `:phone_change`)
+      * `options` - Optional parameters:
+        * `redirect_to` - URL to redirect to after verification
+        * `captcha_token` - Verification token from CAPTCHA challenge
+      
+      For token hash verification:
+      * `token_hash` - The token hash to verify
+      * `type` - The verification type (same as email verification types)
+      * `options` - Optional parameters (same as above)
+
+  ## Returns
+    - `{:ok, session}` - Successfully verified OTP, returns a session with tokens
+    - `{:error, error}` - Failed to verify OTP
 
   ## Examples
-      iex> params = %Supabase.GoTrue.VerifyOTP{}
-      iex> Supabase.GoTrue.verify_otp(pid | client_name, params)
+      iex> params = %{email: "user@example.com", token: "123456", type: :signup}
+      iex> Supabase.GoTrue.verify_otp(client, params)
+      {:ok, %Supabase.GoTrue.Session{}}
+      
+      iex> params = %{phone: "+15555550123", token: "123456", type: :sms}
+      iex> Supabase.GoTrue.verify_otp(client, params)
       {:ok, %Supabase.GoTrue.Session{}}
   """
   @impl true
@@ -196,16 +254,26 @@ defmodule Supabase.GoTrue do
   end
 
   @doc """
-  Signs in a user with SSO.
+  Signs in a user with SSO (Single Sign-On).
 
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
-    - `credentials` - The credentials to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInWithSSO` for more information.
+    - `credentials` - The credentials to use for the sign in:
+      * `provider_id` - The ID of the SSO provider (required if domain not provided)
+      * `domain` - The domain of the SSO provider (required if provider_id not provided)
+      * `options` - Optional parameters:
+        * `redirect_to` - URL to redirect the user after successful authentication
+        * `captcha_token` - Verification token from CAPTCHA challenge
 
   ## Examples
-      iex> credentials = %Supabase.GoTrue.SignInWithSSO{}
-      iex> Supabase.GoTrue.sign_in_with_sso(pid | client_name, credentials)
-      {:ok, %Supabase.GoTrue.Session{}}
+      iex> credentials = %{domain: "example.org", options: %{redirect_to: "https://example.com/callback"}}
+      iex> Supabase.GoTrue.sign_in_with_sso(client, credentials)
+      {:ok, "https://auth.supabase.com/sso/..."}
+
+      # Or using provider_id
+      iex> credentials = %{provider_id: "sso-provider-id", options: %{redirect_to: "https://example.com/callback"}}
+      iex> Supabase.GoTrue.sign_in_with_sso(client, credentials)
+      {:ok, "https://auth.supabase.com/sso/..."}
   """
   @impl true
   def sign_in_with_sso(%Client{} = client, credentials) do
@@ -230,6 +298,7 @@ defmodule Supabase.GoTrue do
     * `password` - User's password (required)
     * `options` - Optional parameters:
       * `captcha_token` - Verification token from CAPTCHA challenge
+      * `data` - Additional data to include with the sign in request
 
   ## Returns
 
@@ -272,15 +341,28 @@ defmodule Supabase.GoTrue do
   @doc """
   Signs in a user anonymously.
 
+  This method creates a new anonymous user in the Supabase auth system.
+  Anonymous users can later be converted to permanent users by linking
+  identities or adding credentials.
+
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
-    - `opts` - The options to use for the sign in. Check `Supabase.GoTrue.Schemas.SignInAnonymously` for more information.
+    - `opts` - Optional parameters for anonymous sign-in:
+      * `data` - Additional data to include with the sign-in request
+      * `captcha_token` - Verification token from CAPTCHA challenge
+
+  ## Returns
+    - `{:ok, session}` - Successfully signed in anonymously, returns a session with tokens
+    - `{:error, error}` - Failed to sign in anonymously
 
   ## Examples
-      iex> Supabase.GoTrue.sign_in_anonymously(pid | client_name, %{})
+      iex> Supabase.GoTrue.sign_in_anonymously(client)
+      {:ok, %Supabase.GoTrue.Session{}}
+      
+      iex> Supabase.GoTrue.sign_in_anonymously(client, %{data: %{user_metadata: %{locale: "en-US"}}})
       {:ok, %Supabase.GoTrue.Session{}}
   """
-  @spec sign_in_anonymously(Client.t(), Enumerable.t()) :: {:ok, Session.t()} | {:error, term}
+  @spec sign_in_anonymously(Client.t(), SignInAnonymously.t()) :: {:ok, Session.t()} | {:error, term}
   def sign_in_anonymously(%Client{} = client, opts \\ %{}) do
     with {:ok, params} <- SignInAnonymously.parse(Map.new(opts)),
          {:ok, resp} <- UserHandler.sign_in_anonymously(client, params) do
@@ -293,11 +375,18 @@ defmodule Supabase.GoTrue do
 
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
-    - `credentials` - The credentials to use for the sign up. Check `Supabase.GoTrue.Schemas.SignUpWithPassword` for more information.
+    - `credentials` - The credentials to use for the sign up:
+      * `email` - User's email address (required if phone not provided)
+      * `phone` - User's phone number (required if email not provided)
+      * `password` - User's password (required)
+      * `options` - Optional parameters:
+        * `email_redirect_to` - URL to redirect the user after email confirmation
+        * `data` - Additional data to include with the sign up
+        * `captcha_token` - Verification token from CAPTCHA challenge
 
   ## Examples
-      iex> credentials = %Supabase.GoTrue.SignUpWithPassword{}
-      iex> Supabase.GoTrue.sign_up(pid | client_name, credentials)
+      iex> credentials = %{email: "user@example.com", password: "secure-password"}
+      iex> Supabase.GoTrue.sign_up(client, credentials)
       {:ok, %Supabase.GoTrue.User{}}
   """
   @impl true
@@ -336,12 +425,18 @@ defmodule Supabase.GoTrue do
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
     - `email` - A valid user email address to recover password
-    - `opts`:
-      - `redirect_to`: the url where the user should be redirected to reset their password
-      - `captcha_token`
+    - `opts` - Options for the resend operation:
+      * `type` - The type of OTP to resend (`:sms`, `:signup`, `:phone_change`, `:email_change`)
+      * `options` - Additional options:
+        * `email_redirect_to` - The URL where the user should be redirected after confirming their email
+        * `captcha_token` - Token from a CAPTCHA verification if enabled
+
+  ## Returns
+    - `:ok` - Successfully initiated resend operation
+    - `{:error, error}` - Failed to resend confirmation
 
   ## Examples
-    iex> Supabase.GoTrue.resend(client, "john@example.com", redirect_to: "http://localohst:4000/reset-pass")
+    iex> Supabase.GoTrue.resend(client, "john@example.com", %{type: :signup, options: %{email_redirect_to: "http://localhost:4000/reset-pass"}})
     :ok
   """
   @spec resend(Client.t(), String.t(), ResendParams.t()) :: :ok | {:error, term}
@@ -354,13 +449,30 @@ defmodule Supabase.GoTrue do
   @doc """
   Updates the current logged in user.
 
+  This function allows updating various user attributes including email, phone,
+  password, and user metadata. The user must be authenticated.
+
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
     - `conn` - The current `Plug.Conn` or `Phoenix.LiveView.Socket` to get current user
-    - `attrs` - Check `UserParams`
+    - `attrs` - Attributes to update:
+      * `email` - New email address for the user
+      * `phone` - New phone number for the user
+      * `password` - New password for the user
+      * `data` - Additional user metadata to update
+      * `nonce` - Optional nonce for email change verification
+      * `email_redirect_to` - URL to redirect after email change confirmation
+
+  ## Returns
+    - `{:ok, conn}` - User was successfully updated, returns updated conn with session
+    - `{:error, reason}` - Failed to update user
 
   ## Examples
       iex> params = %{email: "another@example.com", password: "new-pass"}
+      iex> Supabase.GoTrue.update_user(client, conn, params)
+      {:ok, conn}
+      
+      iex> params = %{data: %{name: "John Doe", avatar_url: "https://example.com/avatar.png"}}
       iex> Supabase.GoTrue.update_user(client, conn, params)
       {:ok, conn}
   """
@@ -444,11 +556,23 @@ defmodule Supabase.GoTrue do
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
     - `session` - The session to use for the request.
-    - `credentials` - The OAuth credentials to use for identity linking. Check `Supabase.GoTrue.Schemas.SignInWithOauth` for more information.
+    - `credentials` - The OAuth credentials to use for identity linking:
+       * `provider` - One of the supported OAuth providers (e.g., 'apple', 'azure', 'github', 'google', etc.)
+       * `options` - Optional parameters:
+         * `redirect_to` - URL to redirect the user after successful authentication
+         * `scopes` - List of OAuth scopes to request
+         * `query_params` - Additional query parameters to include in the OAuth URL
+         * `skip_browser_redirect` - Whether to skip redirecting the browser to the authorization URL
+
+  ## Returns
+    - `{:ok, result}` - Successfully generated an identity linking URL, where result is a map containing:
+       * `provider` - The provider specified in the request
+       * `url` - The authorization URL to redirect to
+    - `{:error, error}` - Failed to generate an identity linking URL
 
   ## Examples
       iex> session = %Supabase.GoTrue.Session{access_token: "example_token"}
-      iex> credentials = %Supabase.GoTrue.SignInWithOauth{provider: :github}
+      iex> credentials = %{provider: :github}
       iex> Supabase.GoTrue.link_identity(client, session, credentials)
       {:ok, %{provider: :github, url: "https://..."}}
   """

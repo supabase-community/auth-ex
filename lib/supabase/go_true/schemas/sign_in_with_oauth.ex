@@ -1,15 +1,5 @@
 defmodule Supabase.GoTrue.Schemas.SignInWithOauth do
-  @moduledoc """
-  This schema is used to validate and parse the parameters for signing in with OAuth.
-
-  ## Fields
-    * `provider` - The provider.
-    * `options` - The options.
-      - `redirect_to` - The redirect URL.
-      - `scopes` - The scopes.
-      - `query_params` - The query parameters.
-      - `skip_browser_redirect` - Whether to skip the browser redirect.
-  """
+  @moduledoc false
 
   use Ecto.Schema
 
@@ -32,6 +22,7 @@ defmodule Supabase.GoTrue.Schemas.SignInWithOauth do
     field(:provider, Ecto.Enum, values: Identity.providers())
 
     embeds_one :options, Options, primary_key: false do
+      @moduledoc false
       field(:redirect_to, :string)
       field(:scopes, {:array, :string})
       field(:query_params, :map, default: %{})

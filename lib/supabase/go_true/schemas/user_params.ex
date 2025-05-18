@@ -1,14 +1,18 @@
 defmodule Supabase.GoTrue.Schemas.UserParams do
   @moduledoc """
-  Uuser params schema. This schema is used to validate and parse the parameters for creating a new admin user.
+  Parameters for updating user profiles.
+
+  This schema is used by `Supabase.GoTrue.update_user/3` to define the 
+  parameters for updating an authenticated user's profile information.
 
   ## Fields
-    * `data` - The metadata to associate with the user.
-    * `email` - The user's email.
-    * `phone` - The user's phone.
-    * `password` - The user's password.
-    * `nonce` - The user's nonce.
-    * `email_redirect_to` - The user's nonce.
+
+  * `email` - New email address for the user
+  * `phone` - New phone number for the user
+  * `password` - New password for the user
+  * `data` - Additional user metadata to update
+  * `nonce` - Optional nonce for email change verification
+  * `email_redirect_to` - URL to redirect after email change confirmation
   """
 
   import Ecto.Changeset

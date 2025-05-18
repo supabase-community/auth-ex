@@ -1,6 +1,15 @@
 defmodule Supabase.GoTrue.Schemas.ServerHealth do
   @moduledoc """
-  This schema is used to validate and parse the parameters for server health.
+  Represents the health information of the GoTrue authentication server.
+
+  This struct is returned by `Supabase.GoTrue.get_server_health/1` and contains
+  information about the server's status, version, and other diagnostic data.
+
+  ## Fields
+
+  * `version` - The version of the GoTrue server
+  * `name` - The name of the service (typically "GoTrue")
+  * `description` - A brief description of the service
   """
 
   use Ecto.Schema

@@ -1,15 +1,5 @@
 defmodule Supabase.GoTrue.Schemas.SignInWithIdToken do
-  @moduledoc """
-  This schema is used to validate and parse the parameters for signing in with an ID token.
-
-  ## Fields
-    * `provider` - The provider.
-    * `token` - The token.
-    * `access_token` - The access token.
-    * `nonce` - The nonce.
-    * `options` - The options.
-      - `captcha_token` - The captcha token.
-  """
+  @moduledoc false
 
   use Ecto.Schema
 
@@ -36,6 +26,7 @@ defmodule Supabase.GoTrue.Schemas.SignInWithIdToken do
     field(:nonce, :string)
 
     embeds_one :options, Options, primary_key: false do
+      @moduledoc false
       field(:captcha_token, :string)
     end
   end
