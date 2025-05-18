@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2025-05-18
+
+### Added
+- Implemented auto-refresh token functionality for managing token expiration
+- Added reauthentication functionality for sensitive operations
+- Enhanced PKCE flow with `exchange_code_for_session` implementation
+- Added authentication function generator task for Phoenix applications
+- Improved documentation for schema modules including proper typespecs
+
+### Fixed
+- Resolved documentation warnings when referenced hidden schema modules
+- Fixed compatibility issues with latest Phoenix versions
+- Corrected session management in LiveView integration
+
+### Improved
+- Streamlined README with better getting started instructions
+- Enhanced module documentation for better developer experience
+- Improved schema validation and error handling
+- Better integration with LSP for enhanced developer tooling
+- Updated validation patterns for authentication parameters
+
 ## [0.4.1] - 2025-02-17
 
 ### Added
