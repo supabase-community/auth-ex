@@ -362,7 +362,7 @@ defmodule Supabase.GoTrue do
       iex> Supabase.GoTrue.sign_in_anonymously(client, %{data: %{user_metadata: %{locale: "en-US"}}})
       {:ok, %Supabase.GoTrue.Session{}}
   """
-  @spec sign_in_anonymously(Client.t(), SignInAnonymously.t()) :: {:ok, Session.t()} | {:error, term}
+  @impl true
   def sign_in_anonymously(%Client{} = client, opts \\ %{}) do
     with {:ok, params} <- SignInAnonymously.parse(Map.new(opts)),
          {:ok, resp} <- UserHandler.sign_in_anonymously(client, params) do
@@ -410,11 +410,7 @@ defmodule Supabase.GoTrue do
     iex> Supabase.GoTrue.reset_password_for_email(client, "john@example.com", redirect_to: "http://localohst:4000/reset-pass")
     :ok
   """
-  @spec reset_password_for_email(Client.t(), String.t(), opts) :: :ok | {:error, term}
-        when opts:
-               [redirect_to: String.t()]
-               | [captcha_token: String.t()]
-               | [redirect_to: String.t(), captcha_token: String.t()]
+  @impl true
   def reset_password_for_email(%Client{} = client, email, opts) do
     UserHandler.recover_password(client, email, Map.new(opts))
   end
@@ -439,7 +435,7 @@ defmodule Supabase.GoTrue do
     iex> Supabase.GoTrue.resend(client, "john@example.com", %{type: :signup, options: %{email_redirect_to: "http://localhost:4000/reset-pass"}})
     :ok
   """
-  @spec resend(Client.t(), String.t(), ResendParams.t()) :: :ok | {:error, term}
+  @impl true
   def resend(%Client{} = client, email, opts) do
     with {:ok, params} <- ResendParams.parse(Map.new(opts)) do
       UserHandler.resend(client, email, params)
@@ -476,8 +472,7 @@ defmodule Supabase.GoTrue do
       iex> Supabase.GoTrue.update_user(client, conn, params)
       {:ok, conn}
   """
-  @spec update_user(Client.t(), conn, UserParams.t()) :: {:ok, conn} | {:error, term}
-        when conn: Plug.Conn.t() | Phoenix.LiveView.Socket.t()
+  @impl true
   def update_user(%Client{} = client, conn, attrs) do
     with {:ok, params} <- UserParams.parse(attrs) do
       if conn.assigns.current_user do
@@ -499,8 +494,7 @@ defmodule Supabase.GoTrue do
       iex> Supabase.GoTrue.refresh_session(client, "refresh_token")
       {:ok, %Supabase.GoTrue.Session{}}
   """
-  @spec refresh_session(Client.t(), refresh_token :: String.t()) ::
-          {:ok, Session.t()} | {:error, term}
+  @impl true
   def refresh_session(%Client{} = client, refresh_token) do
     with {:ok, resp} <- UserHandler.refresh_session(client, refresh_token) do
       Session.parse(resp.body)
@@ -517,7 +511,7 @@ defmodule Supabase.GoTrue do
       iex> Supabase.GoTrue.get_server_health(client)
       {:ok, %Supabase.GoTrue.ServerHealth{}}
   """
-  @spec get_server_health(Client.t()) :: {:ok, ServerHealth.t()} | {:error, term}
+  @impl true
   def get_server_health(%Client{} = client) do
     with {:ok, resp} <- UserHandler.get_server_health(client) do
       ServerHealth.parse(resp.body)
@@ -534,7 +528,7 @@ defmodule Supabase.GoTrue do
       iex> Supabase.GoTrue.get_server_settings(client)
       {:ok, %Supabase.GoTrue.ServerSettings{}}
   """
-  @spec get_server_settings(Client.t()) :: {:ok, ServerSettings.t()} | {:error, term}
+  @impl true
   def get_server_settings(%Client{} = client) do
     with {:ok, resp} <- UserHandler.get_server_settings(client) do
       ServerSettings.parse(resp.body)
@@ -576,7 +570,7 @@ defmodule Supabase.GoTrue do
       iex> Supabase.GoTrue.link_identity(client, session, credentials)
       {:ok, %{provider: :github, url: "https://..."}}
   """
-  @spec link_identity(Client.t(), Session.t(), map) :: {:ok, map} | {:error, term}
+  @impl true
   def link_identity(%Client{} = client, %Session{} = session, credentials) do
     with {:ok, credentials} <- SignInWithOauth.parse(credentials) do
       UserHandler.link_identity(client, session.access_token, credentials)
@@ -597,7 +591,7 @@ defmodule Supabase.GoTrue do
       iex> Supabase.GoTrue.unlink_identity(client, session, identity_id)
       :ok
   """
-  @spec unlink_identity(Client.t(), Session.t(), String.t()) :: :ok | {:error, term}
+  @impl true
   def unlink_identity(%Client{} = client, %Session{} = session, identity_id) do
     UserHandler.unlink_identity(client, session.access_token, identity_id)
   end
@@ -614,7 +608,7 @@ defmodule Supabase.GoTrue do
       iex> Supabase.GoTrue.get_user_identities(client, session)
       {:ok, [%Supabase.GoTrue.User.Identity{}, ...]}
   """
-  @spec get_user_identities(Client.t(), Session.t()) :: {:ok, list(User.Identity.t())} | {:error, term}
+  @impl true
   def get_user_identities(%Client{} = client, %Session{} = session) do
     with {:ok, response} <- UserHandler.get_user_identities(client, session.access_token) do
       User.Identity.parse_list(response.body)
@@ -641,8 +635,6 @@ defmodule Supabase.GoTrue do
       {:ok, %Supabase.GoTrue.Session{}}
   """
   @impl true
-  @spec exchange_code_for_session(Client.t(), String.t(), String.t(), map()) ::
-          {:ok, Session.t()} | {:error, term}
   def exchange_code_for_session(%Client{} = client, auth_code, code_verifier, opts \\ %{}) do
     with {:ok, resp} <- UserHandler.exchange_code_for_session(client, auth_code, code_verifier, opts) do
       Session.parse(resp.body)
@@ -666,7 +658,6 @@ defmodule Supabase.GoTrue do
       :ok
   """
   @impl true
-  @spec reauthenticate(Client.t(), Session.t()) :: :ok | {:error, term}
   def reauthenticate(%Client{} = client, %Session{} = session) do
     UserHandler.reauthenticate(client, session.access_token)
   end
