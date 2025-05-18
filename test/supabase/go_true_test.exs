@@ -585,13 +585,14 @@ defmodule Supabase.GoTrueTest do
                  "phone" => "+5522123456789"
                } = Jason.decode!(req.body)
 
-        body = user_fixture_json(id: "123")
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(user: user)
 
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
       end)
 
-      assert {:ok, %User{} = user} = GoTrue.sign_up(client, data)
-      assert user.id == "123"
+      assert {:ok, %Session{} = session} = GoTrue.sign_up(client, data)
+      assert session.user.id == "123"
     end
   end
 

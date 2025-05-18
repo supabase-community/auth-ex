@@ -1,5 +1,6 @@
 # Used by "mix format"
 [
-  inputs: ["mix.exs", "config/*.exs", "lib/**/*.ex", "test/**/*.exs"],
+  inputs: ["*.{ex,exs}", "{config,lib,test}/**/*.{ex,exs}"],
+  import_deps: [:peri],
   plugins: [Styler]
 ]

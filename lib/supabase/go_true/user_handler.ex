@@ -18,7 +18,7 @@ defmodule Supabase.GoTrue.UserHandler do
   alias Supabase.GoTrue.Schemas.SignUpRequest
   alias Supabase.GoTrue.Schemas.SignUpWithPassword
   alias Supabase.GoTrue.Schemas.VerifyOTP
-  alias Supabase.GoTrue.User
+  alias Supabase.GoTrue.Session
 
   @single_user_uri "/user"
   @sign_in_uri "/token"
@@ -168,8 +168,8 @@ defmodule Supabase.GoTrue.UserHandler do
            |> Request.with_method(:post)
            |> Request.with_body(body)
            |> Fetcher.request(),
-         {:ok, user} <- User.parse(resp.body) do
-      {:ok, user, challenge}
+         {:ok, session} <- Session.parse(resp.body) do
+      {:ok, session, challenge}
     end
   end
 
@@ -181,7 +181,7 @@ defmodule Supabase.GoTrue.UserHandler do
            |> Request.with_method(:post)
            |> Request.with_body(body)
            |> Fetcher.request() do
-      User.parse(resp.body)
+      Session.parse(resp.body)
     end
   end
 

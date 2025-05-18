@@ -9,16 +9,18 @@ defmodule Supabase.GoTrue.ServerHealthFixture do
     default = %{
       version: "1.0.0",
       name: "GoTrue",
-      description:
-        "GoTrue is a secure and easy way to add authentication to your web or mobile applications."
+      description: "GoTrue is a secure and easy way to add authentication to your web or mobile applications."
     }
 
-    Enum.into(Map.new(attrs), default)
+    attrs
+    |> Map.new()
+    |> Enum.into(default)
     |> then(&struct(ServerHealth, &1))
   end
 
   def server_health_fixture_json(attrs \\ %{}) do
-    server_health_fixture(attrs)
+    attrs
+    |> server_health_fixture()
     |> Jason.encode!()
   end
 end

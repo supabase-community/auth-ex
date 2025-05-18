@@ -1,0 +1,63 @@
+<div class="mx-auto max-w-sm space-y-4">
+  <.header class="text-center">
+    <p>Log in</p>
+    <:subtitle>
+      Don't have an account?
+      <.link navigate={~p"/register"} class="font-semibold text-brand hover:underline">
+        Sign up
+      </.link>
+      for an account now.
+    </:subtitle>
+  </.header>
+
+  <%= if "password" in strategy do %>
+    <.form :let={f} for={@form} as={:user} id="login_form_password" action={~p"/login"}>
+      <.input field={f[:email]} type="email" label="Email" autocomplete="username" required />
+      <.input
+        field={f[:password]}
+        type="password"
+        label="Password"
+        autocomplete="current-password"
+        required
+      />
+      <.input field={f[:remember_me]} type="checkbox" label="Keep me logged in" />
+      <.button class="w-full">
+        Log in with password <span aria-hidden="true">→</span>
+      </.button>
+    </.form>
+  <% end %>
+
+  <%= if "otp" in strategy do %>
+    <.form :let={f} for={@form} as={:user} id="login_form_otp" action={~p"/login"}>
+      <.input field={f[:email]} type="email" label="Email" required />
+      <.button class="w-full">
+        Send one-time password <span aria-hidden="true">→</span>
+      </.button>
+    </.form>
+  <% end %>
+
+  <%= if "oauth" in strategy do %>
+    <div class="space-y-4">
+      <p class="text-center">Log in with a provider</p>
+      <div class="flex justify-center space-x-4">
+        <.link
+          :for={provider <- ["github", "google", "facebook"]}
+          href={~p"/login?provider=#{provider}"}
+          class="w-full"
+        >
+          <.button class="w-full">
+            {provider}
+          </.button>
+        </.link>
+      </div>
+    </div>
+  <% end %>
+
+  <%= if "anon" in strategy do %>
+    <.form for={%{}} id="login_form_anon" action={~p"/login"} as={:user}>
+      <.button class="w-full">
+        Continue anonymously <span aria-hidden="true">→</span>
+      </.button>
+    </.form>
+  <% end %>
+</div>

@@ -18,11 +18,13 @@ defmodule Supabase.GoTrue.SessionFixture do
       user: UserFixture.user_fixture(attrs[:user] || %{})
     }
 
-    Enum.into(Map.new(attrs), default)
+    attrs
+    |> Map.new()
+    |> Enum.into(default)
     |> then(&struct(Session, &1))
   end
 
   def session_fixture_json(attrs \\ %{}) do
-    session_fixture(attrs) |> Jason.encode!()
+    attrs |> session_fixture() |> Jason.encode!()
   end
 end
