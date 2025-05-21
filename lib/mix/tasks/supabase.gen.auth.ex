@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   @moduledoc """
   Generates authentication logic backed by Supabase and related views for `Phoenix`.
 
-      $ mix supabase.gen.auth [options]
+      $ mix supabase.gen.auth MyAppWeb [options]
 
   ## LiveView vs conventional Controllers & Views
 
@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
   ### Example
 
-      $ mix supabase.gen.auth --strategy password --strategy oauth
+      $ mix supabase.gen.auth MyAppWeb --strategy password --strategy oauth
 
   ## Options
 
@@ -80,9 +80,9 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
         db: [schema: "another"],
         auth: [debug: true] # optional
 
-  Then you can invoke this task passing thr basic options in additional to the `--client` option:
+  Then you can invoke this task passing the basic options in addition to the `--client` option:
 
-      $ mix supabase.gen.auth -s anon --client MyApp.Supabase
+      $ mix supabase.gen.auth MyAppWeb -s anon --client MyApp.Supabase
 
   This is the best option if you are going to use the same client in other parts of your application and also to hold and handle authentication tokens for different scopes via `Supabase.Client.update_access_token/2`.
 
@@ -90,7 +90,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
   If you don't want to define a self-managed client, you can pass the `--supabase-url` and `--supabase-key` options to the task:
 
-      $ mix supabase.gen.auth -s anon --supabase-url https://<app-name>.supabase.co --supabase-key <supabase-api-key>
+      $ mix supabase.gen.auth MyAppWeb -s anon --supabase-url https://<app-name>.supabase.co --supabase-key <supabase-api-key>
 
   This option is useful if you are going to use the client only in the authentication logic and don't need to handle tokens for different scopes.
 
@@ -145,6 +145,12 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       Mix.raise("mix supabase.gen.auth can only be run inside an application directory")
     end
 
+    {web_module, args} =
+      case args do
+        [web_module | rest] -> {Module.safe_concat([web_module]), rest}
+        [] -> Mix.raise("Expected web_module to be given, for example: mix supabase.gen.auth MyAppWeb")
+      end
+
     {opts, _parsed} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
     config = validate_options!(opts)
 
@@ -154,14 +160,6 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
     app_name = Keyword.fetch!(Mix.Project.config(), :app)
     web_app_name = String.to_atom("#{app_name}_web")
-
-    web_module =
-      app_name
-      |> to_string()
-      |> String.split("_", trim: true)
-      |> Enum.map(&Macro.camelize/1)
-      |> List.update_at(-1, fn last -> last <> "Web" end)
-      |> Module.concat()
 
     auth_module = Module.concat([web_module, "UserAuth"])
     endpoint_module = Module.concat([web_module, "Endpoint"])
@@ -183,7 +181,6 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       auth_only: config[:auth_only]
     ]
 
-    # If auth_only is true, only generate the auth module
     if config[:auth_only] do
       generate_auth_only(bindings, [".", :supabase_gotrue])
     else
@@ -249,7 +246,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   defschema :config,
     live: {:boolean, {:default, false}},
     strategy: {{:list, {:enum, @strategies}}, {:default, ["password"]}},
-    client: {:string, {:transform, &String.to_atom/1}},
+    client: {:string, {:transform, &Module.concat([&1])}},
     supabase_url: :string,
     supabase_key: :string,
     auth_only: {:boolean, {:default, false}}
