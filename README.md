@@ -12,7 +12,7 @@
 def deps do
   [
     {:supabase_potion, "~> 0.6"},
-    {:supabase_gotrue, "~> 0.4"}
+    {:supabase_gotrue, "~> 0.5"}
   ]
 end
 ```
