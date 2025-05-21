@@ -255,14 +255,15 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     auth_only: {:boolean, {:default, false}}
 
   defp validate_options!(options) do
+    strategies =
+      Enum.reduce(options, [], fn
+        {:strategy, strategy}, acc -> [strategy | acc]
+        _, acc -> acc
+      end)
+
     options
-    |> Enum.group_by(fn {k, _} -> k end)
-    |> Enum.map(fn {k, v} ->
-      {k,
-       v
-       |> Enum.map(fn {_, v} -> v end)
-       |> then(&if length(&1) == 1, do: hd(&1), else: &1)}
-    end)
+    |> Enum.reject(&match?({:strategy, _}, &1))
+    |> Keyword.put(:strategy, strategies)
     |> config!()
     |> then(fn opts ->
       client = opts[:client]

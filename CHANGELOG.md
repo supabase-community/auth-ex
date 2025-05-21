@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2025-05-20
+
+### Fixed
+- Correctly hadnle single strategy on mix task generator
+
 ## [0.5.0] - 2025-05-18
 
 ### Added
