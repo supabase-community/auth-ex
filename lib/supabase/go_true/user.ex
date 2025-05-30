@@ -18,6 +18,7 @@ defmodule Supabase.GoTrue.User do
   * `confirmed_at` - Timestamp when the user was confirmed (email verification)
   * `factors` - Multi-factor authentication methods associated with the user
   * `identities` - External identity providers linked to this user (GitHub, Google, etc.)
+  * `is_anonymous` - Set to true if user is authenticated as anonymous
 
   ## Confirmation Status
 
@@ -74,11 +75,12 @@ defmodule Supabase.GoTrue.User do
           role: String.t() | nil,
           updated_at: NaiveDateTime.t() | nil,
           identities: list(Identity) | nil,
-          factors: list(Factor) | nil
+          factors: list(Factor) | nil,
+          is_anonymous: boolean | nil
         }
 
   @required_fields ~w[id app_metadata aud created_at]a
-  @optional_fields ~w[confirmation_sent_at recovery_sent_at email_change_sent_at new_email new_phone invited_at action_link email phone confirmed_at email_confirmed_at phone_confirmed_at last_sign_in_at role]a
+  @optional_fields ~w[confirmation_sent_at recovery_sent_at email_change_sent_at new_email new_phone invited_at action_link email phone confirmed_at email_confirmed_at phone_confirmed_at last_sign_in_at role is_anonymous]a
 
   @derive Jason.Encoder
   @primary_key {:id, :binary_id, autogenerate: false}
@@ -101,6 +103,7 @@ defmodule Supabase.GoTrue.User do
     field(:last_sign_in_at, :naive_datetime)
     field(:encrypted_password, :string)
     field(:role, :string)
+    field(:is_anonymous, :boolean)
 
     embeds_many(:factors, Factor)
     embeds_many(:identities, Identity)

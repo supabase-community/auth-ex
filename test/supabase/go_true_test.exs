@@ -550,10 +550,7 @@ defmodule Supabase.GoTrueTest do
       expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/signup"
-
-        assert %{
-                 "options" => %{"captcha_token" => "123"}
-               } = Jason.decode!(req.body)
+        assert %{"gotrue_meta_security" => %{"captcha_token" => "123"}} = Jason.decode!(req.body)
 
         user = [id: "123", identities: []] |> user_fixture() |> Map.from_struct()
         body = session_fixture_json(access_token: "123", user: user)

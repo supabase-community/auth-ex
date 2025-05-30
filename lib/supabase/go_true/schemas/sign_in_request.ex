@@ -6,6 +6,7 @@ defmodule Supabase.GoTrue.Schemas.SignInRequest do
   import Ecto.Changeset
   import Supabase.GoTrue.Validations
 
+  alias Supabase.GoTrue.Schemas.SignInAnonymously
   alias Supabase.GoTrue.Schemas.SignInWithIdToken
   alias Supabase.GoTrue.Schemas.SignInWithOTP
   alias Supabase.GoTrue.Schemas.SignInWithPassword
@@ -100,6 +101,16 @@ defmodule Supabase.GoTrue.Schemas.SignInRequest do
     |> put_embed(:gotrue_meta_security, gotrue_meta, required: true)
     |> validate_required([:password])
     |> validate_required_inclusion([:email, :phone])
+    |> apply_action(:insert)
+  end
+
+  def create(%SignInAnonymously{} = signin) do
+    attrs = SignInAnonymously.to_sign_in_params(signin)
+    gotrue_meta = %__MODULE__.GoTrueMetaSecurity{captcha_token: signin.captcha_token}
+
+    %__MODULE__{}
+    |> cast(attrs, [:data])
+    |> put_embed(:gotrue_meta_security, gotrue_meta, required: true)
     |> apply_action(:insert)
   end
 

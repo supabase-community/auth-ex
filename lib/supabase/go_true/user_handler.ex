@@ -124,12 +124,14 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  def sign_in_anonymously(%Client{} = client, %SignInAnonymously{} = opts) do
-    client
-    |> GoTrue.Request.base(@sign_up_uri)
-    |> Request.with_method(:post)
-    |> Request.with_body(%{"options" => opts})
-    |> Fetcher.request()
+  def sign_in_anonymously(%Client{} = client, %SignInAnonymously{} = signin) do
+    with {:ok, body} <- SignInRequest.create(signin) do
+      client
+      |> GoTrue.Request.base(@sign_up_uri)
+      |> Request.with_method(:post)
+      |> Request.with_body(body)
+      |> Fetcher.request()
+    end
   end
 
   @grant_types ~w[password id_token]
