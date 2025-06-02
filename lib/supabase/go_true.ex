@@ -149,7 +149,9 @@ defmodule Supabase.GoTrue do
   ## Examples
       iex> credentials = %{
       ...>   provider: :github,
-      ...>   redirect_to: "https://example.com/callback"
+      ...>   options: %{
+      ...>     redirect_to: "https://example.com/callback"
+      ...>   }
       ...> }
       iex> Supabase.GoTrue.sign_in_with_oauth(client, credentials)
       {:ok, :github, "https://auth.supabase.com/authorize?provider=github&..."}
