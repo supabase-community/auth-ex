@@ -315,6 +315,7 @@ defmodule Supabase.GoTrue.UserHandler do
       query = URI.encode_query(query)
       URI.append_query(url, query)
     end)
+    |> URI.to_string()
   end
 
   def get_url_for_provider(%Client{} = client, %SignInWithOauth{} = oauth) do
@@ -328,6 +329,7 @@ defmodule Supabase.GoTrue.UserHandler do
       query = URI.encode_query(query)
       URI.append_query(url, query)
     end)
+    |> URI.to_string()
   end
 
   def refresh_session(%Client{} = client, refresh_token) when is_binary(refresh_token) do
