@@ -55,7 +55,7 @@ defmodule Supabase.GoTrue.UserHandler do
   end
 
   def sign_in_with_otp(%Client{} = client, %SignInWithOTP{} = signin) when client.auth.flow_type == :pkce do
-    {challenge, method} = generate_pkce()
+    {_verifier, challenge, method} = generate_pkce()
 
     with {:ok, body} <- SignInRequest.create(signin, challenge, method) do
       client
@@ -93,7 +93,7 @@ defmodule Supabase.GoTrue.UserHandler do
   end
 
   def sign_in_with_sso(%Client{} = client, %SignInWithSSO{} = signin) when client.auth.flow_type == :pkce do
-    {challenge, method} = generate_pkce()
+    {_verifier, challenge, method} = generate_pkce()
 
     with {:ok, body} <- SignInRequest.create(signin, challenge, method) do
       client
@@ -161,7 +161,7 @@ defmodule Supabase.GoTrue.UserHandler do
   end
 
   def sign_up(%Client{} = client, %SignUpWithPassword{} = signup) when client.auth.flow_type == :pkce do
-    {challenge, method} = generate_pkce()
+    {_verifier, challenge, method} = generate_pkce()
 
     with {:ok, body} <- SignUpRequest.create(signup, challenge, method),
          {:ok, resp} <-
@@ -188,7 +188,7 @@ defmodule Supabase.GoTrue.UserHandler do
   end
 
   def recover_password(%Client{} = client, email, %{} = opts) when client.auth.flow_type == :pkce do
-    {challenge, method} = generate_pkce()
+    {_verifier, challenge, method} = generate_pkce()
 
     body = %{
       email: email,
@@ -241,7 +241,7 @@ defmodule Supabase.GoTrue.UserHandler do
   end
 
   def update_user(%Client{} = client, conn, %{} = params) when client.auth.flow_type == :pkce do
-    {challenge, method} = generate_pkce()
+    {_verifier, challenge, method} = generate_pkce()
 
     access_token =
       case conn do
@@ -303,7 +303,7 @@ defmodule Supabase.GoTrue.UserHandler do
   end
 
   def get_data_for_provider(%Client{} = client, %SignInWithOauth{} = oauth) when client.auth.flow_type == :pkce do
-    {challenge, method} = generate_pkce()
+    {verifier, challenge, method} = generate_pkce()
     pkce_query = %{code_challenge: challenge, code_challenge_method: method}
     oauth_query = SignInWithOauth.options_to_query(oauth)
     query = pkce_query |> Map.merge(oauth_query) |> Map.new(fn {k, v} -> {to_string(k), v} end)
@@ -322,6 +322,7 @@ defmodule Supabase.GoTrue.UserHandler do
       flow_type: client.auth.flow_type,
       provider: oauth.provider,
       url: url,
+      code_verifier: verifier,
       code_challenge: challenge,
       code_challenge_method: method
     }
@@ -375,7 +376,7 @@ defmodule Supabase.GoTrue.UserHandler do
     verifier = PKCE.generate_verifier()
     challenge = PKCE.generate_challenge(verifier)
     method = if verifier == challenge, do: "plain", else: "s256"
-    {challenge, method}
+    {verifier, challenge, method}
   end
 
   @doc """
@@ -415,7 +416,7 @@ defmodule Supabase.GoTrue.UserHandler do
   """
   def link_identity(%Client{} = client, access_token, %SignInWithOauth{} = oauth)
       when is_binary(access_token) and client.auth.flow_type == :pkce do
-    {challenge, method} = generate_pkce()
+    {_verifier, challenge, method} = generate_pkce()
     pkce_query = %{code_challenge: challenge, code_challenge_method: method}
     oauth_query = SignInWithOauth.options_to_query(oauth)
     query = pkce_query |> Map.merge(oauth_query) |> Map.new(fn {k, v} -> {to_string(k), v} end)
