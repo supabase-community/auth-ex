@@ -159,7 +159,8 @@ defmodule Supabase.GoTrueTest do
         }
       }
 
-      assert {:ok, :github, url_as_string} = GoTrue.sign_in_with_oauth(client, data)
+      assert {:ok, %{provider: :github, flow_type: :implicit, url: url_as_string}} =
+               GoTrue.sign_in_with_oauth(client, data)
 
       url = URI.parse(url_as_string)
 

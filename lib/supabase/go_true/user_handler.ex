@@ -302,34 +302,50 @@ defmodule Supabase.GoTrue.UserHandler do
     end
   end
 
-  def get_url_for_provider(%Client{} = client, %SignInWithOauth{} = oauth) when client.auth.flow_type == :pkce do
+  def get_data_for_provider(%Client{} = client, %SignInWithOauth{} = oauth) when client.auth.flow_type == :pkce do
     {challenge, method} = generate_pkce()
     pkce_query = %{code_challenge: challenge, code_challenge_method: method}
     oauth_query = SignInWithOauth.options_to_query(oauth)
     query = pkce_query |> Map.merge(oauth_query) |> Map.new(fn {k, v} -> {to_string(k), v} end)
 
-    client
-    |> GoTrue.Request.base(@oauth_uri)
-    |> Request.with_query(query)
-    |> then(fn %{query: query, url: url} ->
-      query = URI.encode_query(query)
-      URI.append_query(url, query)
-    end)
-    |> URI.to_string()
+    url =
+      client
+      |> GoTrue.Request.base(@oauth_uri)
+      |> Request.with_query(query)
+      |> then(fn %{query: query, url: url} ->
+        query = URI.encode_query(query)
+        URI.append_query(url, query)
+      end)
+      |> URI.to_string()
+
+    %{
+      flow_type: client.auth.flow_type,
+      provider: oauth.provider,
+      url: url,
+      code_challenge: challenge,
+      code_challenge_method: method
+    }
   end
 
-  def get_url_for_provider(%Client{} = client, %SignInWithOauth{} = oauth) do
+  def get_data_for_provider(%Client{} = client, %SignInWithOauth{} = oauth) do
     oauth_query = SignInWithOauth.options_to_query(oauth)
     query = Map.new(oauth_query, fn {k, v} -> {to_string(k), v} end)
 
-    client
-    |> GoTrue.Request.base(@oauth_uri)
-    |> Request.with_query(query)
-    |> then(fn %{query: query, url: url} ->
-      query = URI.encode_query(query)
-      URI.append_query(url, query)
-    end)
-    |> URI.to_string()
+    url =
+      client
+      |> GoTrue.Request.base(@oauth_uri)
+      |> Request.with_query(query)
+      |> then(fn %{query: query, url: url} ->
+        query = URI.encode_query(query)
+        URI.append_query(url, query)
+      end)
+      |> URI.to_string()
+
+    %{
+      flow_type: client.auth.flow_type,
+      provider: oauth.provider,
+      url: url
+    }
   end
 
   def refresh_session(%Client{} = client, refresh_token) when is_binary(refresh_token) do

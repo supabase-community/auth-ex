@@ -143,7 +143,7 @@ defmodule Supabase.GoTrue do
         * `skip_browser_redirect` - Whether to skip redirecting the browser to the authorization URL
 
   ## Returns
-    - `{:ok, provider, url}` - Successfully generated OAuth URL; `provider` is the provider atom, `url` is the authorization URL to redirect to
+    - `{:ok, data}` - Successfully generated OAuth URL; `data` contains the url for the redirection, the provider and the flow type. In case of a `PKCE` flow, it also contains the `code_challenge` and `code_challenge_method`.
     - `{:error, error}` - Failed to generate OAuth URL
 
   ## Examples
@@ -154,13 +154,13 @@ defmodule Supabase.GoTrue do
       ...>   }
       ...> }
       iex> Supabase.GoTrue.sign_in_with_oauth(client, credentials)
-      {:ok, :github, "https://auth.supabase.com/authorize?provider=github&..."}
+      {:ok, %{provider: :github, url: "https://auth.supabase.com/authorize?provider=github&...", flow_type: :implicit}}
   """
   @impl true
   def sign_in_with_oauth(%Client{} = client, credentials) do
     with {:ok, credentials} <- SignInWithOauth.parse(credentials) do
-      url = UserHandler.get_url_for_provider(client, credentials)
-      {:ok, credentials.provider, url}
+      data = UserHandler.get_data_for_provider(client, credentials)
+      {:ok, data}
     end
   end
 
