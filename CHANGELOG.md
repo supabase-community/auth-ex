@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - 2025-06-10
+
+### Fixed
+- Fixed `sign_in_with_oauth` result format to include flow_type, provider, and URL
+- Added anonymous user support with `is_anonymous` field in User schema
+- Fixed captcha token handling for anonymous users
+
 ## [0.5.1] - 2025-05-20
 
 ### Fixed
