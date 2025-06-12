@@ -38,6 +38,7 @@ defmodule Supabase.GoTrue.AdminHandler do
   def sign_out(%Client{} = client, access_token, scope) do
     client
     |> GoTrue.Request.base(sign_out(scope))
+    |> Request.with_body_decoder(GoTrue.Request.JSONDecoder)
     |> Request.with_method(:post)
     |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
     |> Fetcher.request()
