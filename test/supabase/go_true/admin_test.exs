@@ -11,6 +11,8 @@ defmodule Supabase.GoTrue.AdminTest do
   alias Supabase.GoTrue.Session
   alias Supabase.GoTrue.User
 
+  @moduletag capture_log: true
+
   setup :verify_on_exit!
 
   @mock TestHTTPClient
