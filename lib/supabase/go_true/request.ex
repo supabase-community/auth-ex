@@ -3,9 +3,11 @@ defmodule Supabase.GoTrue.Request do
 
   alias Supabase.Fetcher.Request
 
-  def base(%Supabase.Client{} = client, path) do
+  def base(%Supabase.Client{} = client, path, opts \\ []) do
+    opts = Keyword.merge([decode_body?: true, parse_http_error?: true], opts)
+
     client
-    |> Request.new()
+    |> Request.new(opts)
     |> Request.with_auth_url(path)
     |> Request.with_http_client(http_client())
     |> Request.with_headers(%{"accept" => "application/json"})
