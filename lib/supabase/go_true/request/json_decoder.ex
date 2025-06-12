@@ -3,9 +3,9 @@ defmodule Supabase.GoTrue.Request.JSONDecoder do
   A body decoder that transforms empty response to a valid map.
   """
 
-  alias Supabase.Fetcher.Response
-
   @behaviour Supabase.Fetcher.BodyDecoder
+
+  alias Supabase.Fetcher.Response
 
   @impl true
   def decode(%Response{body: body}, opts \\ []) do
