@@ -41,7 +41,7 @@ defmodule Supabase.GoTrue.Admin do
       :ok
   """
   @impl true
-  def sign_out(%Client{} = client, %Session{} = session, scope) when scope in @scopes do
+  def sign_out(%Client{} = client, %Session{} = session, scope \\ :global) when scope in @scopes do
     case AdminHandler.sign_out(client, session.access_token, scope) do
       {:ok, _} -> :ok
       {:error, %{code: :not_found}} -> :ok
