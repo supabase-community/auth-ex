@@ -437,7 +437,7 @@ defmodule Supabase.GoTrue.UserHandler do
 
   def link_identity(%Client{} = client, access_token, %SignInWithOauth{} = oauth) when is_binary(access_token) do
     oauth_query = SignInWithOauth.options_to_query(oauth)
-    query = Map.new(oauth_query, fn {k, v} -> {to_string(k), v} end)
+    query = oauth_query |> Map.new(fn {k, v} -> {to_string(k), v} end) |> Map.put("skip_http_redirect", true)
 
     client
     |> GoTrue.Request.base(@single_user_uri <> @identity_authorize_uri)
