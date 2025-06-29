@@ -11,6 +11,7 @@ defmodule Supabase.GoTrue.Request do
     |> Request.with_auth_url(path)
     |> Request.with_http_client(http_client())
     |> Request.with_headers(%{"accept" => "application/json"})
+    |> Request.with_body_decoder(__MODULE__.JSONDecoder)
   end
 
   defp http_client do
