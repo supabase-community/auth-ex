@@ -94,14 +94,15 @@ defmodule <%= inspect auth_module %> do
     |> renew_session()
     |> put_token_in_session(session.access_token)
     |> maybe_write_remember_me_cookie(session, params)
+    |> fetch_current_user([])
     |> redirect(to: user_return_to || signed_in_path())
   end
 
-  defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
-    put_resp_cookie(conn, @remember_me_cookie, token, @remember_me_options)
+  defp maybe_write_remember_me_cookie(conn, session, %{"remember_me" => "true"}) do
+    put_resp_cookie(conn, @remember_me_cookie, session.access_token, @remember_me_options)
   end
 
-  defp maybe_write_remember_me_cookie(conn, _token, _params) do
+  defp maybe_write_remember_me_cookie(conn, _session, _params) do
     conn
   end
 
