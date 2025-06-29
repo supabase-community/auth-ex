@@ -234,15 +234,12 @@ defmodule Supabase.GoTrue.Admin do
     end
   end
 
-  @next_page_rg ~r/.+\?page=(\d).+rel=\"next\"/
-  @last_page_rg ~r/.+\?page=(\d).+rel=\"last\"/
-
   defp parse_next_page_count(links) do
-    parse_page_count(links, @next_page_rg)
+    parse_page_count(links, ~r/.+\?page=(\d).+rel=\"next\"/)
   end
 
   defp parse_last_page_count(links) do
-    parse_page_count(links, @last_page_rg)
+    parse_page_count(links, ~r/.+\?page=(\d).+rel=\"last\"/)
   end
 
   defp parse_page_count(links, regex) do
