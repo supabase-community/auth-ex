@@ -120,8 +120,6 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
   use Mix.Task
 
-  import Peri
-
   alias Mix.Tasks.Phx.Gen.Auth.Injector
 
   @switches [
@@ -145,12 +143,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       Mix.raise("mix supabase.gen.auth can only be run inside an application directory")
     end
 
-    {web_module, args} =
-      case args do
-        [web_module | rest] -> {Module.safe_concat([web_module]), rest}
-        [] -> Mix.raise("Expected web_module to be given, for example: mix supabase.gen.auth MyAppWeb")
-      end
-
+    {web_module, args} = parse_web_module(args)
     {opts, _parsed} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
     config = validate_options!(opts)
 
@@ -195,6 +188,16 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       |> maybe_inject_router_import()
       |> print_shell_instructions()
     end
+  end
+
+  defp parse_web_module([web_module | rest]) do
+    {Module.safe_concat([web_module]), rest}
+  rescue
+    _ -> Mix.raise("Expected web_module to be an existing module, check mix help supabase.gen.auth")
+  end
+
+  defp parse_web_module([]) do
+    Mix.raise("Expected web_module to be given, for example: mix supabase.gen.auth MyAppWeb")
   end
 
   defp generate_auth_only(bindings, paths) do
@@ -243,13 +246,16 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
   @strategies ~w(password oauth anon id_token sso otp)
 
-  defschema :config,
-    live: {:boolean, {:default, false}},
-    strategy: {{:list, {:enum, @strategies}}, {:default, ["password"]}},
-    client: {:string, {:transform, &Module.concat([&1])}},
-    supabase_url: :string,
-    supabase_key: :string,
-    auth_only: {:boolean, {:default, false}}
+  defp config do
+    %{
+      live: {:boolean, {:default, false}},
+      strategy: {{:list, {:enum, @strategies}}, {:default, ["password"]}},
+      client: {:string, {:transform, &Module.concat([&1])}},
+      supabase_url: :string,
+      supabase_key: :string,
+      auth_only: {:boolean, {:default, false}}
+    }
+  end
 
   defp validate_options!(options) do
     strategies =
@@ -261,7 +267,8 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     options
     |> Enum.reject(&match?({:strategy, _}, &1))
     |> Keyword.put(:strategy, strategies)
-    |> config!()
+    |> then(&Peri.to_changeset!(config(), Map.new(&1)))
+    |> Ecto.Changeset.apply_action!(:parse)
     |> then(fn opts ->
       client = opts[:client]
       url = opts[:supabase_url]
