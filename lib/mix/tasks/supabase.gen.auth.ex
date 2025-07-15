@@ -282,7 +282,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
         Mix.raise("You can't provide both client and supabase-url or supabase-key")
       end
 
-      opts
+      update_in(opts, [:strategy], &Enum.map(&1, fn s -> to_string(s) end))
     end)
   end
 

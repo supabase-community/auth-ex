@@ -20,10 +20,6 @@ defmodule <%= inspect web_module %>.SessionController do
         |> redirect(to: ~p"/login")
     end
   end
-
-  def token(conn, %{"token" => token} = params) do
-    create(conn, Map.put(params, "token", token))
-  end
   <% else %>
   def new(conn, _params) do
     render(conn, :new, form: Phoenix.Component.to_form(%{}, as: "user"))
@@ -39,11 +35,11 @@ defmodule <%= inspect web_module %>.SessionController do
         |> render(:new, form: Phoenix.Component.to_form(%{}, as: "user"))
     end
   end
-
-  def token(conn, %{"token" => token} = params) do
-    create(conn, Map.put(params, "token", token))
-  end
   <% end %>
+
+  def token(conn, %{} = params) do
+    create(conn, %{"user" => params})
+  end
 
   def delete(conn, _params) do
     conn
@@ -58,9 +54,14 @@ defmodule <%= inspect web_module %>.SessionController do
   <% end %>
 
   <%= if "otp" in strategy do %>
-  def log_in_with_strategy(conn, %{"user" => %{"token" => token}})
+  def log_in_with_strategy(conn, %{"user" => %{"token_hash" => token, "type" => type}})
     when is_binary(token) do
-    <%= inspect auth_module %>.log_in_user_with_otp(conn, %{"token" => token})
+    <%= inspect auth_module %>.verify_otp_and_log_in(conn, %{token_hash: token, type: type})
+  end
+
+  def log_in_with_strategy(conn, %{"user" => %{} = params})
+    when is_binary(token) do
+    <%= inspect auth_module %>.log_in_user_with_otp(conn, params)
   end
   <% end %>
 
