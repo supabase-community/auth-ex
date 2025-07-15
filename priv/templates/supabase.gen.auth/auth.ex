@@ -53,6 +53,14 @@ defmodule <%= inspect auth_module %> do
       do_login(conn, session, params)
     end
   end
+
+  @doc "Verifies an OTP token and logs the user in.\n" <> @extra_login_doc
+  def verify_otp_and_log_in(conn, params) do
+    with {:ok, client} <- get_client(),
+         {:ok, session} <- GoTrue.verify_otp(client, params) do
+      do_login(conn, session, params)
+    end
+  end
   <% end %>
 
   <%= if "sso" in strategy do %>
