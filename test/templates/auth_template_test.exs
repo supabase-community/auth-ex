@@ -19,9 +19,6 @@ defmodule Supabase.Auth.AuthTemplateTest do
     import Phoenix.Controller
     import Plug.Conn
 
-    alias Supabase.Auth.Session
-    alias Supabase.Auth.User
-
     @max_age 60 * 60 * 24 * 60
     @remember_me_cookie "_test_app_user_remember_me"
     @remember_me_options [sign: true, max_age: @max_age, same_site: "Lax"]

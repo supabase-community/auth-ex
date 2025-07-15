@@ -260,7 +260,7 @@ defmodule Supabase.Auth.UserHandler do
       |> Request.with_query(%{"redirect_to" => params[:email_redirect_to]})
 
     session = %{"user_token" => access_token}
-    auth_module = Supabase.Auth.get_auth_module!()
+    auth_module = Auth.get_auth_module!()
 
     with {:ok, _} <- Fetcher.request(builder) do
       case conn do
@@ -289,7 +289,7 @@ defmodule Supabase.Auth.UserHandler do
       |> Request.with_query(%{"redirect_to" => params[:email_redirect_to]})
 
     session = %{"user_token" => access_token}
-    auth_module = Supabase.Auth.get_auth_module!()
+    auth_module = Auth.get_auth_module!()
 
     with {:ok, _} <- Fetcher.request(builder) do
       case conn do
