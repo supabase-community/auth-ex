@@ -1,10 +1,10 @@
-defmodule Supabase.GoTrue.SessionFixture do
+defmodule Supabase.Auth.SessionFixture do
   @moduledoc """
   This module is used to generate a session fixture for testing.
   """
 
-  alias Supabase.GoTrue.Session
-  alias Supabase.GoTrue.UserFixture
+  alias Supabase.Auth.Session
+  alias Supabase.Auth.UserFixture
 
   def session_fixture(attrs \\ %{}) do
     default = %{

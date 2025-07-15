@@ -39,7 +39,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Added new server monitoring functions:
-  - `get_server_health/1` to check GoTrue server health status
+  - `get_server_health/1` to check Auth server health status
   - `get_server_settings/2` to retrieve server configuration
 - Implemented `refresh_session/2` for token refresh functionality
 - Added `sign_in_anonymously/2` for anonymous authentication

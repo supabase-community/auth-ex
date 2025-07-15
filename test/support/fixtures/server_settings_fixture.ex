@@ -1,9 +1,9 @@
-defmodule Supabase.GoTrue.ServerSettingsFixture do
+defmodule Supabase.Auth.ServerSettingsFixture do
   @moduledoc """
-  Server settings fixture for GoTrue. This module provides functions to generate server settings fixtures.
+  Server settings fixture for Auth. This module provides functions to generate server settings fixtures.
   """
 
-  alias Supabase.GoTrue.Schemas.ServerSettings
+  alias Supabase.Auth.Schemas.ServerSettings
 
   def server_settings_fixture(attrs \\ %{}) do
     default = %{

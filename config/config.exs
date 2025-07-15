@@ -1,7 +1,7 @@
 import Config
 
 if config_env() == :dev do
-  config :supabase_gotrue,
+  config :supabase_auth,
     authentication_client: :pescarte,
     endpoint: nil
 

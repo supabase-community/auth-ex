@@ -47,7 +47,7 @@ defmodule <%= web_module %>.RegistrationLive do
     {:ok, client} = <%= auth_module %>.get_client()
     %{"email" => email, "password" => password} = user_params
 
-    case Supabase.GoTrue.sign_up(client, %{email: email, password: password}) do
+    case Supabase.Auth.sign_up(client, %{email: email, password: password}) do
       {:ok, _session} ->
         {:noreply,
          socket

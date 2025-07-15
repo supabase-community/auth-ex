@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
   ## Configuration
 
-  To use this task, you need to have at least `supabase_potion` and `supabase_gotrue` packages installed in your project, and `phoenix_live_view` if you want to use LiveView or `phoenix` and `phoenix_plug` if you want to use conventional Controllers & (dead) Views.
+  To use this task, you need to have at least `supabase_potion` and `supabase_auth` packages installed in your project, and `phoenix_live_view` if you want to use LiveView or `phoenix` and `phoenix_plug` if you want to use conventional Controllers & (dead) Views.
 
   Also, you need to tell the task which `Supabase` client to be used in the generated functions,
   for that you have two available options following the [supabase-ex](https://hexdocs.pm/supabase_potion/readme.html#usage) docs
@@ -175,11 +175,11 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     ]
 
     if config[:auth_only] do
-      generate_auth_only(bindings, [".", :supabase_gotrue])
+      generate_auth_only(bindings, [".", :supabase_auth])
     else
       prompt_for_conflicts(bindings)
 
-      paths = [".", :supabase_gotrue]
+      paths = [".", :supabase_auth]
 
       bindings
       |> copy_new_files(paths)
@@ -205,7 +205,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     auth_file_path = Path.join(web_prefix, "user_auth.ex")
     File.mkdir_p!(Path.dirname(auth_file_path))
 
-    source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
+    source = Application.app_dir(:supabase_auth, ["priv", "templates", "supabase.gen.auth"])
     template_path = Path.join(source, "auth.ex")
 
     auth_content =
@@ -225,7 +225,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
     1. Make sure you have the required dependencies in your mix.exs:
        - supabase_potion (for Supabase client)
-       - supabase_gotrue (for auth)
+       - supabase_auth (for auth)
 
     2. Configure your Supabase client in your config:
        config :your_app, YourApp.Supabase,
@@ -357,7 +357,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   defp inject_conn_case_helpers(binding, paths) do
     test_file = "test/support/conn_case.ex"
 
-    source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
+    source = Application.app_dir(:supabase_auth, ["priv", "templates", "supabase.gen.auth"])
     template_path = Path.join(source, "conn_case.exs")
 
     content =
@@ -429,7 +429,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   defp inject_routes(binding, paths) do
     web_prefix = Mix.Phoenix.web_path(binding[:app_name])
     file_path = Path.join(web_prefix, "router.ex")
-    source = Application.app_dir(:supabase_gotrue, ["priv", "templates", "supabase.gen.auth"])
+    source = Application.app_dir(:supabase_auth, ["priv", "templates", "supabase.gen.auth"])
     template_path = Path.join(source, "routes.ex")
 
     routes_content =
@@ -560,7 +560,7 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
     1. Make sure you have the required dependencies in your mix.exs:
        - supabase_potion (for Supabase client)
-       - supabase_gotrue (for auth)
+       - supabase_auth (for auth)
        - phoenix_live_view (if using LiveView)
 
     2. Configure your Supabase client in your config:

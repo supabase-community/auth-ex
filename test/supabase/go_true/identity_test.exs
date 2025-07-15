@@ -1,12 +1,12 @@
-defmodule Supabase.GoTrue.IdentityTest do
+defmodule Supabase.Auth.IdentityTest do
   use ExUnit.Case, async: false
 
   import Mox
 
+  alias Supabase.Auth
+  alias Supabase.Auth.Session
+  alias Supabase.Auth.User
   alias Supabase.Fetcher.Request
-  alias Supabase.GoTrue
-  alias Supabase.GoTrue.Session
-  alias Supabase.GoTrue.User
 
   @moduletag capture_log: true
 
@@ -15,10 +15,10 @@ defmodule Supabase.GoTrue.IdentityTest do
   @mock TestHTTPClient
 
   setup_all do
-    Application.put_env(:supabase_gotrue, :http_client, @mock)
+    Application.put_env(:supabase_auth, :http_client, @mock)
 
     on_exit(fn ->
-      Application.delete_env(:supabase_gotrue, :http_client)
+      Application.delete_env(:supabase_auth, :http_client)
     end)
   end
 
@@ -46,7 +46,7 @@ defmodule Supabase.GoTrue.IdentityTest do
       end)
 
       oauth_credentials = %{provider: provider, options: %{}}
-      assert {:ok, result} = GoTrue.link_identity(client, session, oauth_credentials)
+      assert {:ok, result} = Auth.link_identity(client, session, oauth_credentials)
       assert result.provider == :github
       assert result.url == "https://example.com/oauth/github"
     end
@@ -56,7 +56,7 @@ defmodule Supabase.GoTrue.IdentityTest do
       provider = :github
 
       oauth_credentials = %{provider: provider, options: %{}}
-      assert {:error, %Supabase.Error{}} = GoTrue.link_identity(client, session, oauth_credentials)
+      assert {:error, %Supabase.Error{}} = Auth.link_identity(client, session, oauth_credentials)
     end
 
     test "returns an unexpected error", %{client: client} do
@@ -68,7 +68,7 @@ defmodule Supabase.GoTrue.IdentityTest do
       end)
 
       oauth_credentials = %{provider: provider, options: %{}}
-      assert {:error, %Supabase.Error{}} = GoTrue.link_identity(client, session, oauth_credentials)
+      assert {:error, %Supabase.Error{}} = Auth.link_identity(client, session, oauth_credentials)
     end
   end
 
@@ -85,14 +85,14 @@ defmodule Supabase.GoTrue.IdentityTest do
         {:ok, %Finch.Response{body: ~s|{}|, status: 204, headers: []}}
       end)
 
-      assert :ok = GoTrue.unlink_identity(client, session, identity_id)
+      assert :ok = Auth.unlink_identity(client, session, identity_id)
     end
 
     test "returns an error when not authenticated", %{client: client} do
       session = %Session{access_token: nil}
       identity_id = "ident_123456789"
 
-      assert {:error, %Supabase.Error{}} = GoTrue.unlink_identity(client, session, identity_id)
+      assert {:error, %Supabase.Error{}} = Auth.unlink_identity(client, session, identity_id)
     end
 
     test "returns an error when trying to delete the last identity", %{client: client} do
@@ -113,7 +113,7 @@ defmodule Supabase.GoTrue.IdentityTest do
         {:ok, %Finch.Response{body: error_json, status: 400, headers: []}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.unlink_identity(client, session, identity_id)
+      assert {:error, %Supabase.Error{}} = Auth.unlink_identity(client, session, identity_id)
     end
 
     test "returns an unexpected error", %{client: client} do
@@ -124,7 +124,7 @@ defmodule Supabase.GoTrue.IdentityTest do
         {:error, %Mint.TransportError{reason: :closed}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.unlink_identity(client, session, identity_id)
+      assert {:error, %Supabase.Error{}} = Auth.unlink_identity(client, session, identity_id)
     end
   end
 
@@ -160,7 +160,7 @@ defmodule Supabase.GoTrue.IdentityTest do
         {:ok, %Finch.Response{body: identities_json, status: 200, headers: []}}
       end)
 
-      assert {:ok, identities} = GoTrue.get_user_identities(client, session)
+      assert {:ok, identities} = Auth.get_user_identities(client, session)
       assert length(identities) == 2
       assert Enum.all?(identities, fn identity -> is_struct(identity, User.Identity) end)
       # Instead of relying on exact order, check that both providers exist
@@ -170,7 +170,7 @@ defmodule Supabase.GoTrue.IdentityTest do
 
     test "returns an error when not authenticated", %{client: client} do
       session = %Session{access_token: nil}
-      assert {:error, %Supabase.Error{}} = GoTrue.get_user_identities(client, session)
+      assert {:error, %Supabase.Error{}} = Auth.get_user_identities(client, session)
     end
 
     test "returns an unexpected error", %{client: client} do
@@ -180,7 +180,7 @@ defmodule Supabase.GoTrue.IdentityTest do
         {:error, %Mint.TransportError{reason: :closed}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.get_user_identities(client, session)
+      assert {:error, %Supabase.Error{}} = Auth.get_user_identities(client, session)
     end
   end
 end

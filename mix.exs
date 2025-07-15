@@ -6,7 +6,7 @@ defmodule SupabaseAuth.MixProject do
 
   def project do
     [
-      app: :supabase_gotrue,
+      app: :supabase_auth,
       version: @version,
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
@@ -51,7 +51,7 @@ defmodule SupabaseAuth.MixProject do
       contributors: ["zoedsoupe"],
       links: %{
         "GitHub" => @source_url,
-        "Docs" => "https://hexdocs.pm/supabase_gotrue"
+        "Docs" => "https://hexdocs.pm/supabase_auth"
       },
       files: ~w[lib mix.exs priv/templates README.md LICENSE CHANGELOG.md]
     }
@@ -59,7 +59,7 @@ defmodule SupabaseAuth.MixProject do
 
   defp docs do
     [
-      main: "Supabase.GoTrue",
+      main: "Supabase.Auth",
       extras: [
         "README.md",
         "CHANGELOG.md",
@@ -80,7 +80,7 @@ defmodule SupabaseAuth.MixProject do
 
   defp description do
     """
-    Integration with the GoTrue API from Supabase services.
+    Integration with the Auth API from Supabase services.
     Provide authentication with MFA, password and magic link.
     """
   end

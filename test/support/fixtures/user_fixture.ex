@@ -1,10 +1,10 @@
-defmodule Supabase.GoTrue.UserFixture do
+defmodule Supabase.Auth.UserFixture do
   @moduledoc """
-  This module is used to generate fixtures for the `Supabase.GoTrue.User` schema.
+  This module is used to generate fixtures for the `Supabase.Auth.User` schema.
   """
 
-  alias Supabase.GoTrue.User
-  alias Supabase.GoTrue.User.Identity
+  alias Supabase.Auth.User
+  alias Supabase.Auth.User.Identity
 
   @doc "Generate a user fixture."
   def user_fixture(attrs \\ %{}) do
