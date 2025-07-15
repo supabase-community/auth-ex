@@ -6,6 +6,7 @@ defmodule Supabase.Auth.Behaviour do
   providing function specifications and return types for all authentication operations.
   """
 
+  alias Phoenix.LiveView.Socket
   alias Supabase.Auth.Schemas.ResendParams
   alias Supabase.Auth.Schemas.ServerHealth
   alias Supabase.Auth.Schemas.ServerSettings
@@ -16,7 +17,6 @@ defmodule Supabase.Auth.Behaviour do
   alias Supabase.Client
 
   @type sign_in_response :: {:ok, Session.t()} | {:error, term()}
-  @type conn :: Plug.Conn.t() | Phoenix.LiveView.Socket.t()
 
   @callback get_user(Client.t(), Session.t()) :: {:ok, User.t()} | {:error, term()}
 
@@ -45,8 +45,6 @@ defmodule Supabase.Auth.Behaviour do
 
   @callback resend(Client.t(), String.t(), ResendParams.t()) :: :ok | {:error, term()}
 
-  @callback update_user(Client.t(), conn, UserParams.t()) :: {:ok, conn} | {:error, term()}
-
   @callback refresh_session(Client.t(), String.t()) :: sign_in_response
 
   @callback get_server_health(Client.t()) :: {:ok, ServerHealth.t()} | {:error, term()}
@@ -63,4 +61,9 @@ defmodule Supabase.Auth.Behaviour do
   @callback exchange_code_for_session(Client.t(), String.t(), String.t(), map()) :: sign_in_response
 
   @callback reauthenticate(Client.t(), Session.t()) :: :ok | {:error, term()}
+
+  if Code.ensure_loaded?(Plug) or Code.ensure_loaded?(Socket) do
+    @type conn :: Plug.Conn.t() | Socket.t()
+    @callback update_user(Client.t(), conn, UserParams.t()) :: {:ok, conn} | {:error, term()}
+  end
 end
