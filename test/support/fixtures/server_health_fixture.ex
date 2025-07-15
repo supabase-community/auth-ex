@@ -1,15 +1,15 @@
-defmodule Supabase.GoTrue.ServerHealthFixture do
+defmodule Supabase.Auth.ServerHealthFixture do
   @moduledoc """
-  Server health fixture for GoTrue. This module provides functions to generate server health fixtures.
+  Server health fixture for Auth. This module provides functions to generate server health fixtures.
   """
 
-  alias Supabase.GoTrue.Schemas.ServerHealth
+  alias Supabase.Auth.Schemas.ServerHealth
 
   def server_health_fixture(attrs \\ %{}) do
     default = %{
       version: "1.0.0",
-      name: "GoTrue",
-      description: "GoTrue is a secure and easy way to add authentication to your web or mobile applications."
+      name: "Auth",
+      description: "Auth is a secure and easy way to add authentication to your web or mobile applications."
     }
 
     attrs

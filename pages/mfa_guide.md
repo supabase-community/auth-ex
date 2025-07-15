@@ -1,6 +1,6 @@
-# Multi-Factor Authentication (MFA) with Supabase GoTrue
+# Multi-Factor Authentication (MFA) with Supabase Auth
 
-This guide covers how to implement Multi-Factor Authentication (MFA) using Supabase's GoTrue authentication service in your Elixir applications.
+This guide covers how to implement Multi-Factor Authentication (MFA) using Supabase's Auth authentication service in your Elixir applications.
 
 ## Understanding MFA in Supabase
 
@@ -10,7 +10,7 @@ Multi-Factor Authentication provides an additional security layer beyond passwor
 2. **SMS-based verification**: One-time codes sent via text message
 3. **Email-based verification**: One-time codes sent via email
 
-Each user can have multiple authentication factors associated with their account, represented by the `Supabase.GoTrue.User.Factor` struct.
+Each user can have multiple authentication factors associated with their account, represented by the `Supabase.Auth.User.Factor` struct.
 
 ## MFA Factor Management
 
@@ -20,7 +20,7 @@ To check if a user has MFA enabled and view their factors:
 
 ```elixir
 # Get the current user
-{:ok, user} = Supabase.GoTrue.get_user(client, session)
+{:ok, user} = Supabase.Auth.get_user(client, session)
 
 # Check for active factors
 has_mfa_enabled = Enum.any?(user.factors || [], fn factor -> factor.status == "verified" end)
@@ -32,7 +32,7 @@ factors = user.factors || []
 Each factor includes information such as:
 
 ```elixir
-%Supabase.GoTrue.User.Factor{
+%Supabase.Auth.User.Factor{
   id: "f1d74b2c-9bb7-4c74-b9b9-44a48f261a48",
   type: "totp",
   status: "verified",  # or "unverified"
@@ -45,12 +45,12 @@ Each factor includes information such as:
 
 ## Working with Admin APIs
 
-For admin operations on MFA factors, use the `Supabase.GoTrue.Admin` module:
+For admin operations on MFA factors, use the `Supabase.Auth.Admin` module:
 
 ### Enrolling a TOTP Factor (Admin)
 
 ```elixir
-{:ok, user_with_factors} = Supabase.GoTrue.Admin.enroll_factor(
+{:ok, user_with_factors} = Supabase.Auth.Admin.enroll_factor(
   client, 
   user_id, 
   %{type: "totp", friendly_name: "My Authenticator App"}
@@ -64,7 +64,7 @@ This returns a user object with a new unverified factor. The response also inclu
 After the user scans the QR code, they need to verify their factor by entering a code:
 
 ```elixir
-{:ok, verified_factor} = Supabase.GoTrue.Admin.verify_factor(
+{:ok, verified_factor} = Supabase.Auth.Admin.verify_factor(
   client,
   user_id,
   factor_id,
@@ -77,7 +77,7 @@ After the user scans the QR code, they need to verify their factor by entering a
 When a user attempts to access a protected resource, you can challenge their MFA factor:
 
 ```elixir
-{:ok, challenge} = Supabase.GoTrue.Admin.challenge_factor(
+{:ok, challenge} = Supabase.Auth.Admin.challenge_factor(
   client,
   user_id,
   factor_id
@@ -89,7 +89,7 @@ When a user attempts to access a protected resource, you can challenge their MFA
 To remove an MFA factor:
 
 ```elixir
-:ok = Supabase.GoTrue.Admin.delete_factor(client, user_id, factor_id)
+:ok = Supabase.Auth.Admin.delete_factor(client, user_id, factor_id)
 ```
 
 ## Authenticator Assurance Levels (AAL)
@@ -112,10 +112,10 @@ For sensitive operations like changing passwords or making payments, you can use
 
 ```elixir
 # Request a reauthentication challenge
-:ok = Supabase.GoTrue.reauthenticate(client, session)
+:ok = Supabase.Auth.reauthenticate(client, session)
 
 # User completes verification with OTP
-{:ok, verified_session} = Supabase.GoTrue.verify_otp(
+{:ok, verified_session} = Supabase.Auth.verify_otp(
   client, 
   %{
     type: "reauthentication",
@@ -138,7 +138,7 @@ defmodule MyAppWeb.MFAController do
     user_id = conn.assigns.current_user.id
     
     # Create a new TOTP factor
-    {:ok, user_with_factor} = Supabase.GoTrue.Admin.enroll_factor(
+    {:ok, user_with_factor} = Supabase.Auth.Admin.enroll_factor(
       MyApp.Supabase.Client.get(),
       user_id,
       %{type: "totp", friendly_name: "Authenticator App"}
@@ -154,7 +154,7 @@ defmodule MyAppWeb.MFAController do
   def verify(conn, %{"code" => code, "factor_id" => factor_id}) do
     user_id = conn.assigns.current_user.id
     
-    case Supabase.GoTrue.Admin.verify_factor(
+    case Supabase.Auth.Admin.verify_factor(
       MyApp.Supabase.Client.get(),
       user_id,
       factor_id,
@@ -183,7 +183,7 @@ defmodule MyAppWeb.MFALive do
   def mount(_params, session, socket) do
     user_id = socket.assigns.current_user.id
     
-    {:ok, challenge} = Supabase.GoTrue.Admin.challenge_factor(
+    {:ok, challenge} = Supabase.Auth.Admin.challenge_factor(
       MyApp.Supabase.Client.get(),
       user_id,
       socket.assigns.current_user.factors |> hd() |> Map.get(:id)
@@ -193,7 +193,7 @@ defmodule MyAppWeb.MFALive do
   end
   
   def handle_event("verify", %{"code" => code}, socket) do
-    case Supabase.GoTrue.verify_challenge(
+    case Supabase.Auth.verify_challenge(
       MyApp.Supabase.Client.get(),
       socket.assigns.challenge_id,
       %{code: code}
@@ -225,6 +225,6 @@ end
 
 ## Conclusion
 
-MFA significantly improves the security of your application by requiring multiple forms of verification. Supabase's GoTrue service makes it relatively straightforward to implement MFA in your Elixir applications.
+MFA significantly improves the security of your application by requiring multiple forms of verification. Supabase's Auth service makes it relatively straightforward to implement MFA in your Elixir applications.
 
-For more detailed information, refer to the module documentation for the `Supabase.GoTrue.User.Factor` module and the `Supabase.GoTrue.Admin` module.
+For more detailed information, refer to the module documentation for the `Supabase.Auth.User.Factor` module and the `Supabase.Auth.Admin` module.

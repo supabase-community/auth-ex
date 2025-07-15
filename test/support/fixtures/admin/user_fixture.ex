@@ -1,4 +1,4 @@
-defmodule Supabase.GoTrue.Admin.UserFixture do
+defmodule Supabase.Auth.Admin.UserFixture do
   @moduledoc """
   This module is used to generate a user fixture for testing admin APIs.
   """

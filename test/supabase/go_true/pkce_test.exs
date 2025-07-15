@@ -1,7 +1,7 @@
-defmodule Supabase.GoTrue.PKCETest do
+defmodule Supabase.Auth.PKCETest do
   use ExUnit.Case, async: true
 
-  alias Supabase.GoTrue.PKCE
+  alias Supabase.Auth.PKCE
 
   describe "generate_verifier/0" do
     test "generates a random string of a fixed 56 length" do

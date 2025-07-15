@@ -1,11 +1,11 @@
-defmodule Supabase.GoTrue.AuthTemplateTest do
+defmodule Supabase.Auth.AuthTemplateTest do
   use ExUnit.Case
 
   import Phoenix.ConnTest
   import Plug.Conn
 
-  alias Supabase.GoTrue.Session
-  alias Supabase.GoTrue.User
+  alias Supabase.Auth.Session
+  alias Supabase.Auth.User
 
   defmodule TestWeb do
     @moduledoc false
@@ -18,9 +18,6 @@ defmodule Supabase.GoTrue.AuthTemplateTest do
     @moduledoc false
     import Phoenix.Controller
     import Plug.Conn
-
-    alias Supabase.GoTrue.Session
-    alias Supabase.GoTrue.User
 
     @max_age 60 * 60 * 24 * 60
     @remember_me_cookie "_test_app_user_remember_me"

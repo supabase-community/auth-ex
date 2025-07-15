@@ -1,15 +1,15 @@
-defmodule Supabase.GoTrue.AdminTest do
+defmodule Supabase.Auth.AdminTest do
   use ExUnit.Case, async: false
 
   import Mox
-  import Supabase.GoTrue.Admin.LinkFixture
-  import Supabase.GoTrue.Admin.UserFixture
-  import Supabase.GoTrue.UserFixture
+  import Supabase.Auth.Admin.LinkFixture
+  import Supabase.Auth.Admin.UserFixture
+  import Supabase.Auth.UserFixture
 
+  alias Supabase.Auth.Admin
+  alias Supabase.Auth.Session
+  alias Supabase.Auth.User
   alias Supabase.Fetcher.Request
-  alias Supabase.GoTrue.Admin
-  alias Supabase.GoTrue.Session
-  alias Supabase.GoTrue.User
 
   @moduletag capture_log: true
 
@@ -18,10 +18,10 @@ defmodule Supabase.GoTrue.AdminTest do
   @mock TestHTTPClient
 
   setup_all do
-    Application.put_env(:supabase_gotrue, :http_client, @mock)
+    Application.put_env(:supabase_auth, :http_client, @mock)
 
     on_exit(fn ->
-      Application.delete_env(:supabase_gotrue, :http_client)
+      Application.delete_env(:supabase_auth, :http_client)
     end)
   end
 

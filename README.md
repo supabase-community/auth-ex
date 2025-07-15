@@ -1,7 +1,7 @@
-# Supabase GoTrue
+# Supabase Auth
 
-[![hex.pm](https://img.shields.io/hexpm/v/supabase_gotrue.svg)](https://hex.pm/packages/supabase_gotrue)
-[![docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/supabase_gotrue)
+[![hex.pm](https://img.shields.io/hexpm/v/supabase_auth.svg)](https://hex.pm/packages/supabase_auth)
+[![docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/supabase_auth)
 [![ci](https://github.com/supabase-community/auth-ex/actions/workflows/ci.yml/badge.svg)](https://github.com/supabase-community/auth-ex/actions/workflows/ci.yml)
 
 [Auth](https://supabase.com/docs/guides/auth) implementation for the [Supabase Potion](https://hexdocs.pm/supabase_potion) SDK in Elixir.
@@ -12,7 +12,7 @@
 def deps do
   [
     {:supabase_potion, "~> 0.6"},
-    {:supabase_gotrue, "~> 0.5.2"}
+    {:supabase_auth, "~> 0.5.2"} # x-release-please-version
   ]
 end
 ```
@@ -28,7 +28,7 @@ config :my_app, MyApp.Supabase.Client,
   base_url: "https://myapp.supabase.co",
   api_key: "myapp-api-key"
 
-config :supabase_gotrue, auth_module: MyAppWeb.Auth
+config :supabase_auth, auth_module: MyAppWeb.Auth
 ```
 
 2. Create your Supabase client:
@@ -43,20 +43,20 @@ end
 
 ```elixir
 # Sign in with email and password
-{:ok, session} = Supabase.GoTrue.sign_in_with_password(client, %{
+{:ok, session} = Supabase.Auth.sign_in_with_password(client, %{
   email: "user@example.com",
   password: "secure-password"
 })
 
 # Get the current user
-{:ok, user} = Supabase.GoTrue.get_user(client, session)
+{:ok, user} = Supabase.Auth.get_user(client, session)
 ```
 
 ## Documentation
 
-- [HexDocs](https://hexdocs.pm/supabase_gotrue) - Complete API reference
-- [Authentication Guide](https://hexdocs.pm/supabase_gotrue/auth_guide.html) - Authentication methods and integration
-- [MFA Guide](https://hexdocs.pm/supabase_gotrue/mfa_guide.html) - Multi-Factor Authentication
+- [HexDocs](https://hexdocs.pm/supabase_auth) - Complete API reference
+- [Authentication Guide](https://hexdocs.pm/supabase_auth/auth_guide.html) - Authentication methods and integration
+- [MFA Guide](https://hexdocs.pm/supabase_auth/mfa_guide.html) - Multi-Factor Authentication
 
 ## Authentication Methods
 
@@ -75,7 +75,7 @@ end
 ```elixir
 # Define your auth module
 defmodule MyAppWeb.Auth do
-  use Supabase.GoTrue.Plug,
+  use Supabase.Auth.Plug,
     client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
     signed_in_path: "/app",
@@ -112,7 +112,7 @@ end
 ```elixir
 # Define your auth module
 defmodule MyAppWeb.Auth do
-  use Supabase.GoTrue.LiveView,
+  use Supabase.Auth.LiveView,
     client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
     signed_in_path: "/app",

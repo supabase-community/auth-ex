@@ -1,4 +1,4 @@
-defmodule Supabase.GoTrue.Admin.LinkFixture do
+defmodule Supabase.Auth.Admin.LinkFixture do
   @moduledoc """
   This module is used to generate a link fixture for testing.
   """

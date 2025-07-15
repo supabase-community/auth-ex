@@ -7,8 +7,8 @@ It stores an updated connection and a registered user in the
 test context.
 """
 def register_and_log_in_user(%{conn: conn}) do
-  user = %Supabase.GoTrue.User{id: Ecto.UUID.generate(), email: "user@example.com"}
-  session = %Supabase.GoTrue.Session{access_token: "123"}
+  user = %Supabase.Auth.User{id: Ecto.UUID.generate(), email: "user@example.com"}
+  session = %Supabase.Auth.Session{access_token: "123"}
   %{conn: log_in_user(conn, session), user: user, session: session}
 end
 

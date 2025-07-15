@@ -1,18 +1,18 @@
-defmodule Supabase.GoTrueTest do
+defmodule Supabase.AuthTest do
   use ExUnit.Case, async: true
 
   import Mox
-  import Supabase.GoTrue.ServerHealthFixture
-  import Supabase.GoTrue.ServerSettingsFixture
-  import Supabase.GoTrue.SessionFixture
-  import Supabase.GoTrue.UserFixture
+  import Supabase.Auth.ServerHealthFixture
+  import Supabase.Auth.ServerSettingsFixture
+  import Supabase.Auth.SessionFixture
+  import Supabase.Auth.UserFixture
 
+  alias Supabase.Auth
+  alias Supabase.Auth.Schemas.ServerHealth
+  alias Supabase.Auth.Schemas.ServerSettings
+  alias Supabase.Auth.Session
+  alias Supabase.Auth.User
   alias Supabase.Fetcher.Request
-  alias Supabase.GoTrue
-  alias Supabase.GoTrue.Schemas.ServerHealth
-  alias Supabase.GoTrue.Schemas.ServerSettings
-  alias Supabase.GoTrue.Session
-  alias Supabase.GoTrue.User
 
   @moduletag capture_log: true
 
@@ -21,10 +21,10 @@ defmodule Supabase.GoTrueTest do
   @mock TestHTTPClient
 
   setup_all do
-    Application.put_env(:supabase_gotrue, :http_client, @mock)
+    Application.put_env(:supabase_auth, :http_client, @mock)
 
     on_exit(fn ->
-      Application.delete_env(:supabase_gotrue, :http_client)
+      Application.delete_env(:supabase_auth, :http_client)
     end)
   end
 
@@ -46,7 +46,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       session = %Session{access_token: "123"}
-      assert {:ok, %User{} = user} = GoTrue.get_user(client, session)
+      assert {:ok, %User{} = user} = Auth.get_user(client, session)
       assert user.id == "123"
     end
 
@@ -59,7 +59,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       session = %Session{access_token: "123"}
-      assert {:error, %Supabase.Error{}} = GoTrue.get_user(client, session)
+      assert {:error, %Supabase.Error{}} = Auth.get_user(client, session)
     end
 
     test "returns an unexpected error", %{client: client} do
@@ -71,7 +71,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       session = %Session{access_token: "123"}
-      assert {:error, %Supabase.Error{}} = GoTrue.get_user(client, session)
+      assert {:error, %Supabase.Error{}} = Auth.get_user(client, session)
     end
   end
 
@@ -98,7 +98,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
       end)
 
-      assert {:ok, %Session{} = session} = GoTrue.sign_in_with_id_token(client, data)
+      assert {:ok, %Session{} = session} = Auth.sign_in_with_id_token(client, data)
       assert session.access_token == "123"
       assert session.user.id == "123"
     end
@@ -122,7 +122,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.sign_in_with_id_token(client, data)
+      assert {:error, %Supabase.Error{}} = Auth.sign_in_with_id_token(client, data)
     end
 
     test "returns an error on unexpected error", %{client: client} do
@@ -144,7 +144,7 @@ defmodule Supabase.GoTrueTest do
         {:error, %Mint.TransportError{reason: :timeout}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.sign_in_with_id_token(client, data)
+      assert {:error, %Supabase.Error{}} = Auth.sign_in_with_id_token(client, data)
     end
   end
 
@@ -162,7 +162,7 @@ defmodule Supabase.GoTrueTest do
       }
 
       assert {:ok, %{provider: :github, flow_type: :implicit, url: url_as_string}} =
-               GoTrue.sign_in_with_oauth(client, data)
+               Auth.sign_in_with_oauth(client, data)
 
       url = URI.parse(url_as_string)
 
@@ -197,7 +197,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       # user should receive an OTP code via email
-      assert :ok = GoTrue.sign_in_with_otp(client, data)
+      assert :ok = Auth.sign_in_with_otp(client, data)
     end
 
     test "successfully triggers an user signin with phone OTP", %{client: client} do
@@ -233,7 +233,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       # user should receive an OTP code via phone
-      assert {:ok, message_id} = GoTrue.sign_in_with_otp(client, data)
+      assert {:ok, message_id} = Auth.sign_in_with_otp(client, data)
       assert message_id == "123"
     end
 
@@ -271,7 +271,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       # user should receive an OTP code via phone
-      assert {:ok, message_id} = GoTrue.sign_in_with_otp(client, data)
+      assert {:ok, message_id} = Auth.sign_in_with_otp(client, data)
       assert message_id == "123"
     end
   end
@@ -310,7 +310,7 @@ defmodule Supabase.GoTrueTest do
           {:ok, %Finch.Response{status: 201, body: body, headers: []}}
         end)
 
-        assert {:ok, %Session{} = session} = GoTrue.verify_otp(client, data)
+        assert {:ok, %Session{} = session} = Auth.verify_otp(client, data)
         assert session.access_token == "123"
         assert session.user.id == "123"
       end
@@ -349,7 +349,7 @@ defmodule Supabase.GoTrueTest do
           {:ok, %Finch.Response{status: 201, body: body, headers: []}}
         end)
 
-        assert {:ok, %Session{} = session} = GoTrue.verify_otp(client, data)
+        assert {:ok, %Session{} = session} = Auth.verify_otp(client, data)
         assert session.access_token == "123"
         assert session.user.id == "123"
       end
@@ -383,7 +383,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
       end)
 
-      assert {:ok, %Session{} = session} = GoTrue.verify_otp(client, data)
+      assert {:ok, %Session{} = session} = Auth.verify_otp(client, data)
       assert session.access_token == "123"
       assert session.user.id == "123"
     end
@@ -415,7 +415,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.verify_otp(client, data)
+      assert {:error, %Supabase.Error{}} = Auth.verify_otp(client, data)
     end
   end
 
@@ -447,7 +447,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
       end)
 
-      assert {:ok, "http://localhost:3000"} = GoTrue.sign_in_with_sso(client, data)
+      assert {:ok, "http://localhost:3000"} = Auth.sign_in_with_sso(client, data)
     end
 
     test "successfully signin an user with SSO domain", %{client: client} do
@@ -477,7 +477,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
       end)
 
-      assert {:ok, "http://localhost:3000/sso"} = GoTrue.sign_in_with_sso(client, data)
+      assert {:ok, "http://localhost:3000/sso"} = Auth.sign_in_with_sso(client, data)
     end
 
     test "returns error for SSO signin with invalid parameters", %{client: client} do
@@ -486,7 +486,7 @@ defmodule Supabase.GoTrueTest do
         options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
       }
 
-      assert {:error, _} = GoTrue.sign_in_with_sso(client, data)
+      assert {:error, _} = Auth.sign_in_with_sso(client, data)
     end
   end
 
@@ -517,7 +517,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
       end)
 
-      assert {:ok, %Session{} = session} = GoTrue.sign_in_with_password(client, data)
+      assert {:ok, %Session{} = session} = Auth.sign_in_with_password(client, data)
       assert session.access_token == "123"
       assert session.user.id == "123"
     end
@@ -545,7 +545,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.sign_in_with_password(client, data)
+      assert {:error, %Supabase.Error{}} = Auth.sign_in_with_password(client, data)
     end
   end
 
@@ -564,7 +564,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
       end)
 
-      assert {:ok, %Session{} = session} = GoTrue.sign_in_anonymously(client, data)
+      assert {:ok, %Session{} = session} = Auth.sign_in_anonymously(client, data)
       assert session.access_token == "123"
       assert session.user.id == "123"
     end
@@ -583,7 +583,7 @@ defmodule Supabase.GoTrueTest do
         {:error, %Mint.TransportError{reason: :timeout}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.sign_in_anonymously(client, data)
+      assert {:error, %Supabase.Error{}} = Auth.sign_in_anonymously(client, data)
     end
 
     test "returns an error on authentication error", %{client: client} do
@@ -600,7 +600,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.sign_in_anonymously(client, data)
+      assert {:error, %Supabase.Error{}} = Auth.sign_in_anonymously(client, data)
     end
   end
 
@@ -633,7 +633,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 201, body: body, headers: []}}
       end)
 
-      assert {:ok, %Session{} = session} = GoTrue.sign_up(client, data)
+      assert {:ok, %Session{} = session} = Auth.sign_up(client, data)
       assert session.user.id == "123"
     end
   end
@@ -655,7 +655,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert :ok =
-               GoTrue.reset_password_for_email(client, email, redirect_to: "http://localhost:3000")
+               Auth.reset_password_for_email(client, email, redirect_to: "http://localhost:3000")
     end
 
     test "returns an error on unexpected error", %{client: client} do
@@ -669,7 +669,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:error, %Supabase.Error{}} =
-               GoTrue.reset_password_for_email(client, email, redirect_to: "http://localhost:3000")
+               Auth.reset_password_for_email(client, email, redirect_to: "http://localhost:3000")
     end
   end
 
@@ -691,7 +691,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert :ok =
-               GoTrue.resend(client, email, redirect_to: "http://localhost:3000", type: :signup)
+               Auth.resend(client, email, redirect_to: "http://localhost:3000", type: :signup)
     end
   end
 
@@ -713,7 +713,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:ok, %Session{} = new_session} =
-               GoTrue.refresh_session(client, session.refresh_token)
+               Auth.refresh_session(client, session.refresh_token)
 
       assert new_session.access_token == "789"
       assert new_session.refresh_token == "101112"
@@ -735,7 +735,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:error, %Supabase.Error{}} =
-               GoTrue.refresh_session(client, session.refresh_token)
+               Auth.refresh_session(client, session.refresh_token)
     end
 
     test "returns an unexpected error", %{client: client} do
@@ -753,7 +753,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:error, %Supabase.Error{}} =
-               GoTrue.refresh_session(client, session.refresh_token)
+               Auth.refresh_session(client, session.refresh_token)
     end
   end
 
@@ -768,7 +768,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 200, body: body, headers: []}}
       end)
 
-      assert {:ok, %ServerSettings{}} = GoTrue.get_server_settings(client)
+      assert {:ok, %ServerSettings{}} = Auth.get_server_settings(client)
     end
 
     test "returns an unexpected error", %{client: client} do
@@ -779,7 +779,7 @@ defmodule Supabase.GoTrueTest do
         {:error, %Mint.TransportError{reason: :timeout}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.get_server_settings(client)
+      assert {:error, %Supabase.Error{}} = Auth.get_server_settings(client)
     end
   end
 
@@ -794,7 +794,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 200, body: body, headers: []}}
       end)
 
-      assert {:ok, %ServerHealth{}} = GoTrue.get_server_health(client)
+      assert {:ok, %ServerHealth{}} = Auth.get_server_health(client)
     end
   end
 
@@ -822,7 +822,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:ok, %Session{} = session} =
-               GoTrue.exchange_code_for_session(client, auth_code, code_verifier, %{redirect_to: redirect_to})
+               Auth.exchange_code_for_session(client, auth_code, code_verifier, %{redirect_to: redirect_to})
 
       assert session.access_token == "456"
       assert session.user.id == "123"
@@ -852,7 +852,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:error, %Supabase.Error{}} =
-               GoTrue.exchange_code_for_session(client, auth_code, code_verifier)
+               Auth.exchange_code_for_session(client, auth_code, code_verifier)
     end
 
     test "returns an error on unexpected error", %{client: client} do
@@ -868,7 +868,7 @@ defmodule Supabase.GoTrueTest do
       end)
 
       assert {:error, %Supabase.Error{}} =
-               GoTrue.exchange_code_for_session(client, auth_code, code_verifier)
+               Auth.exchange_code_for_session(client, auth_code, code_verifier)
     end
   end
 
@@ -884,7 +884,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 200, body: "{}", headers: []}}
       end)
 
-      assert :ok = GoTrue.reauthenticate(client, session)
+      assert :ok = Auth.reauthenticate(client, session)
     end
 
     test "returns an error when unauthorized", %{client: client} do
@@ -898,7 +898,7 @@ defmodule Supabase.GoTrueTest do
         {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.reauthenticate(client, session)
+      assert {:error, %Supabase.Error{}} = Auth.reauthenticate(client, session)
     end
 
     test "returns an error on unexpected error", %{client: client} do
@@ -912,7 +912,7 @@ defmodule Supabase.GoTrueTest do
         {:error, %Mint.TransportError{reason: :timeout}}
       end)
 
-      assert {:error, %Supabase.Error{}} = GoTrue.reauthenticate(client, session)
+      assert {:error, %Supabase.Error{}} = Auth.reauthenticate(client, session)
     end
   end
 end

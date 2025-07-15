@@ -1,12 +1,12 @@
-defmodule Supabase.GoTrue.AutoRefreshTest do
+defmodule Supabase.Auth.AutoRefreshTest do
   use ExUnit.Case, async: true
 
   import Mox
 
+  alias Supabase.Auth.AutoRefresh
+  alias Supabase.Auth.Session
+  alias Supabase.Auth.User
   alias Supabase.Client
-  alias Supabase.GoTrue.AutoRefresh
-  alias Supabase.GoTrue.Session
-  alias Supabase.GoTrue.User
 
   setup :verify_on_exit!
 

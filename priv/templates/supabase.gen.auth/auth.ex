@@ -4,10 +4,10 @@ defmodule <%= inspect auth_module %> do
   import Plug.Conn
   import Phoenix.Controller
 
-  alias Supabase.GoTrue
-  alias Supabase.GoTrue.Admin
-  alias Supabase.GoTrue.Session
-  alias Supabase.GoTrue.User
+  alias Supabase.Auth
+  alias Supabase.Auth.Admin
+  alias Supabase.Auth.Session
+  alias Supabase.Auth.User
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
@@ -31,7 +31,7 @@ defmodule <%= inspect auth_module %> do
   @doc "Logs the User in using the password strategy.\n" <> @extra_login_doc
   def log_in_user_with_password(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
-         {:ok, session} <- GoTrue.sign_in_with_password(client, params) do
+         {:ok, session} <- Auth.sign_in_with_password(client, params) do
       do_login(conn, session, params)
     end
   end
@@ -41,7 +41,15 @@ defmodule <%= inspect auth_module %> do
   @doc "Logs the User in using the otp strategy.\n" <> @extra_login_doc
   def log_in_user_with_otp(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
-         {:ok, session} <- GoTrue.sign_in_with_otp(client, params) do
+         {:ok, session} <- Auth.sign_in_with_otp(client, params) do
+      do_login(conn, session, params)
+    end
+  end
+
+  @doc "Verifies an OTP token and logs the user in.\n" <> @extra_login_doc
+  def verify_otp_and_log_in(conn, params) do
+    with {:ok, client} <- get_client(),
+         {:ok, session} <- Auth.verify_otp(client, params) do
       do_login(conn, session, params)
     end
   end
@@ -59,7 +67,7 @@ defmodule <%= inspect auth_module %> do
   @doc "Logs the User in using the sso strategy.\n" <> @extra_login_doc
   def log_in_user_with_sso(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
-         {:ok, session} <- GoTrue.sign_in_with_sso(client, params) do
+         {:ok, session} <- Auth.sign_in_with_sso(client, params) do
       do_login(conn, session, params)
     end
   end
@@ -69,7 +77,7 @@ defmodule <%= inspect auth_module %> do
   @doc "Logs the User in using the id_token strategy.\n" <> @extra_login_doc
   def log_in_user_with_id_token(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
-         {:ok, session} <- GoTrue.sign_in_with_id_token(client, params) do
+         {:ok, session} <- Auth.sign_in_with_id_token(client, params) do
       do_login(conn, session, params)
     end
   end
@@ -79,7 +87,7 @@ defmodule <%= inspect auth_module %> do
   @doc "Logs the User in using the oauth strategy.\n" <> @extra_login_doc
   def log_in_user_with_oauth(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
-         {:ok, session} <- GoTrue.sign_in_with_oauth(client, params) do
+         {:ok, session} <- Auth.sign_in_with_oauth(client, params) do
       do_login(conn, session, params)
     end
   end
@@ -89,7 +97,7 @@ defmodule <%= inspect auth_module %> do
   @doc "Logs the User in using the anon strategy.\n" <> @extra_login_doc
   def log_in_user_anonymously(conn, params \\ %{}) do
     with {:ok, client} <- get_client(),
-         {:ok, session} <- GoTrue.sign_in_anonymously(client, params) do
+         {:ok, session} <- Auth.sign_in_anonymously(client, params) do
       do_login(conn, session, params)
     end
   end
@@ -168,7 +176,7 @@ defmodule <%= inspect auth_module %> do
   defp fetch_user_from_session_token(user_token) do
     {:ok, client} = get_client()
 
-    case GoTrue.get_user(client, %Session{access_token: user_token}) do
+    case Auth.get_user(client, %Session{access_token: user_token}) do
       {:ok, %User{} = user} -> user
       _ -> nil
     end
@@ -264,7 +272,7 @@ defmodule <%= inspect auth_module %> do
   defp maybe_get_current_user(session) do
     {:ok, client} = get_client()
 
-    case GoTrue.get_user(client, session) do
+    case Auth.get_user(client, session) do
       {:ok, %User{} = user} -> user
       _ -> nil
     end
