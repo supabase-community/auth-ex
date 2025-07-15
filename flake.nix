@@ -24,7 +24,7 @@
     in {
       default = mkShell {
         name = "auth-ex";
-        packages = with pkgs; [elixir-bin."1.19.0-rc.0" erlang_27 postgresql];
+        packages = with pkgs; [elixir-bin."1.18.4" erlang_27 postgresql];
       };
     });
   };
