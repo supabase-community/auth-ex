@@ -444,43 +444,45 @@ defmodule Supabase.Auth do
     end
   end
 
-  @doc """
-  Updates the current logged in user.
+  if Code.ensure_loaded?(Plug) or Code.ensure_loaded?(Phoenix.LiveView.Socket) do
+    @doc """
+    Updates the current logged in user.
 
-  This function allows updating various user attributes including email, phone,
-  password, and user metadata. The user must be authenticated.
+    This function allows updating various user attributes including email, phone,
+    password, and user metadata. The user must be authenticated.
 
-  ## Parameters
-    - `client` - The `Supabase` client to use for the request.
-    - `conn` - The current `Plug.Conn` or `Phoenix.LiveView.Socket` to get current user
-    - `attrs` - Attributes to update:
-      * `email` - New email address for the user
-      * `phone` - New phone number for the user
-      * `password` - New password for the user
-      * `data` - Additional user metadata to update
-      * `nonce` - Optional nonce for email change verification
-      * `email_redirect_to` - URL to redirect after email change confirmation
+    ## Parameters
+      - `client` - The `Supabase` client to use for the request.
+      - `conn` - The current `Plug.Conn` or `Phoenix.LiveView.Socket` to get current user
+      - `attrs` - Attributes to update:
+        * `email` - New email address for the user
+        * `phone` - New phone number for the user
+        * `password` - New password for the user
+        * `data` - Additional user metadata to update
+        * `nonce` - Optional nonce for email change verification
+        * `email_redirect_to` - URL to redirect after email change confirmation
 
-  ## Returns
-    - `{:ok, conn}` - User was successfully updated, returns updated conn with session
-    - `{:error, reason}` - Failed to update user
+    ## Returns
+      - `{:ok, conn}` - User was successfully updated, returns updated conn with session
+      - `{:error, reason}` - Failed to update user
 
-  ## Examples
-      iex> params = %{email: "another@example.com", password: "new-pass"}
-      iex> Supabase.Auth.update_user(client, conn, params)
-      {:ok, conn}
-      
-      iex> params = %{data: %{name: "John Doe", avatar_url: "https://example.com/avatar.png"}}
-      iex> Supabase.Auth.update_user(client, conn, params)
-      {:ok, conn}
-  """
-  @impl true
-  def update_user(%Client{} = client, conn, attrs) do
-    with {:ok, params} <- UserParams.parse(attrs) do
-      if conn.assigns.current_user do
-        UserHandler.update_user(client, conn, params)
-      else
-        {:error, :no_user_logged_in}
+    ## Examples
+        iex> params = %{email: "another@example.com", password: "new-pass"}
+        iex> Supabase.Auth.update_user(client, conn, params)
+        {:ok, conn}
+        
+        iex> params = %{data: %{name: "John Doe", avatar_url: "https://example.com/avatar.png"}}
+        iex> Supabase.Auth.update_user(client, conn, params)
+        {:ok, conn}
+    """
+    @impl true
+    def update_user(%Client{} = client, conn, attrs) do
+      with {:ok, params} <- UserParams.parse(attrs) do
+        if conn.assigns.current_user do
+          UserHandler.update_user(client, conn, params)
+        else
+          {:error, :no_user_logged_in}
+        end
       end
     end
   end

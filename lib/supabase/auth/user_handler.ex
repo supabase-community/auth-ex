@@ -240,64 +240,66 @@ defmodule Supabase.Auth.UserHandler do
     with {:ok, _} <- Fetcher.request(builder), do: :ok
   end
 
-  def update_user(%Client{} = client, conn, %{} = params) when client.auth.flow_type == :pkce do
-    {_verifier, challenge, method} = generate_pkce()
+  if Code.ensure_loaded?(Plug) or Code.ensure_loaded?(Socket) do
+    def update_user(%Client{} = client, conn, %{} = params) when client.auth.flow_type == :pkce do
+      {_verifier, challenge, method} = generate_pkce()
 
-    access_token =
-      case conn do
-        %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
-        %Socket{} -> conn.assigns.user_token
-      end
+      access_token =
+        case conn do
+          %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
+          %Socket{} -> conn.assigns.user_token
+        end
 
-    body = Map.merge(params, %{code_challenge: challenge, code_challenge_method: method})
+      body = Map.merge(params, %{code_challenge: challenge, code_challenge_method: method})
 
-    builder =
-      client
-      |> Auth.Request.base(@single_user_uri)
-      |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
-      |> Request.with_method(:post)
-      |> Request.with_body(body)
-      |> Request.with_query(%{"redirect_to" => params[:email_redirect_to]})
+      builder =
+        client
+        |> Auth.Request.base(@single_user_uri)
+        |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+        |> Request.with_method(:post)
+        |> Request.with_body(body)
+        |> Request.with_query(%{"redirect_to" => params[:email_redirect_to]})
 
-    session = %{"user_token" => access_token}
-    auth_module = Auth.get_auth_module!()
+      session = %{"user_token" => access_token}
+      auth_module = Auth.get_auth_module!()
 
-    with {:ok, _} <- Fetcher.request(builder) do
-      case conn do
-        %Plug.Conn{} ->
-          {:ok, auth_module.fetch_current_user(conn, nil)}
+      with {:ok, _} <- Fetcher.request(builder) do
+        case conn do
+          %Plug.Conn{} ->
+            {:ok, auth_module.fetch_current_user(conn, nil)}
 
-        %Socket{} ->
-          {:ok, auth_module.mount_current_user(session, conn)}
+          %Socket{} ->
+            {:ok, auth_module.mount_current_user(session, conn)}
+        end
       end
     end
-  end
 
-  def update_user(%Client{} = client, conn, %{} = params) do
-    access_token =
-      case conn do
-        %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
-        %Socket{} -> conn.assigns.user_token
-      end
+    def update_user(%Client{} = client, conn, %{} = params) do
+      access_token =
+        case conn do
+          %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
+          %Socket{} -> conn.assigns.user_token
+        end
 
-    builder =
-      client
-      |> Auth.Request.base(@single_user_uri)
-      |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
-      |> Request.with_method(:post)
-      |> Request.with_body(params)
-      |> Request.with_query(%{"redirect_to" => params[:email_redirect_to]})
+      builder =
+        client
+        |> Auth.Request.base(@single_user_uri)
+        |> Request.with_headers(%{"authorization" => "Bearer #{access_token}"})
+        |> Request.with_method(:post)
+        |> Request.with_body(params)
+        |> Request.with_query(%{"redirect_to" => params[:email_redirect_to]})
 
-    session = %{"user_token" => access_token}
-    auth_module = Auth.get_auth_module!()
+      session = %{"user_token" => access_token}
+      auth_module = Auth.get_auth_module!()
 
-    with {:ok, _} <- Fetcher.request(builder) do
-      case conn do
-        %Plug.Conn{} ->
-          {:ok, auth_module.fetch_current_user(conn, nil)}
+      with {:ok, _} <- Fetcher.request(builder) do
+        case conn do
+          %Plug.Conn{} ->
+            {:ok, auth_module.fetch_current_user(conn, nil)}
 
-        %Socket{} ->
-          {:ok, auth_module.mount_current_user(session, conn)}
+          %Socket{} ->
+            {:ok, auth_module.mount_current_user(session, conn)}
+        end
       end
     end
   end
