@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0](https://github.com/supabase-community/auth-ex/compare/v0.5.2...v0.6.0) (2025-07-15)
+
+### Bug Fixes
+
+* cond compile mod/funs that depens on optional dependencies ([#45](https://github.com/supabase-community/auth-ex/issues/45)) ([840279b](https://github.com/supabase-community/auth-ex/commit/840279b2cfd47e5b2e6b5d5c1091c9c993c5c805))
+
+### Code Refactoring
+
+* rename package to supabase_auth ([#43](https://github.com/supabase-community/auth-ex/issues/43)) ([eb220d1](https://github.com/supabase-community/auth-ex/commit/eb220d1c0144ed3c8ee0bb61088282289675114b))
+
 ## [0.5.2] - 2025-06-10
 
 ### Fixed
