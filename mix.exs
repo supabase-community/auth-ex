@@ -8,7 +8,7 @@ defmodule SupabaseAuth.MixProject do
     [
       app: :supabase_auth,
       version: @version,
-      elixir: "~> 1.15",
+      elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
