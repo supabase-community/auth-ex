@@ -59,8 +59,7 @@ defmodule <%= inspect web_module %>.SessionController do
     <%= inspect auth_module %>.verify_otp_and_log_in(conn, %{token_hash: token, type: type})
   end
 
-  def log_in_with_strategy(conn, %{"user" => %{} = params})
-    when is_binary(token) do
+  def log_in_with_strategy(conn, %{"user" => %{} = params}) do
     <%= inspect auth_module %>.log_in_user_with_otp(conn, params)
   end
   <% end %>
