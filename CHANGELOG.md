@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1](https://github.com/supabase-community/auth-ex/compare/v0.6.0...v0.6.1) (2025-07-20)
+
+
+### Bug Fixes
+
+* allows compilation when phoenix isn't present and only plug exists ([#46](https://github.com/supabase-community/auth-ex/issues/46)) ([5634705](https://github.com/supabase-community/auth-ex/commit/5634705db7aeb702fd1e130f4e2dafeaa030bad4))
+
 ## [0.6.0](https://github.com/supabase-community/auth-ex/compare/v0.5.2...v0.6.0) (2025-07-15)
 
 ### Bug Fixes
