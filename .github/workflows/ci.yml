@@ -19,6 +19,8 @@ jobs:
       matrix:
         include:
           - elixir: 1.18
+            otp: 28
+          - elixir: 1.18
             otp: 27
           - elixir: 1.18
             otp: 26
@@ -83,6 +85,8 @@ jobs:
       matrix:
         include:
           - elixir: 1.18
+            otp: 28
+          - elixir: 1.18
             otp: 27
           - elixir: 1.18
             otp: 26
@@ -139,8 +143,6 @@ jobs:
         with:
           path: priv/plts
           key: plt-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
-          restore-keys: |
-            plt-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-
 
       # Create PLTs if no cache was found
       - name: Create PLTs
@@ -159,6 +161,8 @@ jobs:
     strategy:
       matrix:
         include:
+          - elixir: 1.18
+            otp: 28
           - elixir: 1.18
             otp: 27
           - elixir: 1.18

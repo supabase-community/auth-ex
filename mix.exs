@@ -15,7 +15,7 @@ defmodule SupabaseAuth.MixProject do
       package: package(),
       description: description(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      dialyzer: [plt_local_path: "priv/plts", ignore_warnings: ".dialyzerignore", plt_add_apps: [:mix, :ex_unit]]
+      dialyzer: [plt_local_path: "priv/plts", ignore_warnings: ".dialyzerignore.exs", plt_add_apps: [:mix, :ex_unit]]
     ]
   end
 
