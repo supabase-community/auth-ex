@@ -1,7 +1,7 @@
 defmodule SupabaseAuth.MixProject do
   use Mix.Project
 
-  @version "0.6.0"
+  @version "0.6.1"
   @source_url "https://github.com/supabase-community/auth-ex"
 
   def project do
@@ -39,7 +39,7 @@ defmodule SupabaseAuth.MixProject do
       {:mox, "~> 1.0", only: :test},
       {:peri, "~> 0.3"},
       {:styler, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:ex_doc, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false}
     ]
