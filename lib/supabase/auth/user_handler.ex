@@ -245,9 +245,14 @@ defmodule Supabase.Auth.UserHandler do
       {_verifier, challenge, method} = generate_pkce()
 
       access_token =
-        case conn do
-          %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
-          %Socket{} -> conn.assigns.user_token
+        cond do
+          Code.ensure_loaded?(Socket) and is_struct(conn, Socket) ->
+            # For Phoenix LiveView sockets
+            conn.assigns.user_token
+
+          Code.ensure_loaded?(Plug) and is_struct(conn, Plug.Conn) ->
+            # For Plug connections
+            Plug.Conn.get_session(conn, :user_token)
         end
 
       body = Map.merge(params, %{code_challenge: challenge, code_challenge_method: method})
@@ -264,11 +269,13 @@ defmodule Supabase.Auth.UserHandler do
       auth_module = Auth.get_auth_module!()
 
       with {:ok, _} <- Fetcher.request(builder) do
-        case conn do
-          %Plug.Conn{} ->
+        cond do
+          Code.ensure_loaded?(Plug) and is_struct(conn, Plug.Conn) ->
+            # For Plug connections
             {:ok, auth_module.fetch_current_user(conn, nil)}
 
-          %Socket{} ->
+          Code.ensure_loaded?(Socket) and is_struct(conn, Socket) ->
+            # For Phoenix LiveView sockets
             {:ok, auth_module.mount_current_user(session, conn)}
         end
       end
@@ -276,9 +283,12 @@ defmodule Supabase.Auth.UserHandler do
 
     def update_user(%Client{} = client, conn, %{} = params) do
       access_token =
-        case conn do
-          %Plug.Conn{} -> Plug.Conn.get_session(conn, :user_token)
-          %Socket{} -> conn.assigns.user_token
+        cond do
+          Code.ensure_loaded?(Plug) and is_struct(conn, Plug.Conn) ->
+            Plug.Conn.get_session(conn, :user_token)
+
+          Code.ensure_loaded?(Socket) and is_struct(conn, Socket) ->
+            conn.assigns.user_token
         end
 
       builder =
@@ -293,11 +303,11 @@ defmodule Supabase.Auth.UserHandler do
       auth_module = Auth.get_auth_module!()
 
       with {:ok, _} <- Fetcher.request(builder) do
-        case conn do
-          %Plug.Conn{} ->
+        cond do
+          Code.ensure_loaded?(Plug) and is_struct(conn, Plug.Conn) ->
             {:ok, auth_module.fetch_current_user(conn, nil)}
 
-          %Socket{} ->
+          Code.ensure_loaded?(Socket) and is_struct(conn, Socket) ->
             {:ok, auth_module.mount_current_user(session, conn)}
         end
       end
@@ -501,7 +511,7 @@ defmodule Supabase.Auth.UserHandler do
   @doc """
   Sends a reauthentication request for the authenticated user.
 
-  This sends a reauthentication OTP to the user's email or phone number. 
+  This sends a reauthentication OTP to the user's email or phone number.
   Requires the user to be authenticated with a valid session.
 
   ## Parameters
