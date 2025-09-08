@@ -68,7 +68,7 @@ defmodule Supabase.Auth.Schemas.ServerSettings do
           external: external_t
         }
 
-  @derive Jason.Encoder
+  @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key false
   embedded_schema do
     field(:disable_signup, :boolean)
@@ -79,7 +79,7 @@ defmodule Supabase.Auth.Schemas.ServerSettings do
 
     embeds_one :external, External, primary_key: false do
       @moduledoc false
-      @derive Jason.Encoder
+      @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
       field(:anonymous_users, :boolean)
       field(:apple, :boolean)
       field(:azure, :boolean)

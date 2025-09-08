@@ -28,7 +28,7 @@ defmodule Supabase.Auth.AdminTest do
   setup do
     client = Supabase.init_client!("http://localhost:54321", "test-api-key")
 
-    {:ok, client: client}
+    {:ok, client: client, json: Supabase.json_library()}
   end
 
   describe "sign_out/3" do
@@ -329,13 +329,13 @@ defmodule Supabase.Auth.AdminTest do
       assert :ok = Admin.delete_user(client, user.id)
     end
 
-    test "successfully soft deletes an user", %{client: client} do
+    test "successfully soft deletes an user", %{client: client, json: json} do
       user = user_fixture(id: "123")
 
       expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :delete
         assert req.url.path =~ "/admin/users/123"
-        assert req.body == Jason.encode_to_iodata!(%{should_soft_delete: true})
+        assert req.body == json.encode_to_iodata!(%{should_soft_delete: true})
 
         {:ok, %Finch.Response{body: ~s|{}|, status: 204, headers: []}}
       end)
@@ -409,7 +409,7 @@ defmodule Supabase.Auth.AdminTest do
   end
 
   describe "list_users/2" do
-    test "successfully list users without custom pagination options", %{client: client} do
+    test "successfully list users without custom pagination options", %{client: client, json: json} do
       expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/admin/users"
@@ -418,7 +418,7 @@ defmodule Supabase.Auth.AdminTest do
 
         {:ok,
          %Finch.Response{
-           body: Jason.encode!(body),
+           body: json.encode!(body),
            status: 200,
            headers: [
              {"x-total-count", "10"},
@@ -434,7 +434,7 @@ defmodule Supabase.Auth.AdminTest do
       refute pagination[:next_page]
     end
 
-    test "successfully list users with custom pagination options", %{client: client} do
+    test "successfully list users with custom pagination options", %{client: client, json: json} do
       expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :get
         assert req.url.path =~ "/admin/users"
@@ -446,7 +446,7 @@ defmodule Supabase.Auth.AdminTest do
 
         {:ok,
          %Finch.Response{
-           body: Jason.encode!(body),
+           body: json.encode!(body),
            status: 200,
            headers: [
              {"x-total-count", "10"},
@@ -567,11 +567,11 @@ defmodule Supabase.Auth.AdminTest do
   end
 
   describe "list_identities/2" do
-    test "successfully lists user identities", %{client: client} do
+    test "successfully lists user identities", %{client: client, json: json} do
       user_id = "123"
 
       identities_json =
-        Jason.encode!([
+        json.encode!([
           %{
             id: "ident_1",
             user_id: user_id,
@@ -658,7 +658,7 @@ defmodule Supabase.Auth.AdminTest do
       assert {:error, %Supabase.Error{}} = Admin.delete_identity(client, user_id, identity_id)
     end
 
-    test "returns an error when trying to delete the last identity", %{client: client} do
+    test "returns an error when trying to delete the last identity", %{client: client, json: json} do
       user_id = "123"
       identity_id = "ident_123456789"
 
@@ -667,7 +667,7 @@ defmodule Supabase.Auth.AdminTest do
         assert req.url.path =~ "/admin/users/#{user_id}/identities/#{identity_id}"
 
         error_json =
-          Jason.encode!(%{
+          json.encode!(%{
             message: "Cannot delete the last identity",
             status: 400,
             code: "single_identity_not_deletable"

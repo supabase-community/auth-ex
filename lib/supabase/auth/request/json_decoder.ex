@@ -8,14 +8,13 @@ defmodule Supabase.Auth.Request.JSONDecoder do
   alias Supabase.Fetcher.Response
 
   @impl true
-  def decode(%Response{body: body}, opts \\ []) do
+  def decode(%Response{body: body}, _) do
     body =
       case body do
         "" -> "{}"
         _ -> body
       end
 
-    keys = Keyword.get(opts, :keys, :strings)
-    Jason.decode(body, keys: keys)
+    Supabase.json_library().decode(body)
   end
 end

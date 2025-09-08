@@ -29,15 +29,23 @@ defmodule SupabaseAuth.MixProject do
     ]
   end
 
+  defp supabase_dep do
+    if Mix.env() == :dev do
+      {:supabase_potion, path: "../supabase-ex"}
+    else
+      {:supabase_potion, "~> 0.6"}
+    end
+  end
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:supabase_potion, "~> 0.6"},
+      supabase_dep(),
+      {:peri, "~> 0.3"},
       {:plug, "~> 1.15", optional: true},
       {:phoenix, "~> 1.7", optional: true},
       {:phoenix_live_view, "~> 1.0", optional: true},
       {:mox, "~> 1.0", only: :test},
-      {:peri, "~> 0.3"},
       {:styler, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

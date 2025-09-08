@@ -25,6 +25,7 @@ defmodule Supabase.Auth.SessionFixture do
   end
 
   def session_fixture_json(attrs \\ %{}) do
-    attrs |> session_fixture() |> Jason.encode!()
+    json = Supabase.json_library()
+    attrs |> session_fixture() |> json.encode!()
   end
 end

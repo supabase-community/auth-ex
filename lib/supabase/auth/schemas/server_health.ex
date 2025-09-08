@@ -22,7 +22,7 @@ defmodule Supabase.Auth.Schemas.ServerHealth do
           description: String.t()
         }
 
-  @derive Jason.Encoder
+  @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key false
   embedded_schema do
     field(:version, :string)

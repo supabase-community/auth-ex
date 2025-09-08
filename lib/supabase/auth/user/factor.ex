@@ -24,7 +24,7 @@ defmodule Supabase.Auth.User.Factor do
           updated_at: NaiveDateTime.t()
         }
 
-  @derive Jason.Encoder
+  @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key {:id, :binary_id, autogenerate: false}
   embedded_schema do
     field(:friendly_name, :string)

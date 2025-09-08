@@ -31,7 +31,7 @@ defmodule Supabase.AuthTest do
   setup do
     client = Supabase.init_client!("https://localhost:54321", "test-api-key")
 
-    {:ok, client: client}
+    {:ok, client: client, json: Supabase.json_library()}
   end
 
   describe "get_user/2" do
@@ -76,7 +76,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "sign_in_with_id_token/2" do
-    test "successfully sings in an user with ID token", %{client: client} do
+    test "successfully sings in an user with ID token", %{client: client, json: json} do
       data = %{provider: :apple, token: "123"}
 
       expect(@mock, :request, fn %Request{} = req, _opts ->
@@ -88,7 +88,7 @@ defmodule Supabase.AuthTest do
                  "gotrue_meta_security" => %{"captcha_token" => nil},
                  "id_token" => "123",
                  "provider" => "apple"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         assert Request.get_query_param(req, "grant_type") == "id_token"
 
@@ -103,7 +103,7 @@ defmodule Supabase.AuthTest do
       assert session.user.id == "123"
     end
 
-    test "returns an error on authentication error", %{client: client} do
+    test "returns an error on authentication error", %{client: client, json: json} do
       data = %{provider: :apple, token: "123"}
 
       expect(@mock, :request, fn %Request{} = req, _opts ->
@@ -115,7 +115,7 @@ defmodule Supabase.AuthTest do
                  "gotrue_meta_security" => %{"captcha_token" => nil},
                  "id_token" => "123",
                  "provider" => "apple"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         assert Request.get_query_param(req, "grant_type") == "id_token"
 
@@ -125,7 +125,7 @@ defmodule Supabase.AuthTest do
       assert {:error, %Supabase.Error{}} = Auth.sign_in_with_id_token(client, data)
     end
 
-    test "returns an error on unexpected error", %{client: client} do
+    test "returns an error on unexpected error", %{client: client, json: json} do
       data = %{provider: :apple, token: "123"}
 
       expect(@mock, :request, fn %Request{} = req, _opts ->
@@ -137,7 +137,7 @@ defmodule Supabase.AuthTest do
                  "gotrue_meta_security" => %{"captcha_token" => nil},
                  "id_token" => "123",
                  "provider" => "apple"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         assert Request.get_query_param(req, "grant_type") == "id_token"
 
@@ -173,7 +173,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "sign_in_with_otp/2" do
-    test "successfully triggers an user signin with email OTP", %{client: client} do
+    test "successfully triggers an user signin with email OTP", %{client: client, json: json} do
       data = %{
         email: "john@example.com",
         options: %{
@@ -191,7 +191,7 @@ defmodule Supabase.AuthTest do
                  "create_user" => true,
                  "email" => "john@example.com",
                  "gotrue_meta_security" => %{"captcha_token" => "123"}
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         {:ok, %Finch.Response{status: 200, body: "{}", headers: []}}
       end)
@@ -200,7 +200,7 @@ defmodule Supabase.AuthTest do
       assert :ok = Auth.sign_in_with_otp(client, data)
     end
 
-    test "successfully triggers an user signin with phone OTP", %{client: client} do
+    test "successfully triggers an user signin with phone OTP", %{client: client, json: json} do
       data = %{
         phone: "+5522123456789",
         options: %{
@@ -219,7 +219,7 @@ defmodule Supabase.AuthTest do
                  "create_user" => true,
                  "gotrue_meta_security" => %{"captcha_token" => "123"},
                  "phone" => "+5522123456789"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         body = """
         {
@@ -237,7 +237,7 @@ defmodule Supabase.AuthTest do
       assert message_id == "123"
     end
 
-    test "successfully triggers an user signin with whatsapp OTP", %{client: client} do
+    test "successfully triggers an user signin with whatsapp OTP", %{client: client, json: json} do
       data = %{
         phone: "+5522123456789",
         options: %{
@@ -257,7 +257,7 @@ defmodule Supabase.AuthTest do
                  "create_user" => true,
                  "gotrue_meta_security" => %{"captcha_token" => "123"},
                  "phone" => "+5522123456789"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         body = """
         {
@@ -277,7 +277,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "verify_otp/2" do
-    test "successfully verifies an email OTP code", %{client: client} do
+    test "successfully verifies an email OTP code", %{client: client, json: json} do
       for type <- ~w[signup invite magiclink recovery email_change email]a do
         data = %{
           email: "john@example.com",
@@ -300,7 +300,7 @@ defmodule Supabase.AuthTest do
                    },
                    "token" => "123",
                    "type" => t
-                 } = Jason.decode!(req.body)
+                 } = json.decode!(req.body)
 
           assert t == Atom.to_string(type)
 
@@ -316,7 +316,7 @@ defmodule Supabase.AuthTest do
       end
     end
 
-    test "successfully verifies phone OTP code", %{client: client} do
+    test "successfully verifies phone OTP code", %{client: client, json: json} do
       for type <- ~w[sms phone_change]a do
         data = %{
           phone: "+5522123456789",
@@ -339,7 +339,7 @@ defmodule Supabase.AuthTest do
                    "phone" => "+5522123456789",
                    "token" => "123",
                    "type" => t
-                 } = Jason.decode!(req.body)
+                 } = json.decode!(req.body)
 
           assert t == Atom.to_string(type)
 
@@ -355,7 +355,7 @@ defmodule Supabase.AuthTest do
       end
     end
 
-    test "successfully verifies a token hash OTP code", %{client: client} do
+    test "successfully verifies a token hash OTP code", %{client: client, json: json} do
       data = %{
         token_hash: "123",
         type: :signup,
@@ -375,7 +375,7 @@ defmodule Supabase.AuthTest do
                  },
                  "token_hash" => "123",
                  "type" => "signup"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         user = [id: "123"] |> user_fixture() |> Map.from_struct()
         body = session_fixture_json(access_token: "123", user: user)
@@ -388,7 +388,7 @@ defmodule Supabase.AuthTest do
       assert session.user.id == "123"
     end
 
-    test "returns an error on unauthenticated", %{client: client} do
+    test "returns an error on unauthenticated", %{client: client, json: json} do
       data = %{
         email: "john@example.com",
         token: "123",
@@ -410,7 +410,7 @@ defmodule Supabase.AuthTest do
                  },
                  "token" => "123",
                  "type" => "email"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
       end)
@@ -420,7 +420,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "sign_in_with_sso/2" do
-    test "successfully signin an user with SSO provider_id", %{client: client} do
+    test "successfully signin an user with SSO provider_id", %{client: client, json: json} do
       data = %{
         provider_id: "apple",
         options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
@@ -434,7 +434,7 @@ defmodule Supabase.AuthTest do
                  "data" => %{},
                  "gotrue_meta_security" => %{"captcha_token" => "123"},
                  "provider_id" => "apple"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         body = """
         {
@@ -450,7 +450,7 @@ defmodule Supabase.AuthTest do
       assert {:ok, "http://localhost:3000"} = Auth.sign_in_with_sso(client, data)
     end
 
-    test "successfully signin an user with SSO domain", %{client: client} do
+    test "successfully signin an user with SSO domain", %{client: client, json: json} do
       data = %{
         domain: "example.org",
         options: %{captcha_token: "123", redirect_to: "http://localhost:3000"}
@@ -464,7 +464,7 @@ defmodule Supabase.AuthTest do
                  "data" => %{},
                  "gotrue_meta_security" => %{"captcha_token" => "123"},
                  "domain" => "example.org"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         body = """
         {
@@ -491,7 +491,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "sign_in_with_password/2" do
-    test "successfully signs in an user with email and password", %{client: client} do
+    test "successfully signs in an user with email and password", %{client: client, json: json} do
       data = %{
         email: "john@example.com",
         password: "123",
@@ -507,7 +507,7 @@ defmodule Supabase.AuthTest do
                  "gotrue_meta_security" => %{"captcha_token" => "123"},
                  "email" => "john@example.com",
                  "password" => "123"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         assert Request.get_query_param(req, "grant_type") == "password"
 
@@ -522,7 +522,7 @@ defmodule Supabase.AuthTest do
       assert session.user.id == "123"
     end
 
-    test "returns an error on authentication error", %{client: client} do
+    test "returns an error on authentication error", %{client: client, json: json} do
       data = %{
         email: "john@example.com",
         password: "123",
@@ -538,7 +538,7 @@ defmodule Supabase.AuthTest do
                  "gotrue_meta_security" => %{"captcha_token" => "123"},
                  "email" => "john@example.com",
                  "password" => "123"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         assert Request.get_query_param(req, "grant_type") == "password"
 
@@ -550,13 +550,13 @@ defmodule Supabase.AuthTest do
   end
 
   describe "sign_in_anonymously/2" do
-    test "successfully signs in an user anonymously", %{client: client} do
+    test "successfully signs in an user anonymously", %{client: client, json: json} do
       data = %{captcha_token: "123"}
 
       expect(@mock, :request, fn %Request{} = req, _opts ->
         assert req.method == :post
         assert req.url.path =~ "/signup"
-        assert %{"gotrue_meta_security" => %{"captcha_token" => "123"}} = Jason.decode!(req.body)
+        assert %{"gotrue_meta_security" => %{"captcha_token" => "123"}} = json.decode!(req.body)
 
         user = [id: "123", identities: []] |> user_fixture() |> Map.from_struct()
         body = session_fixture_json(access_token: "123", user: user)
@@ -569,7 +569,7 @@ defmodule Supabase.AuthTest do
       assert session.user.id == "123"
     end
 
-    test "returns an error on unexpected error", %{client: client} do
+    test "returns an error on unexpected error", %{client: client, json: json} do
       data = %{captcha_token: "123"}
 
       expect(@mock, :request, fn %Request{} = req, _opts ->
@@ -578,7 +578,7 @@ defmodule Supabase.AuthTest do
 
         assert %{
                  "options" => %{"captcha_token" => "123"}
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         {:error, %Mint.TransportError{reason: :timeout}}
       end)
@@ -586,7 +586,7 @@ defmodule Supabase.AuthTest do
       assert {:error, %Supabase.Error{}} = Auth.sign_in_anonymously(client, data)
     end
 
-    test "returns an error on authentication error", %{client: client} do
+    test "returns an error on authentication error", %{client: client, json: json} do
       data = %{captcha_token: "123"}
 
       expect(@mock, :request, fn %Request{} = req, _opts ->
@@ -595,7 +595,7 @@ defmodule Supabase.AuthTest do
 
         assert %{
                  "options" => %{"captcha_token" => "123"}
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
       end)
@@ -605,7 +605,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "sign_up/2" do
-    test "successfully signs up an user with email and password", %{client: client} do
+    test "successfully signs up an user with email and password", %{client: client, json: json} do
       data = %{
         email: "another@example.com",
         password: "123",
@@ -625,7 +625,7 @@ defmodule Supabase.AuthTest do
                  "gotrue_meta_security" => %{"captcha_token" => "123"},
                  "password" => "123",
                  "phone" => "+5522123456789"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         user = [id: "123"] |> user_fixture() |> Map.from_struct()
         body = session_fixture_json(user: user)
@@ -639,7 +639,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "reset_password_for_email/3" do
-    test "successfully sends a recovery password email", %{client: client} do
+    test "successfully sends a recovery password email", %{client: client, json: json} do
       email = "another@example.com"
 
       expect(@mock, :request, fn %Request{} = req, _opts ->
@@ -649,7 +649,7 @@ defmodule Supabase.AuthTest do
         assert %{
                  "email" => "another@example.com",
                  "gotrue_meta_security" => %{"captcha_token" => nil}
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         {:ok, %Finch.Response{status: 200, body: "{}", headers: []}}
       end)
@@ -674,7 +674,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "resend/3" do
-    test "successfully resends a signup confirm email", %{client: client} do
+    test "successfully resends a signup confirm email", %{client: client, json: json} do
       email = "another@example.com"
 
       expect(@mock, :request, fn %Request{} = req, _opts ->
@@ -685,7 +685,7 @@ defmodule Supabase.AuthTest do
                  "email" => "another@example.com",
                  "gotrue_meta_security" => %{"captcha_token" => nil},
                  "type" => "signup"
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         {:ok, %Finch.Response{status: 200, body: "{}", headers: []}}
       end)
@@ -696,7 +696,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "refresh_session/2" do
-    test "successfully refreshes the current session", %{client: client} do
+    test "successfully refreshes the current session", %{client: client, json: json} do
       user = [id: "123"] |> user_fixture() |> Map.from_struct()
       refresh_token = "456"
       session = session_fixture(refresh_token: refresh_token, user: user)
@@ -705,7 +705,7 @@ defmodule Supabase.AuthTest do
         assert req.method == :post
         assert req.url.path =~ "/token"
         assert Request.get_query_param(req, "grant_type") == "refresh_token"
-        assert %{"refresh_token" => ^refresh_token} = Jason.decode!(req.body)
+        assert %{"refresh_token" => ^refresh_token} = json.decode!(req.body)
 
         body = session_fixture_json(access_token: "789", refresh_token: "101112", user: user)
 
@@ -720,7 +720,7 @@ defmodule Supabase.AuthTest do
       assert new_session.user.id == session.user.id
     end
 
-    test "returns an unauthenticated error", %{client: client} do
+    test "returns an unauthenticated error", %{client: client, json: json} do
       user = [id: "123"] |> user_fixture() |> Map.from_struct()
       refresh_token = "456"
       session = session_fixture(refresh_token: refresh_token, user: user)
@@ -729,7 +729,7 @@ defmodule Supabase.AuthTest do
         assert req.method == :post
         assert req.url.path =~ "/token"
         assert Request.get_query_param(req, "grant_type") == "refresh_token"
-        assert %{"refresh_token" => ^refresh_token} = Jason.decode!(req.body)
+        assert %{"refresh_token" => ^refresh_token} = json.decode!(req.body)
 
         {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
       end)
@@ -738,7 +738,7 @@ defmodule Supabase.AuthTest do
                Auth.refresh_session(client, session.refresh_token)
     end
 
-    test "returns an unexpected error", %{client: client} do
+    test "returns an unexpected error", %{client: client, json: json} do
       user = [id: "123"] |> user_fixture() |> Map.from_struct()
       refresh_token = "456"
       session = session_fixture(refresh_token: refresh_token, user: user)
@@ -747,7 +747,7 @@ defmodule Supabase.AuthTest do
         assert req.method == :post
         assert req.url.path =~ "/token"
         assert Request.get_query_param(req, "grant_type") == "refresh_token"
-        assert %{"refresh_token" => ^refresh_token} = Jason.decode!(req.body)
+        assert %{"refresh_token" => ^refresh_token} = json.decode!(req.body)
 
         {:error, %Mint.TransportError{reason: :timeout}}
       end)
@@ -799,7 +799,7 @@ defmodule Supabase.AuthTest do
   end
 
   describe "exchange_code_for_session/4" do
-    test "successfully exchanges code for session", %{client: client} do
+    test "successfully exchanges code for session", %{client: client, json: json} do
       auth_code = "auth_code_123"
       code_verifier = "verifier_123"
       redirect_to = "http://localhost:3000/callback"
@@ -813,7 +813,7 @@ defmodule Supabase.AuthTest do
                  "auth_code" => ^auth_code,
                  "code_verifier" => ^code_verifier,
                  "redirect_to" => ^redirect_to
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         user = [id: "123"] |> user_fixture() |> Map.from_struct()
         body = session_fixture_json(access_token: "456", user: user)
@@ -828,7 +828,7 @@ defmodule Supabase.AuthTest do
       assert session.user.id == "123"
     end
 
-    test "returns an error on invalid code", %{client: client} do
+    test "returns an error on invalid code", %{client: client, json: json} do
       auth_code = "invalid_auth_code"
       code_verifier = "verifier_123"
 
@@ -841,7 +841,7 @@ defmodule Supabase.AuthTest do
                  "auth_code" => ^auth_code,
                  "code_verifier" => ^code_verifier,
                  "redirect_to" => nil
-               } = Jason.decode!(req.body)
+               } = json.decode!(req.body)
 
         {:ok,
          %Finch.Response{
