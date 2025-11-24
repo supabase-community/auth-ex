@@ -19,10 +19,8 @@ defmodule Supabase.Auth.ServerHealthFixture do
   end
 
   def server_health_fixture_json(attrs \\ %{}) do
-    json = Supabase.json_library()
-
     attrs
     |> server_health_fixture()
-    |> json.encode!()
+    |> Supabase.encode_json()
   end
 end

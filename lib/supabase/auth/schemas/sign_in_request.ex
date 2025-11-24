@@ -124,7 +124,7 @@ defmodule Supabase.Auth.Schemas.SignInRequest do
       |> Map.from_struct()
       |> Map.filter(fn {_k, v} -> not is_nil(v) end)
       |> Map.delete(:redirect_to)
-      |> Supabase.json_library().encode!()
+      |> Supabase.encode_json()
     end
   end
 end

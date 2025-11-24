@@ -45,7 +45,6 @@ defmodule Supabase.Auth.UserFixture do
   end
 
   def user_fixture_json(attrs \\ %{}) do
-    json = Supabase.json_library()
-    attrs |> user_fixture() |> json.encode!()
+    attrs |> user_fixture() |> Supabase.encode_json()
   end
 end
