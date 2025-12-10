@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.3](https://github.com/supabase-community/auth-ex/compare/v0.6.2...v0.6.3) (2025-12-10)
+
+
+### Bug Fixes
+
+* follow `json_library` option from main library ([#55](https://github.com/supabase-community/auth-ex/issues/55)) ([6b79f8d](https://github.com/supabase-community/auth-ex/commit/6b79f8d6bb583c3a7064403227076a0741672c02))
+
 ## [0.6.2](https://github.com/supabase-community/auth-ex/compare/v0.6.1...v0.6.2) (2025-07-20)
 
 * gen auth task templates ([#51](https://github.com/supabase-community/auth-ex/issues/51)) ([6e86c5f](https://github.com/supabase-community/auth-ex/commit/6e86c5f09784fc99be2891640997e388f37c0fe5))

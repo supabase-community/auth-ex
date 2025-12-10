@@ -12,7 +12,7 @@
 def deps do
   [
     {:supabase_potion, "~> 0.7"},
-    {:supabase_auth, "~> 0.6.2"} # x-release-please-version
+    {:supabase_auth, "~> 0.6.3"} # x-release-please-version
   ]
 end
 ```
