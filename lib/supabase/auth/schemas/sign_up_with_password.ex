@@ -19,7 +19,7 @@ defmodule Supabase.Auth.Schemas.SignUpWithPassword do
           options: list(options) | nil
         }
 
-  @derive Jason.Encoder
+  @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key false
   embedded_schema do
     field(:email, :string)

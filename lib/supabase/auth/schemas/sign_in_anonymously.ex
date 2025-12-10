@@ -21,7 +21,7 @@ defmodule Supabase.Auth.Schemas.SignInAnonymously do
           captcha_token: String.t() | nil
         }
 
-  @derive Jason.Encoder
+  @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key false
   embedded_schema do
     field(:data, :map)

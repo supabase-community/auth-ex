@@ -58,7 +58,7 @@ defmodule Supabase.Auth.Session do
   @required_fields ~w[access_token refresh_token expires_in token_type]a
   @optional_fields ~w[provider_token provider_refresh_token expires_at]a
 
-  @derive Jason.Encoder
+  @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key false
   embedded_schema do
     field(:provider_token, :string)

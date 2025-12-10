@@ -32,7 +32,7 @@ defmodule Supabase.Auth.Schemas.SignInRequest do
 
     embeds_one :gotrue_meta_security, AuthMetaSecurity, primary_key: false do
       @moduledoc false
-      @derive Jason.Encoder
+      @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
       field(:captcha_token, :string)
     end
   end
@@ -114,15 +114,17 @@ defmodule Supabase.Auth.Schemas.SignInRequest do
     |> apply_action(:insert)
   end
 
-  defimpl Jason.Encoder, for: __MODULE__ do
+  @encoder Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
+
+  defimpl @encoder, for: __MODULE__ do
     alias Supabase.Auth.Schemas.SignInRequest
 
-    def encode(%SignInRequest{} = request, opts) do
+    def encode(%SignInRequest{} = request, _) do
       request
       |> Map.from_struct()
       |> Map.filter(fn {_k, v} -> not is_nil(v) end)
       |> Map.delete(:redirect_to)
-      |> Jason.Encode.map(opts)
+      |> Supabase.encode_json()
     end
   end
 end

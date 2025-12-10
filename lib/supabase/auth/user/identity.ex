@@ -34,7 +34,7 @@ defmodule Supabase.Auth.User.Identity do
   @required_fields ~w[id provider]a
   @optional_fields ~w[identity_data last_sign_in_at created_at updated_at user_id]a
 
-  @derive Jason.Encoder
+  @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key false
   embedded_schema do
     field(:id, :binary_id)

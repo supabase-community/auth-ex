@@ -16,6 +16,6 @@ defmodule Supabase.Auth.Admin.LinkFixture do
   end
 
   def link_fixture_json(attrs \\ %{}) do
-    attrs |> link_fixture() |> Jason.encode!()
+    attrs |> link_fixture() |> Supabase.encode_json()
   end
 end

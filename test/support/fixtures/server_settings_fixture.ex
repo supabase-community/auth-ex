@@ -50,6 +50,6 @@ defmodule Supabase.Auth.ServerSettingsFixture do
   def server_settings_fixture_json(attrs \\ %{}) do
     attrs
     |> server_settings_fixture()
-    |> Jason.encode!()
+    |> Supabase.encode_json()
   end
 end

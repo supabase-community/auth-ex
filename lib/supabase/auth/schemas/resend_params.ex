@@ -30,7 +30,7 @@ defmodule Supabase.Auth.Schemas.ResendParams do
           options: options
         }
 
-  @derive Jason.Encoder
+  @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key false
   embedded_schema do
     field(:type, Ecto.Enum, values: ~w[sms signup phone_change email_change]a)

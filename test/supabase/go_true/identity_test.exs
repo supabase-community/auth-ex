@@ -24,11 +24,11 @@ defmodule Supabase.Auth.IdentityTest do
 
   setup do
     client = Supabase.init_client!("http://localhost:54321", "test-api-key")
-    {:ok, client: client}
+    {:ok, client: client, json: Supabase.json_library()}
   end
 
   describe "link_identity/3" do
-    test "successfully gets URL to link identity", %{client: client} do
+    test "successfully gets URL to link identity", %{client: client, json: json} do
       session = %Session{access_token: "test-token"}
       provider = :github
 
@@ -39,7 +39,7 @@ defmodule Supabase.Auth.IdentityTest do
 
         {:ok,
          %Finch.Response{
-           body: Jason.encode!(%{provider: "github", url: "https://example.com/oauth/github"}),
+           body: json.encode!(%{provider: "github", url: "https://example.com/oauth/github"}),
            status: 200,
            headers: []
          }}
@@ -95,7 +95,7 @@ defmodule Supabase.Auth.IdentityTest do
       assert {:error, %Supabase.Error{}} = Auth.unlink_identity(client, session, identity_id)
     end
 
-    test "returns an error when trying to delete the last identity", %{client: client} do
+    test "returns an error when trying to delete the last identity", %{client: client, json: json} do
       session = %Session{access_token: "test-token"}
       identity_id = "ident_123456789"
 
@@ -104,7 +104,7 @@ defmodule Supabase.Auth.IdentityTest do
         assert req.url.path =~ "/user/identities/#{identity_id}"
 
         error_json =
-          Jason.encode!(%{
+          json.encode!(%{
             message: "Cannot delete the last identity",
             status: 400,
             code: "single_identity_not_deletable"
@@ -129,11 +129,11 @@ defmodule Supabase.Auth.IdentityTest do
   end
 
   describe "get_user_identities/2" do
-    test "successfully gets user identities", %{client: client} do
+    test "successfully gets user identities", %{client: client, json: json} do
       session = %Session{access_token: "test-token"}
 
       identities_json =
-        Jason.encode!([
+        json.encode!([
           %{
             id: "ident_1",
             user_id: "user_123",

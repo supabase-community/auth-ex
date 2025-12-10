@@ -10,7 +10,7 @@ defmodule Supabase.Auth.Schemas.SignUpRequest do
   @required_fields ~w[password]a
   @optional_fields ~w[email phone data code_challenge code_challenge_method]a
 
-  @derive Jason.Encoder
+  @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key false
   embedded_schema do
     field(:email, :string)
@@ -22,7 +22,7 @@ defmodule Supabase.Auth.Schemas.SignUpRequest do
 
     embeds_one :gotrue_meta_security, AuthMetaSecurity, primary_key: false do
       @moduledoc false
-      @derive Jason.Encoder
+      @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
       field(:captcha_token, :string)
     end
   end

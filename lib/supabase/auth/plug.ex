@@ -182,8 +182,9 @@ if Code.ensure_loaded?(Plug) do
             {user_token, conn}
           else
             conn = fetch_cookies(conn, signed: [@session_cookie])
+            user_token = conn.cookies[@session_cookie]
 
-            if user_token = conn.cookies[@session_cookie] do
+            if user_token do
               {user_token, put_token_in_session(conn, user_token)}
             else
               {nil, conn}
