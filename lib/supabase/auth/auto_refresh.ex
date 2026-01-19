@@ -113,6 +113,6 @@ defmodule Supabase.Auth.AutoRefresh do
   end
 
   defp client_key(client) do
-    "auth_refresh:#{client.base_url}|#{client.auth.url}"
+    "auth_refresh:#{client.auth_url}|#{client.auth.storage_key}"
   end
 end

@@ -12,9 +12,9 @@ defmodule Supabase.Auth.AutoRefreshTest do
 
   setup do
     client = %Client{
-      base_url: "https://example.supabase.co",
+      auth_url: "https://example.supabase.co/auth/v1",
       api_key: "test-api-key",
-      auth: %{url: "https://example.supabase.co/auth/v1"}
+      auth: %{storage_key: "sb-test-key"}
     }
 
     session = %Session{
