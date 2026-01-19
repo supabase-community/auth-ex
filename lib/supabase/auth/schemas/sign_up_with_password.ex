@@ -35,7 +35,9 @@ defmodule Supabase.Auth.Schemas.SignUpWithPassword do
   end
 
   def to_sign_up_params(%__MODULE__{} = signup) do
-    Map.take(signup, [:email, :password, :phone])
+    signup
+    |> Map.take([:email, :password, :phone])
+    |> Map.put(:data, (signup.options && signup.options.data) || %{})
   end
 
   def to_sign_up_params(%__MODULE__{} = signup, code_challenge, code_method) do

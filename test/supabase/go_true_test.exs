@@ -636,6 +636,42 @@ defmodule Supabase.AuthTest do
       assert {:ok, %Session{} = session} = Auth.sign_up(client, data)
       assert session.user.id == "123"
     end
+
+    test "handles provided options.data", %{client: client, json: json} do
+      data = %{
+        email: "another@example.com",
+        password: "123",
+        phone: "+5522123456789",
+        options: %{
+          captcha_token: "123",
+          email_redirect_to: "http://localhost:3000",
+          data: %{display_name: "Example User", role: "user"}
+        }
+      }
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert %{
+                 "code_challenge" => nil,
+                 "code_challenge_method" => nil,
+                 "data" => %{
+                   "display_name" => "Example User",
+                   "role" => "user"
+                 },
+                 "email" => "another@example.com",
+                 "gotrue_meta_security" => %{"captcha_token" => "123"},
+                 "password" => "123",
+                 "phone" => "+5522123456789"
+               } = json.decode!(req.body)
+
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(user: user)
+
+        {:ok, %Finch.Response{status: 201, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = session} = Auth.sign_up(client, data)
+      assert session.user.id == "123"
+    end
   end
 
   describe "reset_password_for_email/3" do
