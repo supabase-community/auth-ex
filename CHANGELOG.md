@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0](https://github.com/supabase-community/auth-ex/compare/v0.6.3...v0.7.0) (2026-01-19)
+
+
+### Features
+
+* **mfa:** mfa interface handling ([#62](https://github.com/supabase-community/auth-ex/issues/62)) ([13245db](https://github.com/supabase-community/auth-ex/commit/13245dba7a7006d0473602cdde0306c9c01b074a))
+
+
+### Bug Fixes
+
+* correctly build the client key for auto-refresh registry name ([#65](https://github.com/supabase-community/auth-ex/issues/65)) ([8a689f6](https://github.com/supabase-community/auth-ex/commit/8a689f6d4e681fc3d1f296cbb7593af6c8d6147e))
+* include options.data in sign up payload ([#63](https://github.com/supabase-community/auth-ex/issues/63)) ([6eea1db](https://github.com/supabase-community/auth-ex/commit/6eea1db438dc3864158aeec28fe741ad8808ae95))
+
 ## [0.6.3](https://github.com/supabase-community/auth-ex/compare/v0.6.2...v0.6.3) (2025-12-10)
 
 
