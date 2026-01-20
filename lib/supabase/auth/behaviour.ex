@@ -35,7 +35,11 @@ defmodule Supabase.Auth.Behaviour do
 
   @callback sign_in_anonymously(Client.t(), SignInAnonymously.t()) :: sign_in_response
 
-  @callback sign_up(Client.t(), map()) :: {:ok, User.t()} | {:error, term()}
+  @callback sign_up(Client.t(), map()) ::
+              {:ok, User.t()}
+              | {:ok, Session.t()}
+              | {:ok, Session.t(), binary()}
+              | {:error, Ecto.Changeset.t() | Supabase.Error.t() | term()}
 
   @callback reset_password_for_email(Client.t(), String.t(), opts) :: :ok | {:error, term()}
             when opts:

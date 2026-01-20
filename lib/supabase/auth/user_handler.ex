@@ -16,6 +16,7 @@ defmodule Supabase.Auth.UserHandler do
   alias Supabase.Auth.Schemas.SignUpWithPassword
   alias Supabase.Auth.Schemas.VerifyOTP
   alias Supabase.Auth.Session
+  alias Supabase.Auth.User
   alias Supabase.Client
   alias Supabase.Fetcher
   alias Supabase.Fetcher.Request
@@ -170,8 +171,8 @@ defmodule Supabase.Auth.UserHandler do
            |> Request.with_method(:post)
            |> Request.with_body(body)
            |> Fetcher.request(),
-         {:ok, session} <- Session.parse(resp.body) do
-      {:ok, session, challenge}
+         {:ok, result} <- parse_signup_response(resp.body) do
+      {:ok, result, challenge}
     end
   end
 
@@ -183,7 +184,17 @@ defmodule Supabase.Auth.UserHandler do
            |> Request.with_method(:post)
            |> Request.with_body(body)
            |> Fetcher.request() do
-      Session.parse(resp.body)
+      parse_signup_response(resp.body)
+    end
+  end
+
+  def parse_signup_response(body) do
+    case Session.parse(body) do
+      {:ok, session} ->
+        {:ok, session}
+
+      {:error, _} ->
+        User.parse(body)
     end
   end
 
