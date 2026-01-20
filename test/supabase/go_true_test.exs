@@ -672,6 +672,25 @@ defmodule Supabase.AuthTest do
       assert {:ok, %Session{} = session} = Auth.sign_up(client, data)
       assert session.user.id == "123"
     end
+
+    test "returns user_metadata", %{client: client} do
+      data = %{
+        email: "another@example.com",
+        password: "123",
+        phone: "+5522123456789",
+        options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        user = [user_metadata: %{display_name: "Example User"}] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(user: user)
+
+        {:ok, %Finch.Response{status: 201, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = session} = Auth.sign_up(client, data)
+      assert session.user.user_metadata["display_name"] == "Example User"
+    end
   end
 
   describe "reset_password_for_email/3" do

@@ -80,7 +80,7 @@ defmodule Supabase.Auth.User do
         }
 
   @required_fields ~w[id app_metadata aud created_at]a
-  @optional_fields ~w[confirmation_sent_at recovery_sent_at email_change_sent_at new_email new_phone invited_at action_link email phone confirmed_at email_confirmed_at phone_confirmed_at last_sign_in_at role is_anonymous]a
+  @optional_fields ~w[user_metadata confirmation_sent_at recovery_sent_at email_change_sent_at new_email new_phone invited_at action_link email phone confirmed_at email_confirmed_at phone_confirmed_at last_sign_in_at role is_anonymous]a
 
   @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key {:id, :binary_id, autogenerate: false}
@@ -164,7 +164,7 @@ defmodule Supabase.Auth.User do
   Parses a list of user attribute maps into a list of User structs.
 
   This function attempts to validate and parse each map in the provided list.
-  If all validations succeed, it returns a list of User structs. If any 
+  If all validations succeed, it returns a list of User structs. If any
   validation fails, it returns the first error encountered.
 
   ## Parameters
