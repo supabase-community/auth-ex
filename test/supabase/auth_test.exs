@@ -1272,7 +1272,7 @@ defmodule Supabase.AuthTest do
       assert {:ok, ^session} = Auth.refresh_if_needed(client, session)
     end
 
-    test "refreshes session when expiring soon (within default margin)", %{client: client, json: json} do
+    test "refreshes session when expiring soon (within default margin)", %{client: client} do
       # Session expires in 2 minutes (within 5 minute margin)
       near_future = System.os_time(:second) + 120
       new_future = System.os_time(:second) + 3600
@@ -1307,7 +1307,7 @@ defmodule Supabase.AuthTest do
       assert refreshed.expires_at == new_future
     end
 
-    test "refreshes session when already expired", %{client: client, json: json} do
+    test "refreshes session when already expired", %{client: client} do
       past_time = System.os_time(:second) - 100
       new_future = System.os_time(:second) + 3600
 
@@ -1332,7 +1332,7 @@ defmodule Supabase.AuthTest do
       assert refreshed.access_token == "new-token"
     end
 
-    test "respects custom :within option", %{client: client, json: json} do
+    test "respects custom :within option", %{client: client} do
       # Session expires in 2 minutes
       expiry_time = System.os_time(:second) + 120
       new_future = System.os_time(:second) + 3600
@@ -1359,7 +1359,7 @@ defmodule Supabase.AuthTest do
       assert refreshed.access_token == "new-token"
     end
 
-    test "forces refresh even when session is fresh with :force option", %{client: client, json: json} do
+    test "forces refresh even when session is fresh with :force option", %{client: client} do
       # Fresh session (expires in 1 hour)
       future_time = System.os_time(:second) + 3600
 
@@ -1475,7 +1475,7 @@ defmodule Supabase.AuthTest do
       assert {:error, :invalid_session} = Auth.ensure_valid_session(client, session)
     end
 
-    test "refreshes session when expiring soon", %{client: client, json: json} do
+    test "refreshes session when expiring soon", %{client: client} do
       near_future = System.os_time(:second) + 120
       new_future = System.os_time(:second) + 3600
 
@@ -1529,7 +1529,7 @@ defmodule Supabase.AuthTest do
       assert {:error, :refresh_failed} = Auth.ensure_valid_session(client, session)
     end
 
-    test "respects custom :within option", %{client: client, json: json} do
+    test "respects custom :within option", %{client: client} do
       # Expires in 2 minutes
       expiry_time = System.os_time(:second) + 120
       new_future = System.os_time(:second) + 3600
