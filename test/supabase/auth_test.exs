@@ -1005,4 +1005,567 @@ defmodule Supabase.AuthTest do
       assert {:error, %Supabase.Error{}} = Auth.reauthenticate(client, session)
     end
   end
+
+  describe "Session.expired?/1" do
+    test "returns false when expires_at is nil" do
+      session = %Session{
+        access_token: "token",
+        refresh_token: "refresh",
+        expires_in: 3600,
+        expires_at: nil,
+        token_type: "bearer"
+      }
+
+      refute Session.expired?(session)
+    end
+
+    test "returns false when token is not expired (future expiry)" do
+      future_time = System.os_time(:second) + 3600
+
+      session = session_fixture(%{expires_at: future_time})
+
+      refute Session.expired?(session)
+    end
+
+    test "returns true when token is expired (past expiry)" do
+      past_time = System.os_time(:second) - 100
+
+      session = session_fixture(%{expires_at: past_time})
+
+      assert Session.expired?(session)
+    end
+
+    test "returns true when token is expired exactly at current time" do
+      current_time = System.os_time(:second)
+
+      session = session_fixture(%{expires_at: current_time})
+
+      assert Session.expired?(session)
+    end
+  end
+
+  describe "Session.expiring_soon?/2" do
+    test "returns false when expires_at is nil" do
+      session = session_fixture(%{expires_at: nil})
+
+      refute Session.expiring_soon?(session)
+    end
+
+    test "returns false when token expires far in the future (beyond default margin)" do
+      # Expires in 1 hour (beyond 5 minute default margin)
+      future_time = System.os_time(:second) + 3600
+
+      session = session_fixture(%{expires_at: future_time})
+
+      refute Session.expiring_soon?(session)
+    end
+
+    test "returns true when token expires within default margin (5 minutes)" do
+      # Expires in 4 minutes (within 5 minute margin)
+      near_future = System.os_time(:second) + 240
+
+      session = session_fixture(%{expires_at: near_future})
+
+      assert Session.expiring_soon?(session)
+    end
+
+    test "returns true when token expires exactly at margin boundary" do
+      # Expires exactly at the 5-minute (300 second) boundary
+      boundary_time = System.os_time(:second) + 300
+
+      session = session_fixture(%{expires_at: boundary_time})
+
+      assert Session.expiring_soon?(session)
+    end
+
+    test "respects custom :within option" do
+      # Expires in 2 minutes
+      expiry_time = System.os_time(:second) + 120
+
+      session = session_fixture(%{expires_at: expiry_time})
+
+      # With 1 minute margin: not expiring soon
+      refute Session.expiring_soon?(session, within: 60)
+
+      # With 3 minute margin: expiring soon
+      assert Session.expiring_soon?(session, within: 180)
+    end
+
+    test "returns true for already expired token" do
+      past_time = System.os_time(:second) - 100
+
+      session = session_fixture(%{expires_at: past_time})
+
+      assert Session.expiring_soon?(session)
+    end
+  end
+
+  describe "Session.valid?/1" do
+    test "returns true for valid session with all required fields and not expired" do
+      future_time = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          access_token: "valid-token",
+          refresh_token: "valid-refresh",
+          expires_at: future_time
+        })
+
+      assert Session.valid?(session)
+    end
+
+    test "returns false when access_token is nil" do
+      future_time = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          access_token: nil,
+          refresh_token: "valid-refresh",
+          expires_at: future_time
+        })
+
+      refute Session.valid?(session)
+    end
+
+    test "returns false when refresh_token is nil" do
+      future_time = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          access_token: "valid-token",
+          refresh_token: nil,
+          expires_at: future_time
+        })
+
+      refute Session.valid?(session)
+    end
+
+    test "returns false when both tokens are nil" do
+      future_time = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          access_token: nil,
+          refresh_token: nil,
+          expires_at: future_time
+        })
+
+      refute Session.valid?(session)
+    end
+
+    test "returns false when session is expired even with valid tokens" do
+      past_time = System.os_time(:second) - 100
+
+      session =
+        session_fixture(%{
+          access_token: "valid-token",
+          refresh_token: "valid-refresh",
+          expires_at: past_time
+        })
+
+      refute Session.valid?(session)
+    end
+
+    test "returns true when session has no expires_at (nil) but has tokens" do
+      session =
+        session_fixture(%{
+          access_token: "valid-token",
+          refresh_token: "valid-refresh",
+          expires_at: nil
+        })
+
+      assert Session.valid?(session)
+    end
+  end
+
+  describe "Session.needs_refresh?/2" do
+    test "returns false for fresh session (not expiring soon or expired)" do
+      future_time = System.os_time(:second) + 3600
+
+      session = session_fixture(%{expires_at: future_time})
+
+      refute Session.needs_refresh?(session)
+    end
+
+    test "returns true when session is expiring soon (within default margin)" do
+      near_future = System.os_time(:second) + 240
+
+      session = session_fixture(%{expires_at: near_future})
+
+      assert Session.needs_refresh?(session)
+    end
+
+    test "returns true when session is already expired" do
+      past_time = System.os_time(:second) - 100
+
+      session = session_fixture(%{expires_at: past_time})
+
+      assert Session.needs_refresh?(session)
+    end
+
+    test "respects custom :within option" do
+      # Expires in 2 minutes
+      expiry_time = System.os_time(:second) + 120
+
+      session = session_fixture(%{expires_at: expiry_time})
+
+      # With 1 minute margin: doesn't need refresh
+      refute Session.needs_refresh?(session, within: 60)
+
+      # With 3 minute margin: needs refresh
+      assert Session.needs_refresh?(session, within: 180)
+    end
+
+    test "returns false when expires_at is nil" do
+      session = session_fixture(%{expires_at: nil})
+
+      refute Session.needs_refresh?(session)
+    end
+  end
+
+  describe "Session.seconds_until_expiry/1" do
+    test "returns nil when expires_at is nil" do
+      session = session_fixture(%{expires_at: nil})
+
+      assert Session.seconds_until_expiry(session) == nil
+    end
+
+    test "returns seconds until expiry for future expiry" do
+      future_time = System.os_time(:second) + 1000
+
+      session = session_fixture(%{expires_at: future_time})
+
+      seconds = Session.seconds_until_expiry(session)
+
+      # Should be close to 1000 seconds (allow for test execution time)
+      assert seconds >= 999 and seconds <= 1000
+    end
+
+    test "returns 0 for expired session (not negative)" do
+      past_time = System.os_time(:second) - 500
+
+      session = session_fixture(%{expires_at: past_time})
+
+      assert Session.seconds_until_expiry(session) == 0
+    end
+
+    test "returns 0 when expiry is exactly now" do
+      current_time = System.os_time(:second)
+
+      session = session_fixture(%{expires_at: current_time})
+
+      assert Session.seconds_until_expiry(session) == 0
+    end
+  end
+
+  describe "refresh_if_needed/3" do
+    test "returns original session when not expiring and not forced", %{client: client} do
+      # Session expires in 1 hour (beyond 5 minute default margin)
+      future_time = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          expires_at: future_time,
+          refresh_token: "valid-refresh-token"
+        })
+
+      assert {:ok, ^session} = Auth.refresh_if_needed(client, session)
+    end
+
+    test "refreshes session when expiring soon (within default margin)", %{client: client, json: json} do
+      # Session expires in 2 minutes (within 5 minute margin)
+      near_future = System.os_time(:second) + 120
+      new_future = System.os_time(:second) + 3600
+
+      old_session =
+        session_fixture(%{
+          expires_at: near_future,
+          access_token: "old-access-token",
+          refresh_token: "refresh-token"
+        })
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+        assert Request.get_query_param(req, "grant_type") == "refresh_token"
+
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+
+        body =
+          session_fixture_json(
+            access_token: "new-access-token",
+            refresh_token: "new-refresh-token",
+            expires_at: new_future,
+            user: user
+          )
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, refreshed} = Auth.refresh_if_needed(client, old_session)
+      assert refreshed.access_token == "new-access-token"
+      assert refreshed.expires_at == new_future
+    end
+
+    test "refreshes session when already expired", %{client: client, json: json} do
+      past_time = System.os_time(:second) - 100
+      new_future = System.os_time(:second) + 3600
+
+      old_session =
+        session_fixture(%{
+          expires_at: past_time,
+          access_token: "expired-token",
+          refresh_token: "refresh-token"
+        })
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(access_token: "new-token", expires_at: new_future, user: user)
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, refreshed} = Auth.refresh_if_needed(client, old_session)
+      assert refreshed.access_token == "new-token"
+    end
+
+    test "respects custom :within option", %{client: client, json: json} do
+      # Session expires in 2 minutes
+      expiry_time = System.os_time(:second) + 120
+      new_future = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          expires_at: expiry_time,
+          refresh_token: "refresh-token"
+        })
+
+      # With 1 minute margin: should NOT refresh
+      assert {:ok, ^session} = Auth.refresh_if_needed(client, session, within: 60)
+
+      # With 3 minute margin: should refresh
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(access_token: "new-token", expires_at: new_future, user: user)
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, refreshed} = Auth.refresh_if_needed(client, session, within: 180)
+      assert refreshed.access_token == "new-token"
+    end
+
+    test "forces refresh even when session is fresh with :force option", %{client: client, json: json} do
+      # Fresh session (expires in 1 hour)
+      future_time = System.os_time(:second) + 3600
+
+      old_session =
+        session_fixture(%{
+          expires_at: future_time,
+          access_token: "old-token",
+          refresh_token: "refresh-token"
+        })
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+
+        body =
+          session_fixture_json(
+            access_token: "forced-new-token",
+            expires_at: future_time + 3600,
+            user: user
+          )
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, refreshed} = Auth.refresh_if_needed(client, old_session, force: true)
+      assert refreshed.access_token == "forced-new-token"
+    end
+
+    test "returns error when refresh fails", %{client: client} do
+      near_future = System.os_time(:second) + 120
+
+      session =
+        session_fixture(%{
+          expires_at: near_future,
+          refresh_token: "invalid-refresh-token"
+        })
+
+      expect(@mock, :request, fn %Request{} = _req, _opts ->
+        {:ok,
+         %Finch.Response{
+           status: 401,
+           body: ~s({"error":"invalid_grant","error_description":"Invalid refresh token"}),
+           headers: []
+         }}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Auth.refresh_if_needed(client, session)
+    end
+
+    test "handles session with nil expires_at", %{client: client} do
+      session =
+        session_fixture(%{
+          expires_at: nil,
+          refresh_token: "refresh-token"
+        })
+
+      # Should not refresh (nil expires_at means never expires)
+      assert {:ok, ^session} = Auth.refresh_if_needed(client, session)
+    end
+  end
+
+  describe "ensure_valid_session/3" do
+    test "returns original session when valid and not expiring", %{client: client} do
+      future_time = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          access_token: "valid-token",
+          refresh_token: "valid-refresh",
+          expires_at: future_time
+        })
+
+      assert {:ok, ^session} = Auth.ensure_valid_session(client, session)
+    end
+
+    test "returns error when session has no access_token", %{client: client} do
+      future_time = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          access_token: nil,
+          refresh_token: "valid-refresh",
+          expires_at: future_time
+        })
+
+      assert {:error, :invalid_session} = Auth.ensure_valid_session(client, session)
+    end
+
+    test "returns error when session has no refresh_token", %{client: client} do
+      future_time = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          access_token: "valid-token",
+          refresh_token: nil,
+          expires_at: future_time
+        })
+
+      assert {:error, :invalid_session} = Auth.ensure_valid_session(client, session)
+    end
+
+    test "returns error when session is already expired and has no tokens", %{client: client} do
+      past_time = System.os_time(:second) - 100
+
+      session =
+        session_fixture(%{
+          access_token: nil,
+          refresh_token: nil,
+          expires_at: past_time
+        })
+
+      assert {:error, :invalid_session} = Auth.ensure_valid_session(client, session)
+    end
+
+    test "refreshes session when expiring soon", %{client: client, json: json} do
+      near_future = System.os_time(:second) + 120
+      new_future = System.os_time(:second) + 3600
+
+      old_session =
+        session_fixture(%{
+          access_token: "old-token",
+          refresh_token: "refresh-token",
+          expires_at: near_future
+        })
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+
+        body =
+          session_fixture_json(
+            access_token: "new-token",
+            refresh_token: "new-refresh",
+            expires_at: new_future,
+            user: user
+          )
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, refreshed} = Auth.ensure_valid_session(client, old_session)
+      assert refreshed.access_token == "new-token"
+      assert Session.valid?(refreshed)
+      refute Session.needs_refresh?(refreshed)
+    end
+
+    test "returns error when refresh fails", %{client: client} do
+      near_future = System.os_time(:second) + 120
+
+      session =
+        session_fixture(%{
+          access_token: "old-token",
+          refresh_token: "invalid-refresh",
+          expires_at: near_future
+        })
+
+      expect(@mock, :request, fn %Request{} = _req, _opts ->
+        {:ok,
+         %Finch.Response{
+           status: 401,
+           body: ~s({"error":"invalid_grant"}),
+           headers: []
+         }}
+      end)
+
+      assert {:error, :refresh_failed} = Auth.ensure_valid_session(client, session)
+    end
+
+    test "respects custom :within option", %{client: client, json: json} do
+      # Expires in 2 minutes
+      expiry_time = System.os_time(:second) + 120
+      new_future = System.os_time(:second) + 3600
+
+      session =
+        session_fixture(%{
+          access_token: "token",
+          refresh_token: "refresh",
+          expires_at: expiry_time
+        })
+
+      # With 1 minute margin: should NOT refresh (session still valid)
+      assert {:ok, ^session} = Auth.ensure_valid_session(client, session, within: 60)
+
+      # With 3 minute margin: should refresh
+      expect(@mock, :request, fn %Request{} = _req, _opts ->
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(access_token: "new-token", expires_at: new_future, user: user)
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, refreshed} = Auth.ensure_valid_session(client, session, within: 180)
+      assert refreshed.access_token == "new-token"
+    end
+
+    test "handles session with nil expires_at", %{client: client} do
+      session =
+        session_fixture(%{
+          access_token: "token",
+          refresh_token: "refresh",
+          expires_at: nil
+        })
+
+      # Should return original session (valid, never expires)
+      assert {:ok, ^session} = Auth.ensure_valid_session(client, session)
+    end
+  end
 end

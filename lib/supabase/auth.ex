@@ -689,4 +689,84 @@ defmodule Supabase.Auth do
   def reauthenticate(%Client{} = client, %Session{} = session) do
     UserHandler.reauthenticate(client, session.access_token)
   end
+
+  ## Elixir specific helpers
+
+  @doc """
+  Refreshes session only if it's expiring soon or expired.
+
+  This is useful for proactive token refresh in request handlers.
+  Returns the original session if refresh is not needed.
+
+  ## Options
+
+    * `:within` - Seconds before expiry to trigger refresh (default: 300)
+    * `:force` - Force refresh even if not expiring (default: false)
+
+  ## Examples
+
+      # Only refresh if expiring within 5 minutes
+      case refresh_if_needed(client, session) do
+        {:ok, new_session} -> # Use new session (may be same as input)
+        {:error, reason} -> # Handle error
+      end
+
+      # Custom margin
+      refresh_if_needed(client, session, within: 60)
+
+      # Force refresh regardless of expiry
+      refresh_if_needed(client, session, force: true)
+  """
+  @spec refresh_if_needed(Client.t(), Session.t(), keyword()) ::
+          {:ok, Session.t()} | {:error, term()}
+  def refresh_if_needed(%Client{} = client, %Session{} = session, opts \\ []) do
+    force = Keyword.get(opts, :force, false)
+
+    if Session.needs_refresh?(session, opts) or force do
+      refresh_session(client, session.refresh_token)
+    else
+      {:ok, session}
+    end
+  end
+
+  @doc """
+  Validates session and refreshes if needed, in one operation.
+
+  This is the recommended way to ensure you have a valid session
+  in your request handlers.
+
+  ## Options
+
+    * `:within` - Seconds before expiry to trigger refresh (default: 300)
+
+  ## Examples
+
+      case ensure_valid_session(client, session) do
+        {:ok, valid_session} ->
+          # Guaranteed to have valid, non-expiring session
+          make_api_call(valid_session)
+
+        {:error, :invalid_session} ->
+          # Session is malformed
+          redirect_to_login()
+
+        {:error, :refresh_failed} ->
+          # Couldn't refresh expired session
+          redirect_to_login()
+      end
+  """
+  @spec ensure_valid_session(Client.t(), Session.t(), keyword()) ::
+          {:ok, Session.t()} | {:error, :invalid_session | :refresh_failed}
+  def ensure_valid_session(%Client{} = client, %Session{} = session, opts \\ []) do
+    cond do
+      not Session.valid?(session) ->
+        {:error, :invalid_session}
+
+      Session.needs_refresh?(session, opts) ->
+        with {:error, _} <- refresh_session(client, session.refresh_token), do: {:error, :refresh_failed}
+
+      true ->
+        {:ok, session}
+    end
+  end
 end
