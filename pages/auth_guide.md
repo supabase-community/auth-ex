@@ -103,91 +103,34 @@ A successful authentication returns a `Session` struct containing tokens and use
 
 ### Refreshing Sessions
 
-To keep users logged in, refresh the session before the access token expires:
+Manually refresh a session:
 
 ```elixir
 {:ok, new_session} = Supabase.Auth.refresh_session(client, session.refresh_token)
 ```
 
-### Session Helper Functions
-
-The `Supabase.Auth.Session` module provides helper functions for session validation and expiry management:
-
-#### Checking Session Expiry
+Or use smart helpers that refresh only when needed:
 
 ```elixir
-# Check if session is expired
-if Session.expired?(session) do
-  # Token has expired
-end
+# Refresh if expiring soon (default: 5 minutes)
+{:ok, session} = Supabase.Auth.refresh_if_needed(client, session)
 
-# Check if session is expiring soon (within 5 minutes by default)
-if Session.expiring_soon?(session) do
-  # Token will expire soon, consider refreshing
-end
-
-# Custom expiry margin (check if expiring within 1 minute)
-if Session.expiring_soon?(session, within: 60) do
-  # Token expires in less than 60 seconds
-end
-
-# Check if session needs refresh (expired or expiring soon)
-if Session.needs_refresh?(session) do
-  # Should refresh the session
-end
-```
-
-#### Session Validation
-
-```elixir
-# Check if session is valid (has tokens and not expired)
-if Session.valid?(session) do
-  # Session is valid and can be used
-end
-
-# Get seconds until expiry (returns nil if no expiry set)
-seconds_left = Session.seconds_until_expiry(session)
-```
-
-#### Smart Session Refresh
-
-Use helper functions to refresh sessions only when needed:
-
-```elixir
-# Refresh only if expiring soon or expired
-case Supabase.Auth.refresh_if_needed(client, session) do
-  {:ok, new_session} ->
-    # Returns original session if not expiring, or refreshed session
-    new_session
-  {:error, reason} ->
-    # Handle refresh error
-end
-
-# Custom expiry margin (refresh if expiring within 60 seconds)
-{:ok, session} = Supabase.Auth.refresh_if_needed(client, session, within: 60)
-
-# Force refresh even if not expiring
-{:ok, session} = Supabase.Auth.refresh_if_needed(client, session, force: true)
-```
-
-#### Comprehensive Session Validation
-
-Validate session tokens and refresh if needed in one operation:
-
-```elixir
+# Validate tokens and refresh if needed
 case Supabase.Auth.ensure_valid_session(client, session) do
-  {:ok, valid_session} ->
-    # Guaranteed to have valid, non-expiring session
-    make_api_call(valid_session)
-
-  {:error, :invalid_session} ->
-    # Session is malformed (missing tokens)
-    redirect_to_login()
-
-  {:error, :refresh_failed} ->
-    # Couldn't refresh expired session
-    redirect_to_login()
+  {:ok, valid_session} -> # Ready to use
+  {:error, :invalid_session} -> # Missing tokens
+  {:error, :refresh_failed} -> # Refresh failed
 end
+```
+
+Check session state:
+
+```elixir
+Session.expired?(session)          # Token expired?
+Session.expiring_soon?(session)    # Expires in < 5 min?
+Session.needs_refresh?(session)    # Should refresh?
+Session.valid?(session)            # Has tokens and not expired?
+Session.seconds_until_expiry(session)  # Time remaining
 ```
 
 ## User Management
@@ -393,39 +336,28 @@ end
 
 ## Best Practices
 
-1. **Secure Token Storage**: Store tokens in HTTP-only cookies for web applications to prevent XSS attacks.
+1. **Secure Token Storage**: Store tokens in HTTP-only cookies to prevent XSS attacks.
 
-2. **Proactive Token Refresh**: Use `refresh_if_needed/3` or `ensure_valid_session/3` to automatically refresh tokens before expiration:
+2. **Proactive Token Refresh**: Check and refresh sessions in your Plug pipeline or LiveView mounts:
 
    ```elixir
-   # In your Plug pipeline
+   # Plug: refresh on each request if needed
    def fetch_current_user(conn, _opts) do
-     with token when not is_nil(token) <- get_session(conn, :user_token),
-          session <- build_session_from_token(token),
-          {:ok, valid_session} <- Supabase.Auth.ensure_valid_session(client(), session) do
-       assign(conn, :current_session, valid_session)
+     with session <- get_session_from_conn(conn),
+          {:ok, valid} <- Supabase.Auth.ensure_valid_session(client(), session) do
+       assign(conn, :session, valid)
      else
-       _ -> assign(conn, :current_session, nil)
+       _ -> assign(conn, :session, nil)
      end
    end
    ```
 
    ```elixir
-   # In LiveView for long-lived sessions
-   def mount(_params, session, socket) do
-     if connected?(socket) do
-       # Check session every 5 minutes
-       Process.send_after(self(), :check_session, :timer.minutes(5))
-     end
-     {:ok, assign(socket, :session, session)}
-   end
-
+   # LiveView: periodic check for long-lived sessions
    def handle_info(:check_session, socket) do
-     session = socket.assigns.session
-
-     case Supabase.Auth.refresh_if_needed(client(), session, within: 300) do
+     case Supabase.Auth.refresh_if_needed(client(), socket.assigns.session) do
        {:ok, new_session} ->
-         Process.send_after(self(), :check_session, :timer.minutes(5))
+         schedule_next_check()
          {:noreply, assign(socket, :session, new_session)}
        {:error, _} ->
          {:noreply, redirect(socket, to: "/login")}
@@ -433,13 +365,11 @@ end
    end
    ```
 
-3. **Session Validation**: Always validate sessions before making authenticated API calls using `Session.valid?/1`.
+3. **Session Validation**: Use `Session.valid?/1` before authenticated operations.
 
-4. **Error Handling**: Properly handle authentication errors and provide feedback to users.
+4. **HTTPS**: Always use HTTPS in production.
 
-5. **HTTPS**: Always use HTTPS in production to protect authentication data.
-
-6. **Rate Limiting**: Implement rate limiting for authentication endpoints to prevent brute force attacks.
+5. **Rate Limiting**: Implement rate limiting on auth endpoints.
 
 ## Conclusion
 
