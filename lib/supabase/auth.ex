@@ -1,7 +1,7 @@
 defmodule Supabase.Auth do
   @moduledoc """
   The main interface for interacting with Supabase's Auth authentication service.
-  This module provides comprehensive functionality for user authentication, session management, 
+  This module provides comprehensive functionality for user authentication, session management,
   and identity handling in Elixir applications.
 
   ## Features
@@ -79,7 +79,7 @@ defmodule Supabase.Auth do
       iex> {:ok, user} = Supabase.Auth.get_user(client, session)
       iex> user.email
       "user@example.com"
-      
+
       # If the session is invalid or expired
       iex> {:error, %Supabase.Error{code: :unauthorized}} = Supabase.Auth.get_user(client, invalid_session)
   """
@@ -93,7 +93,7 @@ defmodule Supabase.Auth do
   @doc """
   Signs in a user with ID token.
 
-  This method allows authentication using ID tokens issued by supported external providers like Google, Apple, Azure, etc. 
+  This method allows authentication using ID tokens issued by supported external providers like Google, Apple, Azure, etc.
   The provider's ID token is verified and used to create or authenticate a user in the Supabase system.
 
   ## Parameters
@@ -112,7 +112,7 @@ defmodule Supabase.Auth do
 
   ## Examples
       iex> credentials = %{
-      ...>   provider: "google", 
+      ...>   provider: "google",
       ...>   token: "eyJhbGciO..." # ID token from Google
       ...> }
       iex> Supabase.Auth.sign_in_with_id_token(client, credentials)
@@ -192,7 +192,7 @@ defmodule Supabase.Auth do
       iex> credentials = %{email: "user@example.com"}
       iex> Supabase.Auth.sign_in_with_otp(client, credentials)
       :ok
-      
+
       iex> credentials = %{phone: "+15555550123", options: %{channel: "sms"}}
       iex> Supabase.Auth.sign_in_with_otp(client, credentials)
       {:ok, "message-id-123"}
@@ -213,7 +213,7 @@ defmodule Supabase.Auth do
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
     - `params` - The parameters to use for the verification. Use one of the following formats:
-      
+
       For email verification:
       * `email` - The email address that received the OTP
       * `token` - The OTP code that was sent
@@ -221,7 +221,7 @@ defmodule Supabase.Auth do
       * `options` - Optional parameters:
         * `redirect_to` - URL to redirect to after verification
         * `captcha_token` - Verification token from CAPTCHA challenge
-      
+
       For phone verification:
       * `phone` - The phone number that received the OTP
       * `token` - The OTP code that was sent
@@ -229,7 +229,7 @@ defmodule Supabase.Auth do
       * `options` - Optional parameters:
         * `redirect_to` - URL to redirect to after verification
         * `captcha_token` - Verification token from CAPTCHA challenge
-      
+
       For token hash verification:
       * `token_hash` - The token hash to verify
       * `type` - The verification type (same as email verification types)
@@ -243,7 +243,7 @@ defmodule Supabase.Auth do
       iex> params = %{email: "user@example.com", token: "123456", type: :signup}
       iex> Supabase.Auth.verify_otp(client, params)
       {:ok, %Supabase.Auth.Session{}}
-      
+
       iex> params = %{phone: "+15555550123", token: "123456", type: :sms}
       iex> Supabase.Auth.verify_otp(client, params)
       {:ok, %Supabase.Auth.Session{}}
@@ -314,14 +314,14 @@ defmodule Supabase.Auth do
       iex> {:ok, session} = Supabase.Auth.sign_in_with_password(client, credentials)
       iex> session.access_token
       "eyJhbG..."
-      
+
       # Sign in with phone
       iex> credentials = %{phone: "+15555550123", password: "secure-password"}
       iex> {:ok, session} = Supabase.Auth.sign_in_with_password(client, credentials)
-      
+
       # Sign in with additional options
       iex> credentials = %{
-      ...>   email: "user@example.com", 
+      ...>   email: "user@example.com",
       ...>   password: "secure-password",
       ...>   options: %{captcha_token: "verify-token-123"}
       ...> }
@@ -360,7 +360,7 @@ defmodule Supabase.Auth do
   ## Examples
       iex> Supabase.Auth.sign_in_anonymously(client)
       {:ok, %Supabase.Auth.Session{}}
-      
+
       iex> Supabase.Auth.sign_in_anonymously(client, %{data: %{user_metadata: %{locale: "en-US"}}})
       {:ok, %Supabase.Auth.Session{}}
   """
@@ -375,6 +375,8 @@ defmodule Supabase.Auth do
   @doc """
   Signs up a user with email/phone and password.
 
+  ⚠️ The return value depends on the Supabase Auth configuration (email confirmation, auto-confirm, and PKCE).
+
   ## Parameters
     - `client` - The `Supabase` client to use for the request.
     - `credentials` - The credentials to use for the sign up:
@@ -386,10 +388,32 @@ defmodule Supabase.Auth do
         * `data` - Additional data to include with the sign up
         * `captcha_token` - Verification token from CAPTCHA challenge
 
+  ## Return values
+
+  - `{:ok, %Supabase.Auth.User{}}`
+    Returned when email confirmation is required and no session is issued.
+
+  - `{:ok, %Supabase.Auth.Session{}}`
+    Returned when auto-confirm is enabled.
+
+  - `{:ok, %Supabase.Auth.Session{}, challenge}`
+    Returned when PKCE flow is enabled.
+
+  - `{:error, changeset | error}`
+    Returned on validation or API failure.
+
   ## Examples
+
       iex> credentials = %{email: "user@example.com", password: "secure-password"}
-      iex> Supabase.Auth.sign_up(client, credentials)
-      {:ok, %Supabase.Auth.User{}}
+      iex> {:ok, result} = Supabase.Auth.sign_up(client, credentials)
+      iex> case result do
+      ...>   %Supabase.Auth.Session{} ->
+      ...>     "user logged in"
+      ...>
+      ...>   %Supabase.Auth.User{} ->
+      ...>     "user needs confirmation"
+      ...> end
+      "user logged in"
   """
   @impl true
   def sign_up(%Client{} = client, credentials) do
@@ -470,7 +494,7 @@ defmodule Supabase.Auth do
         iex> params = %{email: "another@example.com", password: "new-pass"}
         iex> Supabase.Auth.update_user(client, conn, params)
         {:ok, conn}
-        
+
         iex> params = %{data: %{name: "John Doe", avatar_url: "https://example.com/avatar.png"}}
         iex> Supabase.Auth.update_user(client, conn, params)
         {:ok, conn}
@@ -631,7 +655,7 @@ defmodule Supabase.Auth do
     * `code_verifier` - The original code verifier that was used to generate the code challenge.
     * `opts` - Additional options:
       * `redirect_to` - The URL to redirect to after successful authentication.
-      
+
   ## Examples
       iex> auth_code = "received_auth_code"
       iex> code_verifier = "original_code_verifier"
@@ -648,7 +672,7 @@ defmodule Supabase.Auth do
   @doc """
   Sends a reauthentication request for the authenticated user.
 
-  This method is typically used when performing sensitive operations that require 
+  This method is typically used when performing sensitive operations that require
   recent authentication. It sends a one-time password (OTP) to the user's email
   or phone number, which they need to verify to confirm their identity.
 

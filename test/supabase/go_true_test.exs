@@ -2,6 +2,7 @@ defmodule Supabase.AuthTest do
   use ExUnit.Case, async: true
 
   import Mox
+  import Supabase.Auth.ErrorFixture
   import Supabase.Auth.ServerHealthFixture
   import Supabase.Auth.ServerSettingsFixture
   import Supabase.Auth.SessionFixture
@@ -690,6 +691,40 @@ defmodule Supabase.AuthTest do
 
       assert {:ok, %Session{} = session} = Auth.sign_up(client, data)
       assert session.user.user_metadata["display_name"] == "Example User"
+    end
+
+    test "handles user only in the sign up payload (when account confirmation email is sent)", %{client: client} do
+      data = %{
+        email: "another@example.com",
+        password: "123",
+        phone: "+5522123456789",
+        options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        body = user_fixture_json(id: "123")
+        {:ok, %Finch.Response{status: 201, body: body, headers: []}}
+      end)
+
+      assert {:ok, %User{} = user} = Auth.sign_up(client, data)
+      assert user.id == "123"
+    end
+
+    test "handles error in the sign up", %{client: client} do
+      data = %{
+        email: "another@example.com",
+        password: "123",
+        phone: "+5522123456789",
+        options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        body = error_fixture_json(service: :auth)
+        {:error, %Finch.Response{status: 422, body: body, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{} = error} = Auth.sign_up(client, data)
+      assert error.service == :auth
     end
   end
 

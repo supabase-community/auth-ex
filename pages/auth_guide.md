@@ -125,7 +125,7 @@ children = [
 Create a new user with email and password:
 
 ```elixir
-{:ok, user} = Supabase.Auth.sign_up(client, %{
+{:ok, user_or_session} = Supabase.Auth.sign_up(client, %{
   email: "new_user@example.com",
   password: "securepassword"
 })
