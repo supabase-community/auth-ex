@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0](https://github.com/supabase-community/auth-ex/compare/v0.7.0...v0.8.0) (2026-01-24)
+
+
+### Features
+
+* session helpers, remove broken auto_refresh ([#70](https://github.com/supabase-community/auth-ex/issues/70)) ([4956479](https://github.com/supabase-community/auth-ex/commit/4956479d9d824e91bb51f97aa7f70ed48a209497))
+
+
+### Bug Fixes
+
+* handle different responses from sign_up baed on user auto-confirm settings ([#68](https://github.com/supabase-community/auth-ex/issues/68)) ([e908280](https://github.com/supabase-community/auth-ex/commit/e908280ce881ef0f90505e4f53617909bdbf589e))
+* include user_metadata parsing in user ([#66](https://github.com/supabase-community/auth-ex/issues/66)) ([d7ec55c](https://github.com/supabase-community/auth-ex/commit/d7ec55cff259135ed1023c04a7aa5f936f31b19f))
+* optionally use storage_key config for session values namespacing ([#69](https://github.com/supabase-community/auth-ex/issues/69)) ([926939c](https://github.com/supabase-community/auth-ex/commit/926939c9bc11c6337af4f6b4ff214aa9ee78bb1f))
+
 ## [0.7.0](https://github.com/supabase-community/auth-ex/compare/v0.6.3...v0.7.0) (2026-01-19)
 
 
