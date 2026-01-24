@@ -139,7 +139,7 @@ defmodule MyAppWeb.MFAController do
     
     # Create a new TOTP factor
     {:ok, user_with_factor} = Supabase.Auth.Admin.enroll_factor(
-      MyApp.Supabase.Client.get(),
+      MyApp.Supabase.Client.get_client(),
       user_id,
       %{type: "totp", friendly_name: "Authenticator App"}
     )
@@ -155,7 +155,7 @@ defmodule MyAppWeb.MFAController do
     user_id = conn.assigns.current_user.id
     
     case Supabase.Auth.Admin.verify_factor(
-      MyApp.Supabase.Client.get(),
+      MyApp.Supabase.Client.get_client(),
       user_id,
       factor_id,
       %{challenge: code}
@@ -184,7 +184,7 @@ defmodule MyAppWeb.MFALive do
     user_id = socket.assigns.current_user.id
     
     {:ok, challenge} = Supabase.Auth.Admin.challenge_factor(
-      MyApp.Supabase.Client.get(),
+      MyApp.Supabase.Client.get_client(),
       user_id,
       socket.assigns.current_user.factors |> hd() |> Map.get(:id)
     )
@@ -194,7 +194,7 @@ defmodule MyAppWeb.MFALive do
   
   def handle_event("verify", %{"code" => code}, socket) do
     case Supabase.Auth.verify_challenge(
-      MyApp.Supabase.Client.get(),
+      MyApp.Supabase.Client.get_client(),
       socket.assigns.challenge_id,
       %{code: code}
     ) do

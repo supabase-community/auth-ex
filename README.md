@@ -76,7 +76,6 @@ end
 # Define your auth module
 defmodule MyAppWeb.Auth do
   use Supabase.Auth.Plug,
-    client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
     signed_in_path: "/app",
     not_authenticated_path: "/login"
@@ -85,24 +84,47 @@ end
 # In your router
 defmodule MyAppWeb.Router do
   import MyAppWeb.Auth
-  
+
   pipeline :browser do
-    plug :fetch_current_user
+    plug :fetch_session
+    plug :fetch_current_user, client: MyApp.Supabase.Client.get_client()
   end
-  
+
   # Public routes
   scope "/", MyAppWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
-    
+
     get "/login", SessionController, :new
     post "/login", SessionController, :create
   end
-  
+
   # Protected routes
   scope "/app", MyAppWeb do
     pipe_through [:browser, :require_authenticated_user]
-    
+
     get "/", DashboardController, :index
+  end
+end
+
+# In your controller
+defmodule MyAppWeb.SessionController do
+  use MyAppWeb, :controller
+  alias MyAppWeb.Auth
+
+  def create(conn, %{"user" => user_params}) do
+    client = MyApp.Supabase.Client.get_client()
+
+    case Auth.log_in_with_password(conn, client, user_params) do
+      {:ok, conn} ->
+        conn
+        |> put_flash(:info, "Welcome back!")
+        |> redirect(to: "/app")
+
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Invalid credentials")
+        |> render(:new)
+    end
   end
 end
 ```
@@ -113,7 +135,6 @@ end
 # Define your auth module
 defmodule MyAppWeb.Auth do
   use Supabase.Auth.LiveView,
-    client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
     signed_in_path: "/app",
     not_authenticated_path: "/login"
@@ -122,12 +143,14 @@ end
 # In your LiveView
 defmodule MyAppWeb.DashboardLive do
   use MyAppWeb, :live_view
-  
-  on_mount {MyAppWeb.Auth, :mount_current_user}
-  on_mount {MyAppWeb.Auth, :ensure_authenticated}
-  
+  alias MyAppWeb.Auth
+
   def mount(_params, _session, socket) do
-    # socket.assigns.current_user is available here
+    # Assign the Supabase client to the socket
+    client = MyApp.Supabase.Client.get_client()
+    socket = Auth.assign_supabase_client(socket, client)
+
+    # socket.assigns.current_user is available here after on_mount
     {:ok, assign(socket, page_title: "Dashboard")}
   end
 end

@@ -3,20 +3,56 @@ if Code.ensure_loaded?(Plug) do
     @moduledoc """
     Provides Plug-based authentication support for the Supabase Auth authentication in Elixir applications.
 
-    This module offers a series of functions to manage user authentication through HTTP requests in Phoenix applications. It facilitates operations like logging in with a password, logging out users, fetching the current user from a session, and handling route protections based on authentication state.
+    This module offers a series of functions to manage user authentication through HTTP requests in Phoenix applications.
+    It facilitates operations like logging in with a password, logging out users, fetching the current user from a session,
+    and handling route protections based on authentication state.
+
+    All authentication functions accept a `%Supabase.Client{}` as an explicit parameter, giving you full control over
+    client lifecycle and enabling easy testing and multi-tenant scenarios.
 
     ## Configuration
 
     The module requires some options to be passed:
-    - `authentication_client`: The Supabase client used for authentication.
     - `endpoint`: Your web app endpoint, used internally for broadcasting user disconnection events.
-    - `signed_in_path`: The route to where socket should be redirected to after authentication
-    - `not_authenticated_path`: The route to where socket should be redirect to if user isn't authenticated
-    - use_storage_key_namespacing?: Optionally use the `client.auth.storage_key` to namespace the session keys, for example: `"user_token"` comes `"sb-auth-key_user_token"`
+    - `signed_in_path`: The route to where the user should be redirected to after authentication
+    - `not_authenticated_path`: The route to where the user should be redirected to if not authenticated
+    - `use_storage_key_namespacing?`: Optionally use the `client.auth.storage_key` to namespace the session keys,
+      for example: `"user_token"` becomes `"sb-auth-key_user_token"` (default: false)
+    - `session_cookie`: The name of the "remember me" cookie (default: `"_supabase_go_true_session_cookie"`)
+    - `session_cookie_options`: Cookie options for the "remember me" cookie (default: `[sign: true, same_site: "Lax"]`)
 
     ## Usage
 
-    Typically, you need to define a module to be your Plug Authentication entrypoint and use this module to inject the necessary functions that you will use on your `MyAppWeb.Router`.
+    Define a module to be your Plug Authentication entrypoint and use this module to inject the necessary functions:
+
+        defmodule MyAppWeb.UserAuth do
+          use Supabase.Auth.Plug,
+            endpoint: MyAppWeb.Endpoint,
+            signed_in_path: "/dashboard",
+            not_authenticated_path: "/login"
+        end
+
+    Then in your router, use the generated functions by passing a client explicitly:
+
+        # In your controller
+        def create(conn, %{"user" => user_params}) do
+          client = MyApp.Supabase.get_client()
+
+          case MyAppWeb.UserAuth.log_in_with_password(conn, client, user_params) do
+            {:ok, conn} ->
+              conn |> put_flash(:info, "Welcome!") |> redirect(to: "/dashboard")
+            {:error, reason} ->
+              conn |> put_flash(:error, "Login failed") |> render(:new)
+          end
+        end
+
+        # In your router pipeline
+        pipeline :browser do
+          plug :fetch_session
+          plug :fetch_current_user, client: MyApp.Supabase.get_client()
+        end
+
+    All authentication functions follow the pattern: `function_name(conn, %Supabase.Client{}, params)`
     """
 
     defmacro __using__(opts) do
@@ -25,7 +61,6 @@ if Code.ensure_loaded?(Plug) do
       module = __CALLER__.module
       MissingConfig.ensure_opts!(opts, module)
 
-      client = opts[:client]
       signed_in_path = opts[:signed_in_path]
       not_authenticated_path = opts[:not_authenticated_path]
       endpoint = opts[:endpoint]
@@ -43,13 +78,6 @@ if Code.ensure_loaded?(Plug) do
         alias Supabase.Auth.Session
         alias Supabase.Auth.User
 
-        Code.ensure_loaded!(unquote(client))
-
-        if not function_exported?(unquote(client), :get_client, 0) do
-          raise Supabase.Auth.MissingConfig, key: :client, module: unquote(module)
-        end
-
-        @client unquote(client)
         @signed_in_path unquote(signed_in_path)
         @not_authenticated_path unquote(not_authenticated_path)
         @session_cookie unquote(session_cookie_name)
@@ -60,50 +88,84 @@ if Code.ensure_loaded?(Plug) do
 
         For more information on how Supabase login with email and password works, check `Supabase.Auth.sign_in_with_password/2`
         """
-        def log_in_with_password(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_password(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_password(client, params) do
             do_login(conn, client, session, params)
           end
         end
 
-        def log_in_with_id_token(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_id_token(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_id_token(client, params) do
             do_login(conn, client, session, params)
           end
         end
 
-        def log_in_with_oauth(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_oauth(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_oauth(client, params) do
             do_login(conn, client, session, params)
           end
         end
 
-        def log_in_with_sso(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_sso(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_sso(client, params) do
             do_login(conn, client, session, params)
           end
         end
 
-        def log_in_with_otp(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_otp(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_otp(client, params) do
             do_login(conn, client, session, params)
           end
         end
 
+        @doc """
+        Verifies an OTP code and logs in the user if valid.
+
+        For more information on how Supabase OTP verification works, check `Supabase.Auth.verify_otp/2`
+        """
+        def verify_otp_and_log_in(conn, %Supabase.Client{} = client, params \\ %{}) do
+          with {:ok, session} <- Auth.verify_otp(client, params) do
+            do_login(conn, client, session, params)
+          end
+        end
+
+        @doc """
+        Refreshes the current session using the refresh token.
+
+        Returns the updated conn if successful, or redirects to login if refresh fails.
+        """
+        def refresh_session(conn, %Supabase.Client{} = client) do
+          refresh_token = get_session(conn, :refresh_token)
+
+          if refresh_token do
+            case Auth.refresh_session(client, refresh_token) do
+              {:ok, %Session{} = session} -> put_token_in_session(conn, client, session)
+              {:error, _} -> renew_session(conn)
+            end
+          else
+            conn
+            |> put_flash(:error, "No refresh token found")
+            |> redirect(to: @not_authenticated_path)
+          end
+        end
+
+        @doc """
+        Updates the current user's profile information.
+
+        Requires an active session.
+        """
+        def update_user(conn, %Supabase.Client{} = client, params) do
+          user_token = get_session(conn, :user_token)
+          session = %Session{access_token: user_token}
+
+          case Auth.update_user(client, session, params) do
+            {:ok, user} -> {:ok, assign(conn, :current_user, user)}
+            {:error, error} -> {:error, error}
+          end
+        end
+
         defp do_login(conn, client, session, params) do
           user_return_to = get_session(conn, :user_return_to)
-
-          :ok = @client.set_auth(session.access_token)
 
           conn
           |> renew_session()
@@ -133,8 +195,7 @@ if Code.ensure_loaded?(Plug) do
         @doc """
         Logs out the user from the application, clearing session data
         """
-        def log_out_user(%Plug.Conn{} = conn, scope) do
-          {:ok, client} = @client.get_client()
+        def log_out_user(%Plug.Conn{} = conn, %Supabase.Client{} = client, scope) do
           user_token = get_session(conn, :user_token)
           session = %Session{access_token: user_token}
           user_token && Admin.sign_out(client, session, scope)
@@ -160,14 +221,13 @@ if Code.ensure_loaded?(Plug) do
 
         pipeline :browser do
           plug :fetch_session # comes from Plug.Conn
-          plug :fetch_current_user
+          plug :fetch_current_user, client: Supabase.init_client!(..., ...)
           # rest of plug chain...
         end
         ```
         """
-        def fetch_current_user(conn, _opts) do
-          {:ok, client} = @client.get_client()
-
+        def fetch_current_user(conn, opts) do
+          client = Keyword.fetch!(opts, :client)
           {user_token, conn} = ensure_user_token(client, conn)
           user = user_token && fetch_user_from_session_token(client, user_token)
           assign(conn, :current_user, user)
@@ -188,7 +248,8 @@ if Code.ensure_loaded?(Plug) do
             user_token = conn.cookies[@session_cookie]
 
             if user_token do
-              {user_token, put_token_in_session(conn, client, user_token)}
+              session = %Session{access_token: user_token, refresh_token: nil}
+              {user_token, put_token_in_session(conn, client, session)}
             else
               {nil, conn}
             end
@@ -246,18 +307,20 @@ if Code.ensure_loaded?(Plug) do
 
         defp maybe_store_return_to(conn), do: conn
 
-        def put_token_in_session(conn, client, token) do
-          base64_token = Base.url_encode64(token)
-
+        def put_token_in_session(conn, client, %Session{} = session) do
           user_session_name =
             if unquote(namespaced_session_name?), do: "#{client.auth.storage_key}_user_token", else: "user_token"
+
+          refresh_token_name =
+            if unquote(namespaced_session_name?), do: "#{client.auth.storage_key}_refresh_token", else: "refresh_token"
 
           socket_id_name =
             if unquote(namespaced_session_name?), do: "#{client.auth.storage_key}_live_socket_id", else: "live_socket_id"
 
           conn
-          |> put_session(user_session_name, token)
-          |> put_session(socket_id_name, "users_session:#{base64_token}")
+          |> put_session(user_session_name, session.access_token)
+          |> put_session(refresh_token_name, session.refresh_token)
+          |> put_session(socket_id_name, "users_session:#{session.access_token}")
         end
       end
     end
