@@ -7,11 +7,12 @@ if Code.ensure_loaded?(Plug) do
 
     ## Configuration
 
-    The module requires some application environment variables to be set:
+    The module requires some options to be passed:
     - `authentication_client`: The Supabase client used for authentication.
     - `endpoint`: Your web app endpoint, used internally for broadcasting user disconnection events.
     - `signed_in_path`: The route to where socket should be redirected to after authentication
     - `not_authenticated_path`: The route to where socket should be redirect to if user isn't authenticated
+    - use_storage_key_namespacing?: Optionally use the `client.auth.storage_key` to namespace the session keys, for example: `"user_token"` comes `"sb-auth-key_user_token"`
 
     ## Usage
 
@@ -28,8 +29,10 @@ if Code.ensure_loaded?(Plug) do
       signed_in_path = opts[:signed_in_path]
       not_authenticated_path = opts[:not_authenticated_path]
       endpoint = opts[:endpoint]
+      namespaced_session_name? = opts[:use_storage_key_namespacing?] || false
       session_cookie_name = opts[:session_cookie] || "_supabase_go_true_session_cookie"
       session_cookie_options = opts[:session_cookie_options] || [sign: true, same_site: "Lax"]
+
       # credo:disable-for-next-line
       quote do
         import Phoenix.Controller
@@ -61,7 +64,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- Auth.sign_in_with_password(client, params) do
-            do_login(conn, session, params)
+            do_login(conn, client, session, params)
           end
         end
 
@@ -69,7 +72,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- Auth.sign_in_with_id_token(client, params) do
-            do_login(conn, session, params)
+            do_login(conn, client, session, params)
           end
         end
 
@@ -77,7 +80,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- Auth.sign_in_with_oauth(client, params) do
-            do_login(conn, session, params)
+            do_login(conn, client, session, params)
           end
         end
 
@@ -85,7 +88,7 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- Auth.sign_in_with_sso(client, params) do
-            do_login(conn, session, params)
+            do_login(conn, client, session, params)
           end
         end
 
@@ -93,18 +96,18 @@ if Code.ensure_loaded?(Plug) do
           {:ok, client} = @client.get_client()
 
           with {:ok, session} <- Auth.sign_in_with_otp(client, params) do
-            do_login(conn, session, params)
+            do_login(conn, client, session, params)
           end
         end
 
-        defp do_login(conn, session, params) do
+        defp do_login(conn, client, session, params) do
           user_return_to = get_session(conn, :user_return_to)
 
           :ok = @client.set_auth(session.access_token)
 
           conn
           |> renew_session()
-          |> put_token_in_session(session.access_token)
+          |> put_token_in_session(client, session.access_token)
           |> maybe_write_session_cookie(session, params)
           |> redirect(to: user_return_to || @signed_in_path)
         end
@@ -163,21 +166,21 @@ if Code.ensure_loaded?(Plug) do
         ```
         """
         def fetch_current_user(conn, _opts) do
-          {user_token, conn} = ensure_user_token(conn)
-          user = user_token && fetch_user_from_session_token(user_token)
+          {:ok, client} = @client.get_client()
+
+          {user_token, conn} = ensure_user_token(client, conn)
+          user = user_token && fetch_user_from_session_token(client, user_token)
           assign(conn, :current_user, user)
         end
 
-        defp fetch_user_from_session_token(user_token) do
-          {:ok, client} = @client.get_client()
-
+        defp fetch_user_from_session_token(client, user_token) do
           case Auth.get_user(client, %Session{access_token: user_token}) do
             {:ok, %User{} = user} -> user
             _ -> nil
           end
         end
 
-        defp ensure_user_token(conn) do
+        defp ensure_user_token(client, conn) do
           if user_token = get_session(conn, :user_token) do
             {user_token, conn}
           else
@@ -185,7 +188,7 @@ if Code.ensure_loaded?(Plug) do
             user_token = conn.cookies[@session_cookie]
 
             if user_token do
-              {user_token, put_token_in_session(conn, user_token)}
+              {user_token, put_token_in_session(conn, client, user_token)}
             else
               {nil, conn}
             end
@@ -243,12 +246,18 @@ if Code.ensure_loaded?(Plug) do
 
         defp maybe_store_return_to(conn), do: conn
 
-        def put_token_in_session(conn, token) do
+        def put_token_in_session(conn, client, token) do
           base64_token = Base.url_encode64(token)
 
+          user_session_name =
+            if unquote(namespaced_session_name?), do: "#{client.auth.storage_key}_user_token", else: "user_token"
+
+          socket_id_name =
+            if unquote(namespaced_session_name?), do: "#{client.auth.storage_key}_live_socket_id", else: "live_socket_id"
+
           conn
-          |> put_session(:user_token, token)
-          |> put_session(:live_socket_id, "users_session:#{base64_token}")
+          |> put_session(user_session_name, token)
+          |> put_session(socket_id_name, "users_session:#{base64_token}")
         end
       end
     end

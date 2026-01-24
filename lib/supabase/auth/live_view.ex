@@ -7,7 +7,7 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
 
     ## Configuration
 
-    The module requires some application environment variables to be set:
+    The module requires some options to be passed:
     - `authentication_client`: The Supabase client used for authentication.
     - `endpoint`: Your web app endpoint, used internally for broadcasting user disconnection events.
     - `signed_in_path`: The route to where socket should be redirected to after authentication
@@ -139,23 +139,26 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         end
 
         def mount_current_user(session, socket) do
-          case session do
-            %{"user_token" => user_token} ->
-              socket
-              |> assign_new(:current_user, fn ->
-                session = %Session{access_token: user_token}
-                maybe_get_current_user(session)
-              end)
-              |> assign_new(:user_token, fn -> user_token end)
+          {:ok, client} = @client.get_client()
+          session_key = "#{client.auth.storage_key}_user_token"
 
-            %{} ->
-              assign_new(socket, :current_user, fn -> nil end)
+          case session do
+            %{^session_key => user_token} -> do_mount_current_user(socket, user_token)
+            %{"user_token" => user_token} -> do_mount_current_user(socket, user_token)
+            %{} -> assign_new(socket, :current_user, fn -> nil end)
           end
         end
 
-        defp maybe_get_current_user(session) do
-          {:ok, client} = @client.get_client()
+        defp do_mount_current_user(socket, user_token) do
+          socket
+          |> assign_new(:current_user, fn ->
+            session = %Session{access_token: user_token}
+            maybe_get_current_user(session)
+          end)
+          |> assign_new(:user_token, fn -> user_token end)
+        end
 
+        defp maybe_get_current_user(client, session) do
           case Auth.get_user(client, session) do
             {:ok, %User{} = user} -> user
             _ -> nil
