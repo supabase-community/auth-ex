@@ -3,6 +3,7 @@ defmodule Supabase.AuthTest do
 
   import Mox
   import Supabase.Auth.ErrorFixture
+  import Supabase.Auth.JWTFixture
   import Supabase.Auth.ServerHealthFixture
   import Supabase.Auth.ServerSettingsFixture
   import Supabase.Auth.SessionFixture
@@ -1566,6 +1567,140 @@ defmodule Supabase.AuthTest do
 
       # Should return original session (valid, never expires)
       assert {:ok, ^session} = Auth.ensure_valid_session(client, session)
+    end
+  end
+
+  describe "get_claims/3" do
+    test "successfully decodes JWT with HS256 (symmetric) via server verification", %{client: client} do
+      jwt = hs256_jwt()
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/user"
+        assert Enum.any?(req.headers, fn {k, v} -> k == "authorization" && v == "Bearer #{jwt}" end)
+
+        body = user_fixture_json(id: "user-123")
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, result} = Auth.get_claims(client, jwt)
+      assert result.claims["sub"] == "user-123"
+      assert result.claims["email"] == "test@example.com"
+      assert result.header.alg == :HS256
+      assert is_binary(result.signature)
+    end
+
+    test "successfully decodes JWT with RS256 (asymmetric) using JWKS", %{client: client} do
+      {jwt, jwk} = rs256_jwt()
+      jwks = jwks_from_jwk(jwk)
+
+      assert {:ok, result} = Auth.get_claims(client, jwt, jwks: jwks)
+      assert result.claims["sub"] == "user-456"
+      assert result.claims["email"] == "rsa@example.com"
+      assert result.header.alg == :RS256
+      assert result.header.kid == "test-key-id"
+      assert is_binary(result.signature)
+    end
+
+    test "successfully decodes JWT with RS256 by fetching JWKS from server", %{client: client, json: json} do
+      {jwt, jwk} = rs256_jwt(%{}, "server-key-id")
+      jwks = jwks_from_jwk(jwk, "server-key-id")
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/.well-known/jwks.json"
+
+        body = json.encode!(jwks)
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, result} = Auth.get_claims(client, jwt)
+      assert result.claims["sub"] == "user-456"
+      assert result.header.kid == "server-key-id"
+    end
+
+    test "rejects expired JWT by default", %{client: client} do
+      jwt = expired_jwt()
+
+      assert {:error, :jwt_expired} = Auth.get_claims(client, jwt)
+    end
+
+    test "allows expired JWT when allow_expired option is true", %{client: client} do
+      jwt = expired_jwt()
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/user"
+
+        body = user_fixture_json(id: "user-expired")
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, result} = Auth.get_claims(client, jwt, allow_expired: true)
+      assert result.claims["sub"] == "user-expired"
+      assert result.claims["email"] == "expired@example.com"
+    end
+
+    test "returns error for invalid JWT format", %{client: client} do
+      jwt = invalid_jwt()
+
+      # JOSE will throw an error for completely invalid JWT format
+      assert_raise ErlangError, fn ->
+        Auth.get_claims(client, jwt)
+      end
+    end
+
+    test "falls back to server verification when kid is missing", %{client: client} do
+      jwk = JOSE.JWK.generate_key({:rsa, 2048})
+      claims = %{"sub" => "user-no-kid", "exp" => System.os_time(:second) + 3600}
+      jwt_struct = JOSE.JWT.from(claims)
+
+      {_jws, jwt} =
+        jwk
+        |> JOSE.JWT.sign(%{"alg" => "RS256"}, jwt_struct)
+        |> JOSE.JWS.compact()
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/user"
+
+        body = user_fixture_json(id: "user-no-kid")
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, result} = Auth.get_claims(client, jwt)
+      assert result.claims["sub"] == "user-no-kid"
+    end
+
+    test "falls back to server verification when JWKS fetch fails", %{client: client} do
+      {jwt, _jwk} = rs256_jwt()
+
+      expect(@mock, :request, 2, fn %Request{} = req, _opts ->
+        cond do
+          req.url.path =~ "/.well-known/jwks.json" ->
+            {:ok, %Finch.Response{status: 500, body: "{}", headers: []}}
+
+          req.url.path =~ "/user" ->
+            body = user_fixture_json(id: "user-456")
+            {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+        end
+      end)
+
+      assert {:ok, result} = Auth.get_claims(client, jwt)
+      assert result.claims["sub"] == "user-456"
+    end
+
+    test "returns error when server verification fails", %{client: client} do
+      jwt = hs256_jwt()
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/user"
+
+        {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Auth.get_claims(client, jwt)
     end
   end
 end

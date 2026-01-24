@@ -42,6 +42,7 @@ defmodule SupabaseAuth.MixProject do
     [
       supabase_dep(),
       {:peri, "~> 0.3"},
+      {:jose, "~> 1.11"},
       {:plug, "~> 1.15", optional: true},
       {:phoenix, "~> 1.7", optional: true},
       {:phoenix_live_view, "~> 1.0", optional: true},
