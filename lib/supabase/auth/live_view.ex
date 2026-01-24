@@ -53,6 +53,23 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         @not_authenticated_path unquote(not_authenticated_path)
 
         @doc """
+        Assigns the Supabase client to the socket for use in LiveView callbacks.
+
+        Users should call this helper to provide the client before using on_mount callbacks.
+
+        ## Example
+
+            def mount(_params, _session, socket) do
+              client = MyApp.Supabase.get_client()
+              socket = assign_supabase_client(socket, client)
+              {:ok, socket}
+            end
+        """
+        def assign_supabase_client(socket, %Supabase.Client{} = client) do
+          Phoenix.Component.assign(socket, :supabase_client, client)
+        end
+
+        @doc """
         Logs out the user from the session and broadcasts a disconnect event.
 
         ## Parameters
@@ -106,11 +123,19 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
             end
         """
         def on_mount(:mount_current_user, _params, session, socket) do
-          {:cont, mount_current_user(session, socket)}
+          client =
+            socket.assigns[:supabase_client] ||
+              raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 first."
+
+          {:cont, mount_current_user(session, socket, client)}
         end
 
         def on_mount(:ensure_authenticated, _params, session, socket) do
-          socket = mount_current_user(session, socket)
+          client =
+            socket.assigns[:supabase_client] ||
+              raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 first."
+
+          socket = mount_current_user(session, socket, client)
 
           if socket.assigns.current_user do
             {:cont, socket}
@@ -120,7 +145,11 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         end
 
         def on_mount(:redirect_if_user_is_authenticated, _params, session, socket) do
-          socket = mount_current_user(session, socket)
+          client =
+            socket.assigns[:supabase_client] ||
+              raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 first."
+
+          socket = mount_current_user(session, socket, client)
 
           if socket.assigns.current_user do
             {:halt, Phoenix.LiveView.redirect(socket, to: @signed_in_path)}

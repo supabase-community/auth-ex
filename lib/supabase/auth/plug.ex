@@ -82,6 +82,52 @@ if Code.ensure_loaded?(Plug) do
           end
         end
 
+        @doc """
+        Verifies an OTP code and logs in the user if valid.
+
+        For more information on how Supabase OTP verification works, check `Supabase.Auth.verify_otp/2`
+        """
+        def verify_otp_and_log_in(conn, %Supabase.Client{} = client, params \\ %{}) do
+          with {:ok, session} <- Auth.verify_otp(client, params) do
+            do_login(conn, client, session, params)
+          end
+        end
+
+        @doc """
+        Refreshes the current session using the refresh token.
+
+        Returns the updated conn if successful, or redirects to login if refresh fails.
+        """
+        def refresh_session(conn, %Supabase.Client{} = client) do
+          refresh_token = get_session(conn, :refresh_token)
+
+          if refresh_token do
+            case Auth.refresh_session(client, refresh_token) do
+              {:ok, %Session{} = session} -> put_token_in_session(conn, client, session)
+              {:error, _} -> renew_session(conn)
+            end
+          else
+            conn
+            |> put_flash(:error, "No refresh token found")
+            |> redirect(to: @not_authenticated_path)
+          end
+        end
+
+        @doc """
+        Updates the current user's profile information.
+
+        Requires an active session.
+        """
+        def update_user(conn, %Supabase.Client{} = client, params) do
+          user_token = get_session(conn, :user_token)
+          session = %Session{access_token: user_token}
+
+          case Auth.update_user(client, session, params) do
+            {:ok, user} -> {:ok, assign(conn, :current_user, user)}
+            {:error, error} -> {:error, error}
+          end
+        end
+
         defp do_login(conn, client, session, params) do
           user_return_to = get_session(conn, :user_return_to)
 
@@ -166,7 +212,8 @@ if Code.ensure_loaded?(Plug) do
             user_token = conn.cookies[@session_cookie]
 
             if user_token do
-              {user_token, put_token_in_session(conn, client, user_token)}
+              session = %Session{access_token: user_token, refresh_token: nil}
+              {user_token, put_token_in_session(conn, client, session)}
             else
               {nil, conn}
             end
@@ -224,18 +271,20 @@ if Code.ensure_loaded?(Plug) do
 
         defp maybe_store_return_to(conn), do: conn
 
-        def put_token_in_session(conn, client, token) do
-          base64_token = Base.url_encode64(token)
-
+        def put_token_in_session(conn, client, %Session{} = session) do
           user_session_name =
             if unquote(namespaced_session_name?), do: "#{client.auth.storage_key}_user_token", else: "user_token"
+
+          refresh_token_name =
+            if unquote(namespaced_session_name?), do: "#{client.auth.storage_key}_refresh_token", else: "refresh_token"
 
           socket_id_name =
             if unquote(namespaced_session_name?), do: "#{client.auth.storage_key}_live_socket_id", else: "live_socket_id"
 
           conn
-          |> put_session(user_session_name, token)
-          |> put_session(socket_id_name, "users_session:#{base64_token}")
+          |> put_session(user_session_name, session.access_token)
+          |> put_session(refresh_token_name, session.refresh_token)
+          |> put_session(socket_id_name, "users_session:#{session.access_token}")
         end
       end
     end
