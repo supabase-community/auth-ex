@@ -36,7 +36,6 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
       module = __CALLER__.module
       MissingConfig.ensure_opts!(opts, module)
 
-      client = opts[:client]
       signed_in_path = opts[:signed_in_path]
       not_authenticated_path = opts[:not_authenticated_path]
       endpoint = opts[:endpoint]
@@ -50,13 +49,6 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         alias Supabase.Auth.Session
         alias Supabase.Auth.User
 
-        Code.ensure_loaded!(unquote(client))
-
-        if not function_exported?(unquote(client), :get_client, 0) do
-          raise Supabase.Auth.MissingConfig, key: :client, module: unquote(module)
-        end
-
-        @client unquote(client)
         @signed_in_path unquote(signed_in_path)
         @not_authenticated_path unquote(not_authenticated_path)
 
@@ -72,11 +64,10 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
             iex> log_out_user(socket, :local)
             # Broadcasts 'disconnect' and removes the user session
         """
-        def log_out_user(%Socket{} = socket, scope) do
+        def log_out_user(%Socket{} = socket, %Supabase.Client{} = client, scope) do
           user = socket.assigns.current_user
           user_token = socket.assigns[:user_token]
           session = %Session{access_token: user_token}
-          {:ok, client} = @client.get_client()
           user_token && Admin.sign_out(client, session, scope)
 
           unquote(endpoint).broadcast_from(
@@ -138,22 +129,21 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
           end
         end
 
-        def mount_current_user(session, socket) do
-          {:ok, client} = @client.get_client()
+        def mount_current_user(session, socket, client) do
           session_key = "#{client.auth.storage_key}_user_token"
 
           case session do
-            %{^session_key => user_token} -> do_mount_current_user(socket, user_token)
-            %{"user_token" => user_token} -> do_mount_current_user(socket, user_token)
+            %{^session_key => user_token} -> do_mount_current_user(socket, user_token, client)
+            %{"user_token" => user_token} -> do_mount_current_user(socket, user_token, client)
             %{} -> assign_new(socket, :current_user, fn -> nil end)
           end
         end
 
-        defp do_mount_current_user(socket, user_token) do
+        defp do_mount_current_user(socket, user_token, client) do
           socket
           |> assign_new(:current_user, fn ->
             session = %Session{access_token: user_token}
-            maybe_get_current_user(session)
+            maybe_get_current_user(client, session)
           end)
           |> assign_new(:user_token, fn -> user_token end)
         end

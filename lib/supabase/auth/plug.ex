@@ -25,7 +25,6 @@ if Code.ensure_loaded?(Plug) do
       module = __CALLER__.module
       MissingConfig.ensure_opts!(opts, module)
 
-      client = opts[:client]
       signed_in_path = opts[:signed_in_path]
       not_authenticated_path = opts[:not_authenticated_path]
       endpoint = opts[:endpoint]
@@ -43,13 +42,6 @@ if Code.ensure_loaded?(Plug) do
         alias Supabase.Auth.Session
         alias Supabase.Auth.User
 
-        Code.ensure_loaded!(unquote(client))
-
-        if not function_exported?(unquote(client), :get_client, 0) do
-          raise Supabase.Auth.MissingConfig, key: :client, module: unquote(module)
-        end
-
-        @client unquote(client)
         @signed_in_path unquote(signed_in_path)
         @not_authenticated_path unquote(not_authenticated_path)
         @session_cookie unquote(session_cookie_name)
@@ -60,41 +52,31 @@ if Code.ensure_loaded?(Plug) do
 
         For more information on how Supabase login with email and password works, check `Supabase.Auth.sign_in_with_password/2`
         """
-        def log_in_with_password(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_password(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_password(client, params) do
             do_login(conn, client, session, params)
           end
         end
 
-        def log_in_with_id_token(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_id_token(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_id_token(client, params) do
             do_login(conn, client, session, params)
           end
         end
 
-        def log_in_with_oauth(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_oauth(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_oauth(client, params) do
             do_login(conn, client, session, params)
           end
         end
 
-        def log_in_with_sso(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_sso(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_sso(client, params) do
             do_login(conn, client, session, params)
           end
         end
 
-        def log_in_with_otp(conn, params \\ %{}) do
-          {:ok, client} = @client.get_client()
-
+        def log_in_with_otp(conn, %Supabase.Client{} = client, params \\ %{}) do
           with {:ok, session} <- Auth.sign_in_with_otp(client, params) do
             do_login(conn, client, session, params)
           end
@@ -102,8 +84,6 @@ if Code.ensure_loaded?(Plug) do
 
         defp do_login(conn, client, session, params) do
           user_return_to = get_session(conn, :user_return_to)
-
-          :ok = @client.set_auth(session.access_token)
 
           conn
           |> renew_session()
@@ -133,8 +113,7 @@ if Code.ensure_loaded?(Plug) do
         @doc """
         Logs out the user from the application, clearing session data
         """
-        def log_out_user(%Plug.Conn{} = conn, scope) do
-          {:ok, client} = @client.get_client()
+        def log_out_user(%Plug.Conn{} = conn, %Supabase.Client{} = client, scope) do
           user_token = get_session(conn, :user_token)
           session = %Session{access_token: user_token}
           user_token && Admin.sign_out(client, session, scope)
@@ -160,14 +139,13 @@ if Code.ensure_loaded?(Plug) do
 
         pipeline :browser do
           plug :fetch_session # comes from Plug.Conn
-          plug :fetch_current_user
+          plug :fetch_current_user, client: Supabase.init_client!(..., ...)
           # rest of plug chain...
         end
         ```
         """
-        def fetch_current_user(conn, _opts) do
-          {:ok, client} = @client.get_client()
-
+        def fetch_current_user(conn, opts) do
+          client = Keyword.fetch!(opts, :client)
           {user_token, conn} = ensure_user_token(client, conn)
           user = user_token && fetch_user_from_session_token(client, user_token)
           assign(conn, :current_user, user)
