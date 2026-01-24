@@ -159,7 +159,7 @@ Retrieve current user details:
 Update user profile details:
 
 ```elixir
-{:ok, updated_conn} = Supabase.Auth.update_user(client, conn, %{
+{:ok, updated_user} = Supabase.Auth.update_user(client, session, %{
   data: %{
     display_name: "Jane Doe",
     avatar_url: "https://example.com/avatar.png"
@@ -246,9 +246,8 @@ For Phoenix applications with traditional views, use the `Supabase.Auth.Plug` mo
 # lib/my_app_web/auth.ex
 defmodule MyAppWeb.Auth do
   use Supabase.Auth.Plug,
-    client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
-    signed_in_path: "/app", 
+    signed_in_path: "/app",
     not_authenticated_path: "/login",
     session_cookie: "my_app_session"
 end
@@ -256,23 +255,24 @@ end
 # lib/my_app_web/router.ex
 defmodule MyAppWeb.Router do
   import MyAppWeb.Auth
-  
+
   pipeline :browser do
-    plug :fetch_current_user
+    plug :fetch_session
+    plug :fetch_current_user, client: MyApp.Supabase.Client.get_client()
   end
-  
+
   # Public routes
   scope "/", MyAppWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
-    
+
     get "/login", SessionController, :new
     post "/login", SessionController, :create
   end
-  
+
   # Protected routes
   scope "/app", MyAppWeb do
     pipe_through [:browser, :require_authenticated_user]
-    
+
     get "/", DashboardController, :index
   end
 end
@@ -280,14 +280,16 @@ end
 # lib/my_app_web/controllers/session_controller.ex
 defmodule MyAppWeb.SessionController do
   import MyAppWeb.Auth
-  
+
   def create(conn, %{"email" => email, "password" => password}) do
-    case log_in_with_password(conn, %{email: email, password: password}) do
+    client = MyApp.Supabase.Client.get_client()
+
+    case log_in_with_password(conn, client, %{email: email, password: password}) do
       {:ok, conn} ->
         conn
         |> put_flash(:info, "Welcome back!")
         |> redirect(to: Routes.dashboard_path(conn, :index))
-        
+
       {:error, _reason} ->
         conn
         |> put_flash(:error, "Invalid email/password")
@@ -305,7 +307,6 @@ For LiveView applications, use the `Supabase.Auth.LiveView` module:
 # lib/my_app_web/auth.ex
 defmodule MyAppWeb.Auth do
   use Supabase.Auth.LiveView,
-    client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
     signed_in_path: "/app",
     not_authenticated_path: "/login"
@@ -314,12 +315,14 @@ end
 # In your LiveView
 defmodule MyAppWeb.DashboardLive do
   use MyAppWeb, :live_view
-  
-  on_mount {MyAppWeb.Auth, :mount_current_user}
-  on_mount {MyAppWeb.Auth, :ensure_authenticated}
-  
+  alias MyAppWeb.Auth
+
   def mount(_params, _session, socket) do
-    # socket.assigns.current_user is available here
+    # Assign the Supabase client to the socket first
+    client = MyApp.Supabase.Client.get_client()
+    socket = Auth.assign_supabase_client(socket, client)
+
+    # socket.assigns.current_user is available here after on_mount
     {:ok, assign(socket, page_title: "Dashboard")}
   end
 end

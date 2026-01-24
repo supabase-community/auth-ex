@@ -3,20 +3,56 @@ if Code.ensure_loaded?(Plug) do
     @moduledoc """
     Provides Plug-based authentication support for the Supabase Auth authentication in Elixir applications.
 
-    This module offers a series of functions to manage user authentication through HTTP requests in Phoenix applications. It facilitates operations like logging in with a password, logging out users, fetching the current user from a session, and handling route protections based on authentication state.
+    This module offers a series of functions to manage user authentication through HTTP requests in Phoenix applications.
+    It facilitates operations like logging in with a password, logging out users, fetching the current user from a session,
+    and handling route protections based on authentication state.
+
+    All authentication functions accept a `%Supabase.Client{}` as an explicit parameter, giving you full control over
+    client lifecycle and enabling easy testing and multi-tenant scenarios.
 
     ## Configuration
 
     The module requires some options to be passed:
-    - `authentication_client`: The Supabase client used for authentication.
     - `endpoint`: Your web app endpoint, used internally for broadcasting user disconnection events.
-    - `signed_in_path`: The route to where socket should be redirected to after authentication
-    - `not_authenticated_path`: The route to where socket should be redirect to if user isn't authenticated
-    - use_storage_key_namespacing?: Optionally use the `client.auth.storage_key` to namespace the session keys, for example: `"user_token"` comes `"sb-auth-key_user_token"`
+    - `signed_in_path`: The route to where the user should be redirected to after authentication
+    - `not_authenticated_path`: The route to where the user should be redirected to if not authenticated
+    - `use_storage_key_namespacing?`: Optionally use the `client.auth.storage_key` to namespace the session keys,
+      for example: `"user_token"` becomes `"sb-auth-key_user_token"` (default: false)
+    - `session_cookie`: The name of the "remember me" cookie (default: `"_supabase_go_true_session_cookie"`)
+    - `session_cookie_options`: Cookie options for the "remember me" cookie (default: `[sign: true, same_site: "Lax"]`)
 
     ## Usage
 
-    Typically, you need to define a module to be your Plug Authentication entrypoint and use this module to inject the necessary functions that you will use on your `MyAppWeb.Router`.
+    Define a module to be your Plug Authentication entrypoint and use this module to inject the necessary functions:
+
+        defmodule MyAppWeb.UserAuth do
+          use Supabase.Auth.Plug,
+            endpoint: MyAppWeb.Endpoint,
+            signed_in_path: "/dashboard",
+            not_authenticated_path: "/login"
+        end
+
+    Then in your router, use the generated functions by passing a client explicitly:
+
+        # In your controller
+        def create(conn, %{"user" => user_params}) do
+          client = MyApp.Supabase.get_client()
+
+          case MyAppWeb.UserAuth.log_in_with_password(conn, client, user_params) do
+            {:ok, conn} ->
+              conn |> put_flash(:info, "Welcome!") |> redirect(to: "/dashboard")
+            {:error, reason} ->
+              conn |> put_flash(:error, "Login failed") |> render(:new)
+          end
+        end
+
+        # In your router pipeline
+        pipeline :browser do
+          plug :fetch_session
+          plug :fetch_current_user, client: MyApp.Supabase.get_client()
+        end
+
+    All authentication functions follow the pattern: `function_name(conn, %Supabase.Client{}, params)`
     """
 
     defmacro __using__(opts) do

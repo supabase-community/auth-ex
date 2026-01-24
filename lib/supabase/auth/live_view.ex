@@ -3,31 +3,51 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
     @moduledoc """
     Provides LiveView integrations for the Supabase Auth authentication in Elixir applications.
 
-    This module enables the seamless integration of authentication flows within Phoenix LiveView applications by leveraging the Supabase Auth SDK. It supports operations such as mounting current users, handling authenticated and unauthenticated states, and logging out users.
+    This module enables the seamless integration of authentication flows within Phoenix LiveView applications
+    by leveraging the Supabase Auth SDK. It supports operations such as mounting current users, handling
+    authenticated and unauthenticated states, and logging out users.
+
+    The Supabase client is provided to LiveView via socket assigns using the `assign_supabase_client/2` helper,
+    giving you full control over client lifecycle and enabling easy testing.
 
     ## Configuration
 
     The module requires some options to be passed:
-    - `authentication_client`: The Supabase client used for authentication.
     - `endpoint`: Your web app endpoint, used internally for broadcasting user disconnection events.
-    - `signed_in_path`: The route to where socket should be redirected to after authentication
-    - `not_authenticated_path`: The route to where socket should be redirect to if user isn't authenticated
+    - `signed_in_path`: The route to where the socket should be redirected to after authentication
+    - `not_authenticated_path`: The route to where the socket should be redirected to if not authenticated
 
     ## Usage
 
-    Typically, you need to define a module to be your LiveView Authentication entrypoint and use this module to inject the necessary functions that you will use on your `MyAppWeb.Router`, to handle user authentication states through a series of `on_mount` callbacks, which ensure that user authentication logic is processed during the LiveView lifecycle.
+    Define a module to be your LiveView Authentication entrypoint and use this module to inject the necessary functions:
 
-    Check `on_mount/4` for more detailed usage instructions on LiveViews
-
-    ### Example
-
-        defmodule MyAppWeb.Auth do
+        defmodule MyAppWeb.UserAuth do
           use Supabase.Auth.LiveView,
             endpoint: MyAppWeb.Endpoint,
-            client: MyApp.Supabase.Client,
             signed_in_path: "/app",
             not_authenticated_path: "/login"
         end
+
+    Then in your LiveView, assign the client in mount/3 before using on_mount callbacks:
+
+        defmodule MyAppWeb.DashboardLive do
+          use MyAppWeb, :live_view
+
+          def mount(_params, _session, socket) do
+            client = MyApp.Supabase.get_client()
+            socket = MyAppWeb.UserAuth.assign_supabase_client(socket, client)
+            {:ok, socket}
+          end
+        end
+
+    Or use the `on_mount` callback in your router's live_session:
+
+        live_session :authenticated,
+          on_mount: [{MyAppWeb.UserAuth, :ensure_authenticated}] do
+          live "/dashboard", DashboardLive
+        end
+
+    Check `on_mount/4` for more detailed usage instructions on the available callbacks.
     """
 
     defmacro __using__(opts) do
