@@ -108,6 +108,29 @@ defmodule Supabase.Auth.Session do
   def expired?(%__MODULE__{expires_at: nil}), do: false
 
   def expired?(%__MODULE__{expires_at: expires_at}) do
+    expired_at?(expires_at)
+  end
+
+  @doc """
+  Checks if a timestamp is expired.
+
+  Helper function for validating expiry times without requiring a full Session struct.
+
+  ## Examples
+
+      iex> expired_at?(System.os_time(:second) - 100)
+      true
+
+      iex> expired_at?(System.os_time(:second) + 100)
+      false
+
+      iex> expired_at?(nil)
+      false
+  """
+  @spec expired_at?(integer() | nil) :: boolean()
+  def expired_at?(nil), do: false
+
+  def expired_at?(expires_at) when is_integer(expires_at) do
     System.os_time(:second) >= expires_at
   end
 

@@ -830,7 +830,7 @@ defmodule Supabase.Auth do
   end
 
   defp validate_jwt_expiry(%{"exp" => exp}) when is_number(exp) do
-    if System.os_time(:second) >= exp do
+    if Session.expired_at?(exp) do
       {:error, :jwt_expired}
     else
       :ok
