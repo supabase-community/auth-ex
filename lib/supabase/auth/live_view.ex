@@ -138,6 +138,40 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
           end
         end
 
+        def on_mount(:ensure_valid_session, _params, session, socket) do
+          socket = mount_current_session(session, socket)
+
+          if socket.assigns.current_session do
+            {:cont, socket}
+          else
+            {:halt, Phoenix.LiveView.redirect(socket, to: @not_authenticated_path)}
+          end
+        end
+
+        def mount_current_session(session, socket) do
+          {:ok, client} = @client.get_client()
+          session_key = "#{client.auth.storage_key}_user_token"
+
+          case session do
+            %{
+              ^session_key => user_token,
+              "refresh_token" => refresh_token,
+              "expires_at" => expires_at
+            } ->
+              do_mount_current_session(socket, user_token, refresh_token, expires_at)
+
+            %{
+              "user_token" => user_token,
+              "refresh_token" => refresh_token,
+              "expires_at" => expires_at
+            } ->
+              do_mount_current_session(socket, user_token, refresh_token, expires_at)
+
+            %{} ->
+              assign_new(socket, :current_session, fn -> nil end)
+          end
+        end
+
         def mount_current_user(session, socket) do
           {:ok, client} = @client.get_client()
           session_key = "#{client.auth.storage_key}_user_token"
@@ -158,7 +192,24 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
           |> assign_new(:user_token, fn -> user_token end)
         end
 
+        defp do_mount_current_session(socket, user_token, refresh_token, expires_at) do
+          {:ok, client} = @client.get_client()
+
+          session = %Session{
+            access_token: user_token,
+            refresh_token: refresh_token,
+            expires_at: expires_at
+          }
+
+          case Auth.ensure_valid_session(client, session) do
+            {:ok, session} -> assign_new(socket, :current_session, fn -> session end)
+            _ -> assign_new(socket, :current_session, fn -> nil end)
+          end
+        end
+
         defp maybe_get_current_user(client, session) do
+          {:ok, client} = @client.get_client()
+
           case Auth.get_user(client, session) do
             {:ok, %User{} = user} -> user
             _ -> nil
