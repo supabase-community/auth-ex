@@ -29,7 +29,6 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
             not_authenticated_path: "/login"
         end
     """
-
     defmacro __using__(opts) do
       alias Supabase.Auth.MissingConfig
 
@@ -150,25 +149,10 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
 
         def mount_current_session(session, socket) do
           {:ok, client} = @client.get_client()
-          session_key = "#{client.auth.storage_key}_user_token"
 
           case session do
-            %{
-              ^session_key => user_token,
-              "refresh_token" => refresh_token,
-              "expires_at" => expires_at
-            } ->
-              do_mount_current_session(socket, user_token, refresh_token, expires_at)
-
-            %{
-              "user_token" => user_token,
-              "refresh_token" => refresh_token,
-              "expires_at" => expires_at
-            } ->
-              do_mount_current_session(socket, user_token, refresh_token, expires_at)
-
-            %{} ->
-              assign_new(socket, :current_session, fn -> nil end)
+            %Session{} -> Supabase.Auth.LiveView.__mount_current_session__(socket, session, client)
+            _ -> assign_new(socket, :current_session, fn -> nil end)
           end
         end
 
@@ -192,21 +176,6 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
           |> assign_new(:user_token, fn -> user_token end)
         end
 
-        defp do_mount_current_session(socket, user_token, refresh_token, expires_at) do
-          {:ok, client} = @client.get_client()
-
-          session = %Session{
-            access_token: user_token,
-            refresh_token: refresh_token,
-            expires_at: expires_at
-          }
-
-          case Auth.ensure_valid_session(client, session) do
-            {:ok, session} -> assign_new(socket, :current_session, fn -> session end)
-            _ -> assign_new(socket, :current_session, fn -> nil end)
-          end
-        end
-
         defp maybe_get_current_user(client, session) do
           {:ok, client} = @client.get_client()
 
@@ -215,6 +184,14 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
             _ -> nil
           end
         end
+      end
+    end
+
+    @doc false
+    def __mount_current_session__(socket, session, client) do
+      case Supabase.Auth.ensure_valid_session(client, session) do
+        {:ok, session} -> Phoenix.Component.assign_new(socket, :current_session, fn -> session end)
+        _ -> Phoenix.Component.assign_new(socket, :current_session, fn -> nil end)
       end
     end
   end
