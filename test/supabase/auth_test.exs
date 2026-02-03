@@ -1644,8 +1644,7 @@ defmodule Supabase.AuthTest do
     test "returns error for invalid JWT format", %{client: client} do
       jwt = invalid_jwt()
 
-      # JOSE will throw an error for completely invalid JWT format
-      assert_raise ErlangError, fn ->
+      assert_raise Jason.DecodeError, fn ->
         Auth.get_claims(client, jwt)
       end
     end
