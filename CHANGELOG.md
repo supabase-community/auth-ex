@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0](https://github.com/supabase-community/auth-ex/compare/v0.7.0...v0.8.0) (2026-02-03)
+
+
+### Features
+
+* jwt claims ([#72](https://github.com/supabase-community/auth-ex/issues/72)) ([50c2e38](https://github.com/supabase-community/auth-ex/commit/50c2e38019ff28ed1c313651a0daa656f8a1a4e4))
+* session helpers, remove broken auto_refresh ([#70](https://github.com/supabase-community/auth-ex/issues/70)) ([4956479](https://github.com/supabase-community/auth-ex/commit/4956479d9d824e91bb51f97aa7f70ed48a209497))
+
+
+### Bug Fixes
+
+* handle different responses from sign_up baed on user auto-confirm settings ([#68](https://github.com/supabase-community/auth-ex/issues/68)) ([e908280](https://github.com/supabase-community/auth-ex/commit/e908280ce881ef0f90505e4f53617909bdbf589e))
+* include user_metadata parsing in user ([#66](https://github.com/supabase-community/auth-ex/issues/66)) ([d7ec55c](https://github.com/supabase-community/auth-ex/commit/d7ec55cff259135ed1023c04a7aa5f936f31b19f))
+* optionally use storage_key config for session values namespacing ([#69](https://github.com/supabase-community/auth-ex/issues/69)) ([926939c](https://github.com/supabase-community/auth-ex/commit/926939c9bc11c6337af4f6b4ff214aa9ee78bb1f))
+
+
+### Miscellaneous Chores
+
+* new liveView mount lifecycle hook for session data ([#74](https://github.com/supabase-community/auth-ex/issues/74)) ([68e0089](https://github.com/supabase-community/auth-ex/commit/68e00898c0c07146b0f69b94fadfeb5640b44862))
+
 ## [0.7.0](https://github.com/supabase-community/auth-ex/compare/v0.6.3...v0.7.0) (2026-01-19)
 
 
