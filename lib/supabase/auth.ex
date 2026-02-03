@@ -690,6 +690,242 @@ defmodule Supabase.Auth do
     UserHandler.reauthenticate(client, session.access_token)
   end
 
+  @typedoc """
+  An authentication method reference (AMR) entry.
+
+  An entry designates what method was used by the user to verify their
+  identity and at what time.
+
+  Note: Custom access token hooks can return AMR claims as either:
+  - An array of AMREntry objects (detailed format with timestamps)
+  - An array of strings (RFC-8176 compliant format)
+
+  Timestamp when the method was successfully used. Represents number of
+  seconds since 1st January 1970 (UNIX epoch) in UTC.
+  """
+  @type amr_entry :: %{
+          timestamp: number,
+          method:
+            :password
+            | :otp
+            | :oauth
+            | :totp
+            | :"mfa/totp"
+            | :"mfa/phone"
+            | :"mfa/webauthn"
+            | :anonymous
+            | :"sso/saml"
+            | :magiclink
+            | :web3
+            | :"oauth_provider/authorization_code"
+        }
+
+  @type user_metadata :: %{provider: String.t() | nil, providers: list(String.t()) | nil} | %{String.t() => term}
+
+  @typedoc """
+  JWT Payload containing claims for Supabase authentication tokens.
+
+  Required claims (iss, aud, exp, iat, sub, role, aal, session_id) are inherited from RequiredClaims.
+  All other claims are optional as they can be customized via Custom Access Token Hooks.
+
+  Authentication Method References.
+   Supports both RFC-8176 compliant format (string[]) and detailed format (AMREntry[]).
+   - String format: ['password', 'otp'] - RFC-8176 compliant
+   - Object format: [{ method: 'password', timestamp: 1234567890 }] - includes timestamps
+
+  Check https://supabase.com/docs/guides/auth/jwt-fields
+  """
+  @type jwt_payload ::
+          %{String.t() => term}
+          | %{
+              email: String.t() | nil,
+              phone: String.t() | nil,
+              is_anonymous: boolean | nil,
+              jti: String.t() | nil,
+              nbf: number | nil,
+              app_metadata: user_metadata | nil,
+              user_metadata: user_metadata | nil,
+              ref: String.t() | nil,
+              amr: list(amr_entry) | list(String.t())
+            }
+
+  @type jwt_header :: %{
+          alg: :RS256 | :ES256 | :HS256,
+          kid: String.t(),
+          typ: String.t()
+        }
+
+  @doc """
+  Extracts the JWT claims present in the access token by first verifying the
+  JWT against the server's JSON Web Key Set endpoint
+  `/.well-known/jwks.json` which is often cached, resulting in significantly
+  faster responses.
+
+  If the project is not using an asymmetric JWT signing key (like ECC or
+  RSA) it always sends a request to the Auth server to verify the JWT.
+
+  ## Parameters
+    * `client` - The Supabase client to use for the request
+    * `jwt` - The JWT you wish to verify (required)
+    * `opts` - Various additional options that allow you to customize the behavior of this method.
+      * `allow_expired` - If set to `true` the `exp` claim will not be validated against the current time.
+      * `jwks` - If set, this JSON Web Key Set is going to have precedence over the cached value available on the server.
+
+  ## Returns
+    * `{:ok, result}` - Successfully verified and decoded JWT, where result contains:
+      * `claims` - The JWT payload with user claims
+      * `header` - The JWT header with algorithm and key ID
+      * `signature` - The JWT signature as binary
+    * `{:error, error}` - Failed to verify or decode JWT
+
+  ## Examples
+
+      # Verify the access token from a session
+      iex> session = %Supabase.Auth.Session{access_token: "eyJhbG..."}
+      iex> {:ok, result} = Supabase.Auth.get_claims(client, session.access_token)
+      iex> result.claims.sub
+      "user-id-123"
+
+      # Allow expired tokens
+      iex> {:ok, result} = Supabase.Auth.get_claims(client, expired_token, allow_expired: true)
+
+      # Provide custom JWKS
+      iex> jwks = %{keys: [%{kty: :rsa, kid: "key-1", ...}]}
+      iex> {:ok, result} = Supabase.Auth.get_claims(client, token, jwks: jwks)
+  """
+  @spec get_claims(Client.t(), String.t(), keyword(opt)) ::
+          {:ok, %{claims: jwt_payload, header: jwt_header, signature: binary()}} | {:error, term()}
+        when opt: {:allow_expired, boolean()} | {:jwks, %{keys: list(jwk)} | nil},
+             jwk: %{kty: :rsa | :ec | :oct, key_ops: list(String.t()), alg: String.t() | nil, kid: String.t() | nil}
+  def get_claims(%Client{} = client, jwt, opts \\ []) when is_binary(jwt) do
+    with {:ok, {header, payload, signature}} <- decode_jwt_parts(jwt),
+         :ok <- maybe_validate_expiry(payload, opts) do
+      verify_jwt(client, jwt, header, payload, signature, opts)
+    end
+  end
+
+  # Decodes JWT into its three parts without verification
+  defp decode_jwt_parts(token) do
+    with %JOSE.JWT{fields: payload} <- JOSE.JWT.peek(token),
+         header_json when is_binary(header_json) <- JOSE.JWS.peek_protected(token),
+         {:ok, header} <- Supabase.decode_json(header_json),
+         [_header, _payload, signature_b64] <- String.split(token, "."),
+         {:ok, signature} <- Base.url_decode64(signature_b64, padding: false) do
+      header_map = %{
+        alg: String.to_atom(header["alg"]),
+        kid: header["kid"],
+        typ: header["typ"] || "JWT"
+      }
+
+      {:ok, {header_map, payload, signature}}
+    else
+      _ -> {:error, :invalid_jwt_format}
+    end
+  end
+
+  defp maybe_validate_expiry(payload, opts) do
+    allow_expired = Keyword.get(opts, :allow_expired, false)
+
+    if allow_expired, do: :ok, else: validate_jwt_expiry(payload)
+  end
+
+  defp validate_jwt_expiry(%{"exp" => exp}) when is_number(exp) do
+    if Session.expired_at?(exp) do
+      {:error, :jwt_expired}
+    else
+      :ok
+    end
+  end
+
+  defp validate_jwt_expiry(_), do: :ok
+
+  defp verify_jwt(client, token, header, payload, signature, opts) do
+    if symmetric_or_missing_kid?(header) do
+      verify_with_server(client, token, header, payload, signature)
+    else
+      verify_with_jwks(client, token, header, payload, signature, opts)
+    end
+  end
+
+  defp symmetric_or_missing_kid?(%{alg: alg, kid: kid}) do
+    alg_str = Atom.to_string(alg)
+    String.starts_with?(alg_str, "HS") or is_nil(kid)
+  end
+
+  defp symmetric_or_missing_kid?(%{alg: alg}) do
+    alg_str = Atom.to_string(alg)
+    String.starts_with?(alg_str, "HS")
+  end
+
+  # Fallback to server verification via get_user
+  defp verify_with_server(client, token, header, payload, signature) do
+    case UserHandler.get_user(client, token) do
+      {:ok, _response} ->
+        {:ok, %{claims: payload, header: header, signature: signature}}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  defp verify_with_jwks(client, token, header, payload, signature, opts) do
+    with {:ok, jwks} <- get_jwks(client, opts),
+         {:ok, jwk} <- find_jwk_by_kid(jwks, header.kid),
+         {:ok, _} <- verify_jwt_signature(token, jwk) do
+      {:ok, %{claims: payload, header: header, signature: signature}}
+    else
+      {:error, _reason} ->
+        verify_with_server(client, token, header, payload, signature)
+    end
+  end
+
+  defp get_jwks(client, opts) do
+    case Keyword.get(opts, :jwks) do
+      nil -> fetch_jwks_from_server(client)
+      %{"keys" => keys} -> {:ok, keys}
+      %{keys: keys} -> {:ok, keys}
+    end
+  end
+
+  defp fetch_jwks_from_server(%Client{} = client) do
+    alias Supabase.Auth.Request, as: AuthRequest
+    alias Supabase.Fetcher
+    alias Supabase.Fetcher.Request
+    alias Supabase.Fetcher.Response
+
+    case client
+         |> AuthRequest.base("/.well-known/jwks.json")
+         |> Request.with_method(:get)
+         |> Fetcher.request() do
+      {:ok, %Response{body: %{"keys" => keys}}} when is_list(keys) ->
+        {:ok, keys}
+
+      {:ok, _} ->
+        {:error, :invalid_jwks_response}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp find_jwk_by_kid(keys, kid) do
+    case Enum.find(keys, &(&1["kid"] == kid)) do
+      nil -> {:error, :jwk_not_found}
+      jwk -> {:ok, jwk}
+    end
+  end
+
+  defp verify_jwt_signature(token, jwk) do
+    jose_jwk = JOSE.JWK.from_map(jwk)
+
+    case JOSE.JWT.verify(jose_jwk, token) do
+      {true, _jwt, _jws} -> {:ok, :verified}
+      {false, _, _} -> {:error, :invalid_jwt_signature}
+    end
+  end
+
+  ## Elixir specific helpers
+
   ## Elixir specific helpers
 
   @doc """
