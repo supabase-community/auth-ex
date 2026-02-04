@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0](https://github.com/supabase-community/auth-ex/compare/v0.8.0...v0.9.0) (2026-02-04)
+
+
+### Features
+
+* add OAuth response schemas ([#75](https://github.com/supabase-community/auth-ex/issues/75)) ([e301800](https://github.com/supabase-community/auth-ex/commit/e301800114c1329c2a97bb359b7fdc195e79a589))
+* implement OAuth grant and authorization APIs ([#76](https://github.com/supabase-community/auth-ex/issues/76)) ([5c731f1](https://github.com/supabase-community/auth-ex/commit/5c731f1ac5e9d29b0cfe6707d46218ab06d702f5))
+
+
+### Tests
+
+* add OAuth schema tests and fixtures ([#77](https://github.com/supabase-community/auth-ex/issues/77)) ([566d910](https://github.com/supabase-community/auth-ex/commit/566d9108b24572c4795d9fd53521e1ebe5ded0ac))
+
 ## [0.8.0](https://github.com/supabase-community/auth-ex/compare/v0.7.0...v0.8.0) (2026-02-03)
 
 
