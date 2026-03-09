@@ -1,7 +1,7 @@
 defmodule SupabaseAuth.MixProject do
   use Mix.Project
 
-  @version "0.7.0"
+  @version "0.9.0"
   @source_url "https://github.com/supabase-community/auth-ex"
 
   def project do
@@ -42,6 +42,7 @@ defmodule SupabaseAuth.MixProject do
     [
       supabase_dep(),
       {:peri, "~> 0.3"},
+      {:jose, "1.11.10"},
       {:plug, "~> 1.15", optional: true},
       {:phoenix, "~> 1.7", optional: true},
       {:phoenix_live_view, "~> 1.0", optional: true},
@@ -72,12 +73,14 @@ defmodule SupabaseAuth.MixProject do
         "README.md",
         "CHANGELOG.md",
         "pages/auth_guide.md",
-        "pages/mfa_guide.md"
+        "pages/mfa_guide.md",
+        "pages/oauth_guide.md"
       ],
       groups_for_extras: [
         Guides: [
           "pages/auth_guide.md",
-          "pages/mfa_guide.md"
+          "pages/mfa_guide.md",
+          "pages/oauth_guide.md"
         ]
       ],
       source_url: @source_url,
