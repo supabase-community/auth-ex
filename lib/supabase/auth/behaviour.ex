@@ -22,6 +22,8 @@ defmodule Supabase.Auth.Behaviour do
 
   @callback sign_in_with_id_token(Client.t(), map()) :: sign_in_response
 
+  @callback sign_in_with_web3(Client.t(), map()) :: sign_in_response
+
   @callback sign_in_with_oauth(Client.t(), map()) ::
               {:ok, atom(), String.t()} | {:error, term()}
 

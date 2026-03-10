@@ -49,6 +49,7 @@ defmodule Supabase.Auth do
   alias Supabase.Auth.Schemas.SignInWithOTP
   alias Supabase.Auth.Schemas.SignInWithPassword
   alias Supabase.Auth.Schemas.SignInWithSSO
+  alias Supabase.Auth.Schemas.SignInWithWeb3
   alias Supabase.Auth.Schemas.SignUpWithPassword
   alias Supabase.Auth.Schemas.UserParams
   alias Supabase.Auth.Session
@@ -122,6 +123,43 @@ defmodule Supabase.Auth do
   def sign_in_with_id_token(%Client{} = client, credentials) do
     with {:ok, credentials} <- SignInWithIdToken.parse(credentials),
          {:ok, resp} <- UserHandler.sign_in_with_id_token(client, credentials) do
+      Session.parse(resp.body)
+    end
+  end
+
+  @doc """
+  Signs in a user with a Web3 wallet (Ethereum or Solana).
+
+  This method authenticates a user using a signed message from their Web3 wallet.
+  The message must be signed client-side and the signature is verified server-side
+  by GoTrue.
+
+  ## Parameters
+    - `client` - The `Supabase` client to use for the request.
+    - `credentials` - The credentials to use for the sign in:
+      * `chain` - The blockchain chain (`:ethereum` or `:solana`)
+      * `message` - The SIWE/SIWS message that was signed
+      * `signature` - The wallet signature of the message
+      * `options` - Optional parameters:
+        * `captcha_token` - Verification token from CAPTCHA challenge
+
+  ## Returns
+    - `{:ok, session}` - Successfully authenticated with Web3 wallet
+    - `{:error, error}` - Authentication failed
+
+  ## Examples
+      iex> credentials = %{
+      ...>   chain: :ethereum,
+      ...>   message: "example.com wants you to sign in...",
+      ...>   signature: "0xabc123..."
+      ...> }
+      iex> Supabase.Auth.sign_in_with_web3(client, credentials)
+      {:ok, %Supabase.Auth.Session{}}
+  """
+  @impl true
+  def sign_in_with_web3(%Client{} = client, credentials) do
+    with {:ok, credentials} <- SignInWithWeb3.parse(Map.new(credentials)),
+         {:ok, resp} <- UserHandler.sign_in_with_web3(client, credentials) do
       Session.parse(resp.body)
     end
   end

@@ -11,6 +11,7 @@ defmodule Supabase.Auth.Schemas.SignInRequest do
   alias Supabase.Auth.Schemas.SignInWithOTP
   alias Supabase.Auth.Schemas.SignInWithPassword
   alias Supabase.Auth.Schemas.SignInWithSSO
+  alias Supabase.Auth.Schemas.SignInWithWeb3
 
   @primary_key false
   embedded_schema do
@@ -27,6 +28,9 @@ defmodule Supabase.Auth.Schemas.SignInRequest do
     field(:redirect_to, :string)
     field(:channel, :string)
     field(:data, :map, default: %{})
+    field(:chain, :string)
+    field(:message, :string)
+    field(:signature, :string)
     field(:code_challenge, :string)
     field(:code_challenge_method, :string)
 
@@ -101,6 +105,17 @@ defmodule Supabase.Auth.Schemas.SignInRequest do
     |> put_embed(:gotrue_meta_security, gotrue_meta, required: true)
     |> validate_required([:password])
     |> validate_required_inclusion([:email, :phone])
+    |> apply_action(:insert)
+  end
+
+  def create(%SignInWithWeb3{} = signin) do
+    attrs = SignInWithWeb3.to_sign_in_params(signin)
+    gotrue_meta = %__MODULE__.AuthMetaSecurity{captcha_token: signin.options.captcha_token}
+
+    %__MODULE__{}
+    |> cast(attrs, [:chain, :message, :signature])
+    |> put_embed(:gotrue_meta_security, gotrue_meta, required: true)
+    |> validate_required([:chain, :message, :signature])
     |> apply_action(:insert)
   end
 

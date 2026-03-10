@@ -150,6 +150,84 @@ defmodule Supabase.AuthTest do
     end
   end
 
+  describe "sign_in_with_web3/2" do
+    test "successfully signs in with ethereum wallet", %{client: client, json: json} do
+      data = %{chain: :ethereum, message: "SIWE message", signature: "0xabc123"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+
+        assert %{
+                 "chain" => "ethereum",
+                 "message" => "SIWE message",
+                 "signature" => "0xabc123",
+                 "gotrue_meta_security" => %{"captcha_token" => nil}
+               } = json.decode!(req.body)
+
+        assert Request.get_query_param(req, "grant_type") == "web3"
+
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(access_token: "web3-token", user: user)
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = session} = Auth.sign_in_with_web3(client, data)
+      assert session.access_token == "web3-token"
+      assert session.user.id == "123"
+    end
+
+    test "successfully signs in with solana wallet", %{client: client, json: json} do
+      data = %{chain: :solana, message: "SIWS message", signature: "base58sig"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert %{
+                 "chain" => "solana",
+                 "message" => "SIWS message",
+                 "signature" => "base58sig"
+               } = json.decode!(req.body)
+
+        assert Request.get_query_param(req, "grant_type") == "web3"
+
+        user = [id: "456"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(access_token: "sol-token", user: user)
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = session} = Auth.sign_in_with_web3(client, data)
+      assert session.access_token == "sol-token"
+    end
+
+    test "returns validation error for missing fields" do
+      client = Supabase.init_client!("https://localhost:54321", "test-api-key")
+      data = %{chain: :ethereum}
+
+      assert {:error, %Ecto.Changeset{}} = Auth.sign_in_with_web3(client, data)
+    end
+
+    test "returns validation error for unsupported chain" do
+      client = Supabase.init_client!("https://localhost:54321", "test-api-key")
+      data = %{chain: :bitcoin, message: "msg", signature: "sig"}
+
+      assert {:error, %Ecto.Changeset{}} = Auth.sign_in_with_web3(client, data)
+    end
+
+    test "returns error on authentication failure", %{client: client, json: json} do
+      data = %{chain: :ethereum, message: "SIWE message", signature: "0xbad"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert %{"chain" => "ethereum"} = json.decode!(req.body)
+        assert Request.get_query_param(req, "grant_type") == "web3"
+
+        {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Auth.sign_in_with_web3(client, data)
+    end
+  end
+
   describe "sign_in_with_oauth/2" do
     test "successfully sings in an user with Oauth", %{client: client} do
       data = %{
