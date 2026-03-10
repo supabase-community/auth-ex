@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0](https://github.com/supabase-community/auth-ex/compare/v0.10.0...v1.0.0) (2026-03-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove self managed client ([#73](https://github.com/supabase-community/auth-ex/issues/73))
+
+### Bug Fixes
+
+* remove self managed client ([#73](https://github.com/supabase-community/auth-ex/issues/73)) ([da6f66d](https://github.com/supabase-community/auth-ex/commit/da6f66db1fda8681ac56a78788474351aa3bc60a))
+
 ## [0.10.0](https://github.com/supabase-community/auth-ex/compare/v0.9.0...v0.10.0) (2026-03-10)
 
 ### Features
