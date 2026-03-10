@@ -55,6 +55,7 @@ defmodule Supabase.Auth do
   alias Supabase.Auth.Session
   alias Supabase.Auth.User
   alias Supabase.Auth.UserHandler
+  alias Supabase.Auth.WeakPasswordError
   alias Supabase.Client
 
   @doc """
@@ -455,8 +456,9 @@ defmodule Supabase.Auth do
   """
   @impl true
   def sign_up(%Client{} = client, credentials) do
-    with {:ok, credentials} <- SignUpWithPassword.parse(credentials) do
-      UserHandler.sign_up(client, credentials)
+    with {:ok, credentials} <- SignUpWithPassword.parse(credentials),
+         {:error, %Supabase.Error{} = err} <- UserHandler.sign_up(client, credentials) do
+      {:error, WeakPasswordError.maybe_enrich(err)}
     end
   end
 
@@ -539,12 +541,10 @@ defmodule Supabase.Auth do
     """
     @impl true
     def update_user(%Client{} = client, conn, attrs) do
-      with {:ok, params} <- UserParams.parse(attrs) do
-        if conn.assigns.current_user do
-          UserHandler.update_user(client, conn, params)
-        else
-          {:error, :no_user_logged_in}
-        end
+      with {:ok, params} <- UserParams.parse(attrs),
+           :ok <- if(conn.assigns.current_user, do: :ok, else: {:error, :no_user_logged_in}),
+           {:error, %Supabase.Error{} = err} <- UserHandler.update_user(client, conn, params) do
+        {:error, WeakPasswordError.maybe_enrich(err)}
       end
     end
   end
