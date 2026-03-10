@@ -12,6 +12,7 @@ defmodule Supabase.Auth.UserHandler do
   alias Supabase.Auth.Schemas.SignInWithOTP
   alias Supabase.Auth.Schemas.SignInWithPassword
   alias Supabase.Auth.Schemas.SignInWithSSO
+  alias Supabase.Auth.Schemas.SignInWithWeb3
   alias Supabase.Auth.Schemas.SignUpRequest
   alias Supabase.Auth.Schemas.SignUpWithPassword
   alias Supabase.Auth.Schemas.VerifyOTP
@@ -135,7 +136,7 @@ defmodule Supabase.Auth.UserHandler do
     end
   end
 
-  @grant_types ~w[password id_token]
+  @grant_types ~w[password id_token web3]
 
   def sign_in_with_password(%Client{} = client, %SignInWithPassword{} = signin) do
     with {:ok, request} <- SignInRequest.create(signin) do
@@ -146,6 +147,12 @@ defmodule Supabase.Auth.UserHandler do
   def sign_in_with_id_token(%Client{} = client, %SignInWithIdToken{} = signin) do
     with {:ok, request} <- SignInRequest.create(signin) do
       sign_in_request(client, request, "id_token")
+    end
+  end
+
+  def sign_in_with_web3(%Client{} = client, %SignInWithWeb3{} = signin) do
+    with {:ok, request} <- SignInRequest.create(signin) do
+      sign_in_request(client, request, "web3")
     end
   end
 
