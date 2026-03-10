@@ -3,43 +3,72 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
     @moduledoc """
     Provides LiveView integrations for the Supabase Auth authentication in Elixir applications.
 
-    This module enables the seamless integration of authentication flows within Phoenix LiveView applications by leveraging the Supabase Auth SDK. It supports operations such as mounting current users, handling authenticated and unauthenticated states, and logging out users.
+    This module enables the seamless integration of authentication flows within Phoenix LiveView applications
+    by leveraging the Supabase Auth SDK. It supports operations such as mounting current users, handling
+    authenticated and unauthenticated states, and logging out users.
+
+    The Supabase client is provided to LiveView via socket assigns using the `assign_supabase_client/2` helper,
+    giving you full control over client lifecycle and enabling easy testing.
 
     ## Configuration
 
     The module requires some options to be passed:
-    - `authentication_client`: The Supabase client used for authentication.
     - `endpoint`: Your web app endpoint, used internally for broadcasting user disconnection events.
-    - `signed_in_path`: The route to where socket should be redirected to after authentication
-    - `not_authenticated_path`: The route to where socket should be redirect to if user isn't authenticated
+    - `signed_in_path`: The route to where the socket should be redirected to after authentication
+    - `not_authenticated_path`: The route to where the socket should be redirected to if not authenticated
 
     ## Usage
 
-    Typically, you need to define a module to be your LiveView Authentication entrypoint and use this module to inject the necessary functions that you will use on your `MyAppWeb.Router`, to handle user authentication states through a series of `on_mount` callbacks, which ensure that user authentication logic is processed during the LiveView lifecycle.
+    Define a module to be your LiveView Authentication entrypoint and use this module to inject the necessary functions:
 
-    Check `on_mount/4` for more detailed usage instructions on LiveViews
-
-    ### Example
-
-        defmodule MyAppWeb.Auth do
+        defmodule MyAppWeb.UserAuth do
           use Supabase.Auth.LiveView,
             endpoint: MyAppWeb.Endpoint,
-            client: MyApp.Supabase.Client,
             signed_in_path: "/app",
             not_authenticated_path: "/login"
         end
+
+    Then in your LiveView, assign the client in mount/3 before using on_mount callbacks:
+
+        defmodule MyAppWeb.DashboardLive do
+          use MyAppWeb, :live_view
+
+          def mount(_params, _session, socket) do
+            client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
+            socket = MyAppWeb.UserAuth.assign_supabase_client(socket, client)
+            {:ok, socket}
+          end
+        end
+
+    Or use the `on_mount` callback in your router's live_session:
+
+        live_session :authenticated,
+          on_mount: [{MyAppWeb.UserAuth, :ensure_authenticated}] do
+          live "/dashboard", DashboardLive
+        end
+
+    Check `on_mount/4` for more detailed usage instructions on the available callbacks.
     """
+
+    import Phoenix.Component, only: [assign_new: 3]
+
+    alias Phoenix.LiveView.Socket
+    alias Supabase.Auth
+    alias Supabase.Auth.Session
+    alias Supabase.Auth.User
+    alias Supabase.Client
+
     defmacro __using__(opts) do
       alias Supabase.Auth.MissingConfig
 
       module = __CALLER__.module
       MissingConfig.ensure_opts!(opts, module)
 
-      client = opts[:client]
       signed_in_path = opts[:signed_in_path]
       not_authenticated_path = opts[:not_authenticated_path]
       endpoint = opts[:endpoint]
 
+      # credo:disable-for-next-line Credo.Check.Refactor.LongQuoteBlocks
       quote do
         import Phoenix.Component, only: [assign_new: 3]
 
@@ -49,15 +78,26 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         alias Supabase.Auth.Session
         alias Supabase.Auth.User
 
-        Code.ensure_loaded!(unquote(client))
-
-        if not function_exported?(unquote(client), :get_client, 0) do
-          raise Supabase.Auth.MissingConfig, key: :client, module: unquote(module)
-        end
-
-        @client unquote(client)
         @signed_in_path unquote(signed_in_path)
         @not_authenticated_path unquote(not_authenticated_path)
+
+        @doc """
+        Assigns the Supabase client to the socket for use in LiveView callbacks.
+
+        Users should call this helper to provide the client before using on_mount callbacks.
+
+        ## Example
+
+            def mount(_params, _session, socket) do
+              client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
+              socket = assign_supabase_client(socket, client)
+              {:ok, socket}
+            end
+        """
+        @spec assign_supabase_client(Socket.t(), Supabase.Client.t()) :: Socket.t()
+        def assign_supabase_client(socket, %Supabase.Client{} = client) do
+          Phoenix.Component.assign(socket, :supabase_client, client)
+        end
 
         @doc """
         Logs out the user from the session and broadcasts a disconnect event.
@@ -71,11 +111,10 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
             iex> log_out_user(socket, :local)
             # Broadcasts 'disconnect' and removes the user session
         """
-        def log_out_user(%Socket{} = socket, scope) do
+        def log_out_user(%Socket{} = socket, %Supabase.Client{} = client, scope) do
           user = socket.assigns.current_user
           user_token = socket.assigns[:user_token]
           session = %Session{access_token: user_token}
-          {:ok, client} = @client.get_client()
           user_token && Admin.sign_out(client, session, scope)
 
           unquote(endpoint).broadcast_from(
@@ -114,11 +153,19 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
             end
         """
         def on_mount(:mount_current_user, _params, session, socket) do
-          {:cont, mount_current_user(session, socket)}
+          client =
+            socket.assigns[:supabase_client] ||
+              raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 first."
+
+          {:cont, mount_current_user(session, socket, client)}
         end
 
         def on_mount(:ensure_authenticated, _params, session, socket) do
-          socket = mount_current_user(session, socket)
+          client =
+            socket.assigns[:supabase_client] ||
+              raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 first."
+
+          socket = mount_current_user(session, socket, client)
 
           if socket.assigns.current_user do
             {:cont, socket}
@@ -128,7 +175,11 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         end
 
         def on_mount(:redirect_if_user_is_authenticated, _params, session, socket) do
-          socket = mount_current_user(session, socket)
+          client =
+            socket.assigns[:supabase_client] ||
+              raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 first."
+
+          socket = mount_current_user(session, socket, client)
 
           if socket.assigns.current_user do
             {:halt, Phoenix.LiveView.redirect(socket, to: @signed_in_path)}
@@ -138,7 +189,11 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         end
 
         def on_mount(:ensure_valid_session, _params, session, socket) do
-          socket = mount_current_session(session, socket)
+          client =
+            socket.assigns[:supabase_client] ||
+              raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 first."
+
+          socket = mount_current_session(session, socket, client)
 
           if socket.assigns.current_session do
             {:cont, socket}
@@ -147,51 +202,57 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
           end
         end
 
-        def mount_current_session(session, socket) do
-          {:ok, client} = @client.get_client()
-
+        @spec mount_current_session(map, Socket.t(), Supabase.Client.t()) :: Socket.t()
+        def mount_current_session(session, socket, client) do
           case session do
-            %Session{} -> Supabase.Auth.LiveView.__mount_current_session__(socket, session, client)
+            %Session{} -> Auth.LiveView.__mount_current_session__(socket, session, client)
             _ -> assign_new(socket, :current_session, fn -> nil end)
           end
         end
 
-        def mount_current_user(session, socket) do
-          {:ok, client} = @client.get_client()
+        @spec mount_current_user(map, Socket.t(), Supabase.Client.t()) :: Socket.t()
+        def mount_current_user(session, socket, client) do
           session_key = "#{client.auth.storage_key}_user_token"
 
           case session do
-            %{^session_key => user_token} -> do_mount_current_user(socket, user_token)
-            %{"user_token" => user_token} -> do_mount_current_user(socket, user_token)
-            %{} -> assign_new(socket, :current_user, fn -> nil end)
-          end
-        end
+            %{^session_key => user_token} ->
+              Auth.LiveView.__mount_current_user__(socket, user_token, client)
 
-        defp do_mount_current_user(socket, user_token) do
-          socket
-          |> assign_new(:current_user, fn ->
-            session = %Session{access_token: user_token}
-            maybe_get_current_user(session)
-          end)
-          |> assign_new(:user_token, fn -> user_token end)
-        end
+            %{"user_token" => user_token} ->
+              Auth.LiveView.__mount_current_user__(socket, user_token, client)
 
-        defp maybe_get_current_user(client, session) do
-          {:ok, client} = @client.get_client()
-
-          case Auth.get_user(client, session) do
-            {:ok, %User{} = user} -> user
-            _ -> nil
+            %{} ->
+              assign_new(socket, :current_user, fn -> nil end)
           end
         end
       end
     end
 
     @doc false
-    def __mount_current_session__(socket, session, client) do
-      case Supabase.Auth.ensure_valid_session(client, session) do
-        {:ok, session} -> Phoenix.Component.assign_new(socket, :current_session, fn -> session end)
-        _ -> Phoenix.Component.assign_new(socket, :current_session, fn -> nil end)
+    @spec __mount_current_session__(Socket.t(), Session.t(), Client.t()) :: Socket.t()
+    def __mount_current_session__(socket, session, %Client{} = client) do
+      case Auth.ensure_valid_session(client, session) do
+        {:ok, session} -> assign_new(socket, :current_session, fn -> session end)
+        _ -> assign_new(socket, :current_session, fn -> nil end)
+      end
+    end
+
+    @doc false
+    @spec __mount_current_user__(Socket.t(), String.t(), Client.t()) :: Socket.t()
+    def __mount_current_user__(socket, user_token, %Client{} = client) do
+      socket
+      |> assign_new(:current_user, fn ->
+        session = %Session{access_token: user_token}
+        maybe_get_current_user(client, session)
+      end)
+      |> assign_new(:user_token, fn -> user_token end)
+    end
+
+    @dialyzer {:nowarn_function, maybe_get_current_user: 2}
+    defp maybe_get_current_user(%Client{} = client, session) do
+      case Auth.get_user(client, session) do
+        {:ok, %User{} = user} -> user
+        {:error, _} -> nil
       end
     end
   end
