@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0](https://github.com/supabase-community/auth-ex/compare/v0.9.0...v0.10.0) (2026-03-10)
+
+
+### Features
+
+* weak password error parsing ([#79](https://github.com/supabase-community/auth-ex/issues/79)) ([1f3e304](https://github.com/supabase-community/auth-ex/commit/1f3e304aff5eef3b08c688494122d9533d1939ac))
+* web3 signin ([#81](https://github.com/supabase-community/auth-ex/issues/81)) ([a0ca7b4](https://github.com/supabase-community/auth-ex/commit/a0ca7b4ace85156bc2f0b50645923070b98a94f8))
+
 ## [0.9.0](https://github.com/supabase-community/auth-ex/compare/v0.8.0...v0.9.0) (2026-02-04)
 
 
