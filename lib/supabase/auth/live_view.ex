@@ -34,7 +34,7 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
           use MyAppWeb, :live_view
 
           def mount(_params, _session, socket) do
-            client = MyApp.Supabase.get_client()
+            client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
             socket = MyAppWeb.UserAuth.assign_supabase_client(socket, client)
             {:ok, socket}
           end
@@ -89,7 +89,7 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         ## Example
 
             def mount(_params, _session, socket) do
-              client = MyApp.Supabase.get_client()
+              client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
               socket = assign_supabase_client(socket, client)
               {:ok, socket}
             end

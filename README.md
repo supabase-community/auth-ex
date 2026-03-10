@@ -19,27 +19,13 @@ end
 
 ## Quick Start
 
-1. Configure your Supabase client in `config.exs`:
+1. Create a Supabase client:
 
 ```elixir
-import Config
-
-config :my_app, MyApp.Supabase.Client,
-  base_url: "https://myapp.supabase.co",
-  api_key: "myapp-api-key"
-
-config :supabase_auth, auth_module: MyAppWeb.Auth
+client = Supabase.init_client!("https://myapp.supabase.co", "myapp-api-key")
 ```
 
-2. Create your Supabase client:
-
-```elixir
-defmodule MyApp.Supabase.Client do
-  use Supabase.Client, otp_app: :my_app
-end
-```
-
-3. Use the authentication functions:
+2. Use the authentication functions:
 
 ```elixir
 # Sign in with email and password
@@ -87,7 +73,7 @@ defmodule MyAppWeb.Router do
 
   pipeline :browser do
     plug :fetch_session
-    plug :fetch_current_user, client: MyApp.Supabase.Client.get_client()
+    plug :fetch_current_user, client: Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
   end
 
   # Public routes
@@ -112,7 +98,7 @@ defmodule MyAppWeb.SessionController do
   alias MyAppWeb.Auth
 
   def create(conn, %{"user" => user_params}) do
-    client = MyApp.Supabase.Client.get_client()
+    client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
 
     case Auth.log_in_with_password(conn, client, user_params) do
       {:ok, conn} ->
@@ -147,7 +133,7 @@ defmodule MyAppWeb.DashboardLive do
 
   def mount(_params, _session, socket) do
     # Assign the Supabase client to the socket
-    client = MyApp.Supabase.Client.get_client()
+    client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
     socket = Auth.assign_supabase_client(socket, client)
 
     # socket.assigns.current_user is available here after on_mount

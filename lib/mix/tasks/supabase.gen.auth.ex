@@ -58,21 +58,14 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
   ### Setting up your Supabase Client
 
-  You can define a simple helper module to create Supabase clients:
+  Create a client using `Supabase.init_client!/2`:
 
-      # lib/my_app/supabase.ex
-      defmodule MyApp.Supabase do
-        def client do
-          Supabase.init_client!(
-            System.get_env("SUPABASE_URL") || raise("SUPABASE_URL not set"),
-            System.get_env("SUPABASE_KEY") || raise("SUPABASE_KEY not set")
-          )
-        end
+      client = Supabase.init_client!(
+        System.get_env("SUPABASE_URL") || raise("SUPABASE_URL not set"),
+        System.get_env("SUPABASE_KEY") || raise("SUPABASE_KEY not set")
+      )
 
-        def client(access_token) when is_binary(access_token) do
-          client() |> Supabase.Client.update_access_token(access_token)
-        end
-      end
+  How you store and provide the client is up to you (e.g. in a plug, application config, or a helper module).
 
   Then you can invoke this task with just the basic options:
 
@@ -84,13 +77,13 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
 
       # In a controller
       def create(conn, %{"user" => user_params}) do
-        client = MyApp.Supabase.client()
+        client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
         MyAppWeb.UserAuth.log_in_user_with_password(conn, client, user_params)
       end
 
       # In a LiveView
       def mount(_params, _session, socket) do
-        client = MyApp.Supabase.client()
+        client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
         socket = MyAppWeb.UserAuth.assign_supabase_client(socket, client)
         {:ok, socket}
       end

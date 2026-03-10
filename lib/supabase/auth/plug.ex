@@ -36,7 +36,7 @@ if Code.ensure_loaded?(Plug) do
 
         # In your controller
         def create(conn, %{"user" => user_params}) do
-          client = MyApp.Supabase.get_client()
+          client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
 
           case MyAppWeb.UserAuth.log_in_with_password(conn, client, user_params) do
             {:ok, conn} ->
@@ -49,7 +49,7 @@ if Code.ensure_loaded?(Plug) do
         # In your router pipeline
         pipeline :browser do
           plug :fetch_session
-          plug :fetch_current_user, client: MyApp.Supabase.get_client()
+          plug :fetch_current_user, client: Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
         end
 
     All authentication functions follow the pattern: `function_name(conn, %Supabase.Client{}, params)`
