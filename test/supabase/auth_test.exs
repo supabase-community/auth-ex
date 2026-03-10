@@ -8,6 +8,7 @@ defmodule Supabase.AuthTest do
   import Supabase.Auth.ServerSettingsFixture
   import Supabase.Auth.SessionFixture
   import Supabase.Auth.UserFixture
+  import Supabase.Auth.WeakPasswordFixture
 
   alias Supabase.Auth
   alias Supabase.Auth.Schemas.ServerHealth
@@ -147,6 +148,84 @@ defmodule Supabase.AuthTest do
       end)
 
       assert {:error, %Supabase.Error{}} = Auth.sign_in_with_id_token(client, data)
+    end
+  end
+
+  describe "sign_in_with_web3/2" do
+    test "successfully signs in with ethereum wallet", %{client: client, json: json} do
+      data = %{chain: :ethereum, message: "SIWE message", signature: "0xabc123"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/token"
+
+        assert %{
+                 "chain" => "ethereum",
+                 "message" => "SIWE message",
+                 "signature" => "0xabc123",
+                 "gotrue_meta_security" => %{"captcha_token" => nil}
+               } = json.decode!(req.body)
+
+        assert Request.get_query_param(req, "grant_type") == "web3"
+
+        user = [id: "123"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(access_token: "web3-token", user: user)
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = session} = Auth.sign_in_with_web3(client, data)
+      assert session.access_token == "web3-token"
+      assert session.user.id == "123"
+    end
+
+    test "successfully signs in with solana wallet", %{client: client, json: json} do
+      data = %{chain: :solana, message: "SIWS message", signature: "base58sig"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert %{
+                 "chain" => "solana",
+                 "message" => "SIWS message",
+                 "signature" => "base58sig"
+               } = json.decode!(req.body)
+
+        assert Request.get_query_param(req, "grant_type") == "web3"
+
+        user = [id: "456"] |> user_fixture() |> Map.from_struct()
+        body = session_fixture_json(access_token: "sol-token", user: user)
+
+        {:ok, %Finch.Response{status: 200, body: body, headers: []}}
+      end)
+
+      assert {:ok, %Session{} = session} = Auth.sign_in_with_web3(client, data)
+      assert session.access_token == "sol-token"
+    end
+
+    test "returns validation error for missing fields" do
+      client = Supabase.init_client!("https://localhost:54321", "test-api-key")
+      data = %{chain: :ethereum}
+
+      assert {:error, %Ecto.Changeset{}} = Auth.sign_in_with_web3(client, data)
+    end
+
+    test "returns validation error for unsupported chain" do
+      client = Supabase.init_client!("https://localhost:54321", "test-api-key")
+      data = %{chain: :bitcoin, message: "msg", signature: "sig"}
+
+      assert {:error, %Ecto.Changeset{}} = Auth.sign_in_with_web3(client, data)
+    end
+
+    test "returns error on authentication failure", %{client: client, json: json} do
+      data = %{chain: :ethereum, message: "SIWE message", signature: "0xbad"}
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert %{"chain" => "ethereum"} = json.decode!(req.body)
+        assert Request.get_query_param(req, "grant_type") == "web3"
+
+        {:ok, %Finch.Response{status: 401, body: "{}", headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Auth.sign_in_with_web3(client, data)
     end
   end
 
@@ -726,6 +805,59 @@ defmodule Supabase.AuthTest do
 
       assert {:error, %Supabase.Error{} = error} = Auth.sign_up(client, data)
       assert error.service == :auth
+    end
+  end
+
+  describe "sign_up/2 with weak password" do
+    test "enriches error with weak password reasons", %{client: client} do
+      data = %{
+        email: "another@example.com",
+        password: "123",
+        phone: "+5522123456789",
+        options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        body = weak_password_error_json(reasons: ["length"])
+        {:ok, %Finch.Response{status: 422, body: body, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{} = error} = Auth.sign_up(client, data)
+      assert error.metadata.weak_password_reasons == [:length]
+      assert error.message == "Password should be at least 6 characters."
+    end
+
+    test "enriches error with multiple weak password reasons", %{client: client} do
+      data = %{
+        email: "another@example.com",
+        password: "aaa",
+        phone: "+5522123456789",
+        options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        body = weak_password_error_json(reasons: ["length", "characters"])
+        {:ok, %Finch.Response{status: 422, body: body, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{} = error} = Auth.sign_up(client, data)
+      assert error.metadata.weak_password_reasons == [:length, :characters]
+    end
+
+    test "does not enrich non-weak-password errors", %{client: client} do
+      data = %{
+        email: "another@example.com",
+        password: "123",
+        phone: "+5522123456789",
+        options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        {:ok, %Finch.Response{status: 422, body: "{}", headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{} = error} = Auth.sign_up(client, data)
+      refute Map.has_key?(error.metadata, :weak_password_reasons)
     end
   end
 
