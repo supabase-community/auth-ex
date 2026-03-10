@@ -8,6 +8,7 @@ defmodule Supabase.AuthTest do
   import Supabase.Auth.ServerSettingsFixture
   import Supabase.Auth.SessionFixture
   import Supabase.Auth.UserFixture
+  import Supabase.Auth.WeakPasswordFixture
 
   alias Supabase.Auth
   alias Supabase.Auth.Schemas.ServerHealth
@@ -726,6 +727,59 @@ defmodule Supabase.AuthTest do
 
       assert {:error, %Supabase.Error{} = error} = Auth.sign_up(client, data)
       assert error.service == :auth
+    end
+  end
+
+  describe "sign_up/2 with weak password" do
+    test "enriches error with weak password reasons", %{client: client} do
+      data = %{
+        email: "another@example.com",
+        password: "123",
+        phone: "+5522123456789",
+        options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        body = weak_password_error_json(reasons: ["length"])
+        {:ok, %Finch.Response{status: 422, body: body, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{} = error} = Auth.sign_up(client, data)
+      assert error.metadata.weak_password_reasons == [:length]
+      assert error.message == "Password should be at least 6 characters."
+    end
+
+    test "enriches error with multiple weak password reasons", %{client: client} do
+      data = %{
+        email: "another@example.com",
+        password: "aaa",
+        phone: "+5522123456789",
+        options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        body = weak_password_error_json(reasons: ["length", "characters"])
+        {:ok, %Finch.Response{status: 422, body: body, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{} = error} = Auth.sign_up(client, data)
+      assert error.metadata.weak_password_reasons == [:length, :characters]
+    end
+
+    test "does not enrich non-weak-password errors", %{client: client} do
+      data = %{
+        email: "another@example.com",
+        password: "123",
+        phone: "+5522123456789",
+        options: %{captcha_token: "123", email_redirect_to: "http://localhost:3000"}
+      }
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        {:ok, %Finch.Response{status: 422, body: "{}", headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{} = error} = Auth.sign_up(client, data)
+      refute Map.has_key?(error.metadata, :weak_password_reasons)
     end
   end
 
