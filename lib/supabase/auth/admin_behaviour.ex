@@ -42,6 +42,9 @@ defmodule Supabase.Auth.AdminBehaviour do
 
   @callback delete_user(Client.t(), String.t(), keyword()) :: :ok | {:error, term()}
 
+  @callback list_factors(Client.t(), String.t()) ::
+              {:ok, list(User.Factor.t())} | {:error, term()}
+
   @callback delete_factor(Client.t(), String.t(), String.t()) :: :ok | {:error, term()}
 
   @callback list_identities(Client.t(), String.t()) ::

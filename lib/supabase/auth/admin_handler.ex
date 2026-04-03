@@ -112,6 +112,22 @@ defmodule Supabase.Auth.AdminHandler do
   end
 
   @doc """
+  Lists all MFA factors for a specific user.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+  """
+  def list_factors(%Client{} = client, user_id) do
+    uri = factors_endpoint(user_id)
+
+    client
+    |> Auth.Request.base(uri)
+    |> Request.with_method(:get)
+    |> Fetcher.request()
+  end
+
+  @doc """
   Deletes a user's MFA factor.
 
   ## Parameters

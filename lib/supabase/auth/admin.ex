@@ -286,6 +286,41 @@ defmodule Supabase.Auth.Admin do
   end
 
   @doc """
+  Lists all MFA factors for a specific user.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+
+  ## Returns
+    * `{:ok, factors}` - List of MFA factors for the user
+    * `{:error, error}` - Failed to list factors
+
+  ## Examples
+      iex> Supabase.Auth.Admin.list_factors(client, "d5bd2ef9-8df8-4e96-b592-35d120a8634c")
+      {:ok, [%Supabase.Auth.User.Factor{}]}
+  """
+  @impl true
+  def list_factors(%Client{} = client, user_id) do
+    with {:ok, response} <- AdminHandler.list_factors(client, user_id) do
+      factors = response.body
+
+      factors
+      |> List.wrap()
+      |> Enum.reduce_while({:ok, []}, fn attrs, {:ok, acc} ->
+        case attrs |> User.Factor.changeset() |> Ecto.Changeset.apply_action(:parse) do
+          {:ok, factor} -> {:cont, {:ok, [factor | acc]}}
+          {:error, _} = error -> {:halt, error}
+        end
+      end)
+      |> case do
+        {:ok, factors} -> {:ok, Enum.reverse(factors)}
+        error -> error
+      end
+    end
+  end
+
+  @doc """
   Deletes a multi-factor authentication factor for a user.
 
   ## Parameters
