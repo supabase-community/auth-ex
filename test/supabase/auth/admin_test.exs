@@ -525,6 +525,68 @@ defmodule Supabase.Auth.AdminTest do
     end
   end
 
+  describe "list_factors/2" do
+    test "successfully lists a user's MFA factors", %{client: client, json: json} do
+      user_id = "123"
+
+      factors_json =
+        json.encode!([
+          %{
+            id: "fac_totp_1",
+            friendly_name: "My TOTP",
+            factor_type: "totp",
+            status: "verified",
+            created_at: "2023-01-01T00:00:00",
+            updated_at: "2023-01-01T00:00:00"
+          },
+          %{
+            id: "fac_totp_2",
+            friendly_name: "Backup TOTP",
+            factor_type: "totp",
+            status: "unverified",
+            created_at: "2023-02-01T00:00:00",
+            updated_at: "2023-02-01T00:00:00"
+          }
+        ])
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/admin/users/#{user_id}/factors"
+
+        {:ok, %Finch.Response{body: factors_json, status: 200, headers: []}}
+      end)
+
+      assert {:ok, factors} = Admin.list_factors(client, user_id)
+      assert length(factors) == 2
+      assert Enum.all?(factors, &is_struct(&1, User.Factor))
+      assert Enum.any?(factors, fn f -> f.id == "fac_totp_1" end)
+      assert Enum.any?(factors, fn f -> f.id == "fac_totp_2" end)
+    end
+
+    test "returns empty list when user has no factors", %{client: client, json: json} do
+      user_id = "123"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/admin/users/#{user_id}/factors"
+
+        {:ok, %Finch.Response{body: json.encode!([]), status: 200, headers: []}}
+      end)
+
+      assert {:ok, []} = Admin.list_factors(client, user_id)
+    end
+
+    test "returns an unexpected error", %{client: client} do
+      user_id = "123"
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        {:error, %Mint.TransportError{reason: :closed}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Admin.list_factors(client, user_id)
+    end
+  end
+
   describe "delete_factor/3" do
     test "successfully deletes a user's MFA factor", %{client: client} do
       user_id = "123"
