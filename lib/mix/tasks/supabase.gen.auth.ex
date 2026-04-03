@@ -48,45 +48,51 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
   * `--live` - Generate LiveView authentication views.
   * `--no-live` - Generate conventional Phoenix Controllers & Views.
   * `--strategy` - The authentication strategy to use. Defaults to `password`.
+  * `--client` - The Supabase self managed client to use for authentication.
+  * `--supabase-url` - The Supabase URL in case to use one-off client. Check the [configuration](#configuration) section below.
+  * `--supabase-key` - The Supabase API key in case to use one-off client. Check the [configuration](#configuration) section below.
   * `--auth-only` - Generate only the authentication module without views, controllers or routes.
 
   ## Configuration
 
   To use this task, you need to have at least `supabase_potion` and `supabase_auth` packages installed in your project, and `phoenix_live_view` if you want to use LiveView or `phoenix` and `phoenix_plug` if you want to use conventional Controllers & (dead) Views.
 
-  The generated authentication functions expect a `Supabase.Client` to be passed explicitly as a parameter. This gives you full control over how you manage and provide the client.
+  Also, you need to tell the task which `Supabase` client to be used in the generated functions,
+  for that you have two available options following the [supabase-ex](https://hexdocs.pm/supabase_potion/readme.html#usage) docs
 
-  ### Setting up your Supabase Client
+  ### Self-managed client
 
-  Create a client using `Supabase.init_client!/2`:
+  The best way is to define a self-managed `Supabase` client in your `config.exs` and app. You can follow the [documentation about it](https://hexdocs.pm/supabase_potion/Supabase.Client.html).
 
-      client = Supabase.init_client!(
-        System.get_env("SUPABASE_URL") || raise("SUPABASE_URL not set"),
-        System.get_env("SUPABASE_KEY") || raise("SUPABASE_KEY not set")
-      )
-
-  How you store and provide the client is up to you (e.g. in a plug, application config, or a helper module).
-
-  Then you can invoke this task with just the basic options:
-
-      $ mix supabase.gen.auth MyAppWeb -s password -s oauth
-
-  ### Using the generated auth functions
-
-  All generated functions accept a `%Supabase.Client{}` as a parameter. You provide the client when calling these functions:
-
-      # In a controller
-      def create(conn, %{"user" => user_params}) do
-        client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
-        MyAppWeb.UserAuth.log_in_user_with_password(conn, client, user_params)
+      # lib/my_app/supabase.ex
+      defmodule MyApp.Supabase do
+        use Supabase.Client, otp_app: :my_app
       end
 
-      # In a LiveView
-      def mount(_params, _session, socket) do
-        client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
-        socket = MyAppWeb.UserAuth.assign_supabase_client(socket, client)
-        {:ok, socket}
-      end
+      # config/config.exs
+      import Config
+
+      config :my_app, MyApp.Supabase,
+        base_url: "https://<app-name>.supabase.co",
+        api_key: "<supabase-api-key>",
+        # any additional optional params
+        access_token: "<supabase-access-token>",
+        db: [schema: "another"],
+        auth: [debug: true] # optional
+
+  Then you can invoke this task passing the basic options in addition to the `--client` option:
+
+      $ mix supabase.gen.auth MyAppWeb -s anon --client MyApp.Supabase
+
+  This is the best option if you are going to use the same client in other parts of your application and also to hold and handle authentication tokens for different scopes via `Supabase.Client.update_access_token/2`.
+
+  ### One-off client
+
+  If you don't want to define a self-managed client, you can pass the `--supabase-url` and `--supabase-key` options to the task:
+
+      $ mix supabase.gen.auth MyAppWeb -s anon --supabase-url https://<app-name>.supabase.co --supabase-key <supabase-api-key>
+
+  This option is useful if you are going to use the client only in the authentication logic and don't need to handle tokens for different scopes.
 
   ## Generated Files
 
@@ -122,10 +128,13 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
     @switches [
       live: :boolean,
       strategy: :keep,
+      client: :string,
+      supabase_url: :string,
+      supabase_key: :string,
       auth_only: :boolean
     ]
 
-    @aliases [s: :strategy, a: :auth_only]
+    @aliases [s: :strategy, c: :client, a: :auth_only]
 
     def run(args) do
       if Mix.Project.umbrella?() do
@@ -157,6 +166,9 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
         web_app_name: web_app_name,
         auth_module: auth_module,
         endpoint_module: endpoint_module,
+        supabase_client: config[:client],
+        supabase_url: config[:supabase_url],
+        supabase_key: config[:supabase_key],
         auth_only: config[:auth_only]
       ]
 
@@ -236,6 +248,9 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       %{
         live: {:boolean, {:default, false}},
         strategy: {{:list, {:enum, @strategies}}, {:default, ["password"]}},
+        client: {:string, {:transform, &Module.concat([&1])}},
+        supabase_url: :string,
+        supabase_key: :string,
         auth_only: {:boolean, {:default, false}}
       }
     end
@@ -253,7 +268,18 @@ defmodule Mix.Tasks.Supabase.Gen.Auth do
       |> then(&Peri.to_changeset!(config(), Map.new(&1)))
       |> Ecto.Changeset.apply_action!(:parse)
       |> then(fn opts ->
-        # No validation needed for client/url/key since users provide client explicitly to functions
+        client = opts[:client]
+        url = opts[:supabase_url]
+        key = opts[:supabase_key]
+
+        if is_nil(client) and (is_nil(url) or is_nil(key)) do
+          Mix.raise("You must provide a client or both supabase-url and supabase-key")
+        end
+
+        if not is_nil(client) and (not is_nil(url) or not is_nil(key)) do
+          Mix.raise("You can't provide both client and supabase-url or supabase-key")
+        end
+
         update_in(opts, [:strategy], &Enum.map(&1, fn s -> to_string(s) end))
       end)
     end
