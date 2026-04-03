@@ -51,8 +51,8 @@ For admin operations on MFA factors, use the `Supabase.Auth.Admin` module:
 
 ```elixir
 {:ok, user_with_factors} = Supabase.Auth.Admin.enroll_factor(
-  client,
-  user_id,
+  client, 
+  user_id, 
   %{type: "totp", friendly_name: "My Authenticator App"}
 )
 ```
@@ -116,7 +116,7 @@ For sensitive operations like changing passwords or making payments, you can use
 
 # User completes verification with OTP
 {:ok, verified_session} = Supabase.Auth.verify_otp(
-  client,
+  client, 
   %{
     type: "reauthentication",
     token: "123456"
@@ -133,29 +133,29 @@ For sensitive operations like changing passwords or making payments, you can use
 ```elixir
 defmodule MyAppWeb.MFAController do
   use MyAppWeb, :controller
-
+  
   def new(conn, _params) do
     user_id = conn.assigns.current_user.id
-
+    
     # Create a new TOTP factor
     {:ok, user_with_factor} = Supabase.Auth.Admin.enroll_factor(
-      client,
+      MyApp.Supabase.Client.get(),
       user_id,
       %{type: "totp", friendly_name: "Authenticator App"}
     )
-
+    
     # Get the most recently created factor (the unverified one)
     [new_factor | _] = Enum.sort_by(user_with_factor.factors, & &1.created_at, :desc)
-
+    
     # Render the enrollment page with QR code URL
     render(conn, "new.html", factor: new_factor, qr_code_url: new_factor.totp.qr_code)
   end
-
+  
   def verify(conn, %{"code" => code, "factor_id" => factor_id}) do
     user_id = conn.assigns.current_user.id
-
+    
     case Supabase.Auth.Admin.verify_factor(
-      client,
+      MyApp.Supabase.Client.get(),
       user_id,
       factor_id,
       %{challenge: code}
@@ -164,7 +164,7 @@ defmodule MyAppWeb.MFAController do
         conn
         |> put_flash(:info, "MFA successfully enabled!")
         |> redirect(to: Routes.profile_path(conn, :show))
-
+        
       {:error, _} ->
         conn
         |> put_flash(:error, "Invalid verification code")
@@ -179,31 +179,31 @@ end
 ```elixir
 defmodule MyAppWeb.MFALive do
   use MyAppWeb, :live_view
-
+  
   def mount(_params, session, socket) do
     user_id = socket.assigns.current_user.id
-
+    
     {:ok, challenge} = Supabase.Auth.Admin.challenge_factor(
-      client,
+      MyApp.Supabase.Client.get(),
       user_id,
       socket.assigns.current_user.factors |> hd() |> Map.get(:id)
     )
-
+    
     {:ok, assign(socket, challenge_id: challenge.id, error: nil)}
   end
-
+  
   def handle_event("verify", %{"code" => code}, socket) do
     case Supabase.Auth.verify_challenge(
-      client,
+      MyApp.Supabase.Client.get(),
       socket.assigns.challenge_id,
       %{code: code}
     ) do
       {:ok, new_session} ->
-        {:noreply,
+        {:noreply, 
           socket
           |> put_flash(:info, "Verification successful!")
           |> push_redirect(to: ~p"/dashboard")}
-
+        
       {:error, _} ->
         {:noreply, assign(socket, error: "Invalid verification code")}
     end

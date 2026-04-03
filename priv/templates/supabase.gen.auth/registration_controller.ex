@@ -8,7 +8,7 @@ defmodule <%= web_module %>.RegistrationController do
   end
 
   def create(conn, %{"user" => user_params}) do
-    client = conn.assigns.supabase_client
+    {:ok, client} = UserAuth.get_client()
     %{"email" => email, "password" => password} = user_params
 
     case Supabase.Auth.sign_up(client, %{email: email, password: password}) do

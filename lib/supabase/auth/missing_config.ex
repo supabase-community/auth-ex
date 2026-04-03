@@ -10,6 +10,19 @@ defmodule Supabase.Auth.MissingConfig do
     end
   end
 
+  @impl true
+  def exception(key: :client, module: module) do
+    desc = get_missing_desc(:client, module)
+
+    message = """
+    The `:client` option need to be a module that implements the `Supabase.Client.Behaviour` behaviour.
+
+    #{desc}
+    """
+
+    %__MODULE__{message: message}
+  end
+
   def exception(key: :auth_module) do
     message = """
     You must set up the `:auth_module` option in your config.exs file. This should be the module that contains your authentication handler.
@@ -27,7 +40,7 @@ defmodule Supabase.Auth.MissingConfig do
     %__MODULE__{message: message}
   end
 
-  @required_options [:signed_in_path, :not_authenticated_path]
+  @required_options [:client, :signed_in_path, :not_authenticated_path]
 
   defp filter_missing_opts(opts) when is_list(opts) do
     missing_keys = @required_options -- Keyword.keys(opts)
@@ -50,6 +63,12 @@ defmodule Supabase.Auth.MissingConfig do
   defp get_missing_desc(:endpoint, module) do
     """
     You must pass the `:endpoint` option to #{inspect(module)} with your Phoenix app's endpoint.
+    """
+  end
+
+  defp get_missing_desc(:client, module) do
+    """
+    You must pass the `:client` option to #{inspect(module)} with your Supabase Potion client. Check the Supabase Potion docs for more info: https://hexdocs.pm/supabase_potion/readme.html#usage
     """
   end
 

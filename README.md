@@ -19,13 +19,27 @@ end
 
 ## Quick Start
 
-1. Create a Supabase client:
+1. Configure your Supabase client in `config.exs`:
 
 ```elixir
-client = Supabase.init_client!("https://myapp.supabase.co", "myapp-api-key")
+import Config
+
+config :my_app, MyApp.Supabase.Client,
+  base_url: "https://myapp.supabase.co",
+  api_key: "myapp-api-key"
+
+config :supabase_auth, auth_module: MyAppWeb.Auth
 ```
 
-2. Use the authentication functions:
+2. Create your Supabase client:
+
+```elixir
+defmodule MyApp.Supabase.Client do
+  use Supabase.Client, otp_app: :my_app
+end
+```
+
+3. Use the authentication functions:
 
 ```elixir
 # Sign in with email and password
@@ -62,6 +76,7 @@ client = Supabase.init_client!("https://myapp.supabase.co", "myapp-api-key")
 # Define your auth module
 defmodule MyAppWeb.Auth do
   use Supabase.Auth.Plug,
+    client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
     signed_in_path: "/app",
     not_authenticated_path: "/login"
@@ -70,47 +85,24 @@ end
 # In your router
 defmodule MyAppWeb.Router do
   import MyAppWeb.Auth
-
+  
   pipeline :browser do
-    plug :fetch_session
-    plug :fetch_current_user, client: Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
+    plug :fetch_current_user
   end
-
+  
   # Public routes
   scope "/", MyAppWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
-
+    
     get "/login", SessionController, :new
     post "/login", SessionController, :create
   end
-
+  
   # Protected routes
   scope "/app", MyAppWeb do
     pipe_through [:browser, :require_authenticated_user]
-
+    
     get "/", DashboardController, :index
-  end
-end
-
-# In your controller
-defmodule MyAppWeb.SessionController do
-  use MyAppWeb, :controller
-  alias MyAppWeb.Auth
-
-  def create(conn, %{"user" => user_params}) do
-    client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
-
-    case Auth.log_in_with_password(conn, client, user_params) do
-      {:ok, conn} ->
-        conn
-        |> put_flash(:info, "Welcome back!")
-        |> redirect(to: "/app")
-
-      {:error, reason} ->
-        conn
-        |> put_flash(:error, "Invalid credentials")
-        |> render(:new)
-    end
   end
 end
 ```
@@ -121,6 +113,7 @@ end
 # Define your auth module
 defmodule MyAppWeb.Auth do
   use Supabase.Auth.LiveView,
+    client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
     signed_in_path: "/app",
     not_authenticated_path: "/login"
@@ -129,14 +122,12 @@ end
 # In your LiveView
 defmodule MyAppWeb.DashboardLive do
   use MyAppWeb, :live_view
-  alias MyAppWeb.Auth
-
+  
+  on_mount {MyAppWeb.Auth, :mount_current_user}
+  on_mount {MyAppWeb.Auth, :ensure_authenticated}
+  
   def mount(_params, _session, socket) do
-    # Assign the Supabase client to the socket
-    client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
-    socket = Auth.assign_supabase_client(socket, client)
-
-    # socket.assigns.current_user is available here after on_mount
+    # socket.assigns.current_user is available here
     {:ok, assign(socket, page_title: "Dashboard")}
   end
 end
