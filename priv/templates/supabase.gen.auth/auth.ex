@@ -29,80 +29,80 @@ defmodule <%= inspect auth_module %> do
 
   <%= if "password" in strategy do %>
   @doc "Logs the User in using the password strategy.\n" <> @extra_login_doc
-  def log_in_user_with_password(conn, params \\ %{}) do
-    with {:ok, client} <- get_client(),
-         {:ok, session} <- Auth.sign_in_with_password(client, params) do
-      do_login(conn, session, params)
+  def log_in_user_with_password(conn, %Supabase.Client{} = client, params \\ %{}) do
+    case Auth.sign_in_with_password(client, params) do
+      {:ok, session} -> do_login(conn, client, session, params)
+      error -> error
     end
   end
   <% end %>
 
   <%= if "otp" in strategy do %>
   @doc "Logs the User in using the otp strategy.\n" <> @extra_login_doc
-  def log_in_user_with_otp(conn, params \\ %{}) do
-    with {:ok, client} <- get_client(),
-         {:ok, session} <- Auth.sign_in_with_otp(client, params) do
-      do_login(conn, session, params)
+  def log_in_user_with_otp(conn, %Supabase.Client{} = client, params \\ %{}) do
+    case Auth.sign_in_with_otp(client, params) do
+      {:ok, session} -> do_login(conn, client, session, params)
+      error -> error
     end
   end
 
   @doc "Verifies an OTP token and logs the user in.\n" <> @extra_login_doc
-  def verify_otp_and_log_in(conn, params) do
-    with {:ok, client} <- get_client(),
-         {:ok, session} <- Auth.verify_otp(client, params) do
-      do_login(conn, session, params)
+  def verify_otp_and_log_in(conn, %Supabase.Client{} = client, params) do
+    case Auth.verify_otp(client, params) do
+      {:ok, session} -> do_login(conn, client, session, params)
+      error -> error
     end
   end
   <% end %>
 
   <%= if "sso" in strategy do %>
   @doc "Logs the User in using the sso strategy.\n" <> @extra_login_doc
-  def log_in_user_with_sso(conn, params \\ %{}) do
-    with {:ok, client} <- get_client(),
-         {:ok, session} <- Auth.sign_in_with_sso(client, params) do
-      do_login(conn, session, params)
+  def log_in_user_with_sso(conn, %Supabase.Client{} = client, params \\ %{}) do
+    case Auth.sign_in_with_sso(client, params) do
+      {:ok, session} -> do_login(conn, client, session, params)
+      error -> error
     end
   end
   <% end %>
 
   <%= if "id_token" in strategy do %>
   @doc "Logs the User in using the id_token strategy.\n" <> @extra_login_doc
-  def log_in_user_with_id_token(conn, params \\ %{}) do
-    with {:ok, client} <- get_client(),
-         {:ok, session} <- Auth.sign_in_with_id_token(client, params) do
-      do_login(conn, session, params)
+  def log_in_user_with_id_token(conn, %Supabase.Client{} = client, params \\ %{}) do
+    case Auth.sign_in_with_id_token(client, params) do
+      {:ok, session} -> do_login(conn, client, session, params)
+      error -> error
     end
   end
   <% end %>
 
   <%= if "oauth" in strategy do %>
   @doc "Logs the User in using the oauth strategy.\n" <> @extra_login_doc
-  def log_in_user_with_oauth(conn, params \\ %{}) do
-    with {:ok, client} <- get_client(),
-         {:ok, session} <- Auth.sign_in_with_oauth(client, params) do
-      do_login(conn, session, params)
+  def log_in_user_with_oauth(conn, %Supabase.Client{} = client, params \\ %{}) do
+    case Auth.sign_in_with_oauth(client, params) do
+      {:ok, session} -> do_login(conn, client, session, params)
+      error -> error
     end
   end
   <% end %>
 
   <%= if "anon" in strategy do %>
   @doc "Logs the User in using the anon strategy.\n" <> @extra_login_doc
-  def log_in_user_anonymously(conn, params \\ %{}) do
-    with {:ok, client} <- get_client(),
-         {:ok, session} <- Auth.sign_in_anonymously(client, params) do
-      do_login(conn, session, params)
+  def log_in_user_anonymously(conn, %Supabase.Client{} = client, params \\ %{}) do
+    case Auth.sign_in_anonymously(client, params) do
+      {:ok, session} -> do_login(conn, client, session, params)
+      error -> error
     end
   end
   <% end %>
 
-  defp do_login(conn, session, params) do
+  defp do_login(conn, client, session, params) do
     user_return_to = get_session(conn, :user_return_to)
 
     conn
     |> renew_session()
-    |> put_token_in_session(session.access_token)
+    |> put_token_in_session(client, session)
     |> maybe_write_remember_me_cookie(session, params)
-    |> fetch_current_user([])
+    |> fetch_current_user(client, [])
     |> redirect(to: user_return_to || signed_in_path())
   end
 
@@ -140,8 +140,7 @@ defmodule <%= inspect auth_module %> do
 
   It clears all session data for safety. See renew_session.
   """
-  def log_out_user(conn, scope) do
-    {:ok, client} = get_client()
+  def log_out_user(conn, %Supabase.Client{} = client, scope) do
     user_token = get_session(conn, :user_token)
     session = %Session{access_token: user_token}
     user_token && Admin.sign_out(client, session, scope)
@@ -159,29 +158,29 @@ defmodule <%= inspect auth_module %> do
   end
 
   @doc "Authenticates the #{User} by looking into the session and remember me token."
-  def fetch_current_user(conn, _opts) do
-    {user_token, conn} = ensure_user_token(conn)
-    user = user_token && fetch_user_from_session_token(user_token)
+  def fetch_current_user(conn, opts) do
+    client = Keyword.fetch!(opts, :client)
+    {user_token, conn} = ensure_user_token(client, conn)
+    user = user_token && fetch_user_from_session_token(client, user_token)
     assign(conn, :current_user, user)
   end
 
-  defp fetch_user_from_session_token(user_token) do
-    {:ok, client} = get_client()
-
+  defp fetch_user_from_session_token(client, user_token) do
     case Auth.get_user(client, %Session{access_token: user_token}) do
       {:ok, %User{} = user} -> user
       _ -> nil
     end
   end
 
-  defp ensure_user_token(conn) do
+  defp ensure_user_token(client, conn) do
     if token = get_session(conn, :user_token) do
       {token, conn}
     else
       conn = fetch_cookies(conn, signed: [@remember_me_cookie])
 
       if token = conn.cookies[@remember_me_cookie] do
-        {token, put_token_in_session(conn, token)}
+        session = %Session{access_token: token, refresh_token: nil}
+        {token, put_token_in_session(conn, client, session)}
       else
         {nil, conn}
       end
@@ -225,11 +224,17 @@ defmodule <%= inspect auth_module %> do
       end
   """
   def on_mount(:mount_current_user, _params, session, socket) do
-    {:cont, mount_current_user(socket, session)}
+    client = socket.assigns[:supabase_client] ||
+      raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 in your LiveView mount/3."
+
+    {:cont, mount_current_user(socket, session, client)}
   end
 
   def on_mount(:ensure_authenticated, _params, session, socket) do
-    socket = mount_current_user(socket, session)
+    client = socket.assigns[:supabase_client] ||
+      raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 in your LiveView mount/3."
+
+    socket = mount_current_user(socket, session, client)
 
     if socket.assigns.current_user do
       {:cont, socket}
@@ -244,7 +249,10 @@ defmodule <%= inspect auth_module %> do
   end
 
   def on_mount(:redirect_if_user_is_authenticated, _params, session, socket) do
-    socket = mount_current_user(socket, session)
+    client = socket.assigns[:supabase_client] ||
+      raise "Supabase client not found in socket assigns. Call assign_supabase_client/2 in your LiveView mount/3."
+
+    socket = mount_current_user(socket, session, client)
 
     if socket.assigns.current_user do
       {:halt, Phoenix.LiveView.redirect(socket, to: signed_in_path())}
@@ -253,17 +261,15 @@ defmodule <%= inspect auth_module %> do
     end
   end
 
-  def mount_current_user(socket, session) do
+  def mount_current_user(socket, session, client) do
     Phoenix.Component.assign_new(socket, :current_user, fn ->
       if user_token = session["user_token"] do
-        maybe_get_current_user(%Session{access_token: user_token})
+        maybe_get_current_user(client, %Session{access_token: user_token})
       end
     end)
   end
 
-  defp maybe_get_current_user(session) do
-    {:ok, client} = get_client()
-
+  defp maybe_get_current_user(client, session) do
     case Auth.get_user(client, session) do
       {:ok, %User{} = user} -> user
       _ -> nil
@@ -299,10 +305,11 @@ defmodule <%= inspect auth_module %> do
     end
   end
 
-  defp put_token_in_session(conn, token) do
+  defp put_token_in_session(conn, _client, %Session{} = session) do
     conn
-    |> put_session(:user_token, token)
-    |> put_session(:live_socket_id, "users_sessions:#{Base.url_encode64(token)}")
+    |> put_session(:user_token, session.access_token)
+    |> put_session(:refresh_token, session.refresh_token)
+    |> put_session(:live_socket_id, "users_sessions:#{session.access_token}")
   end
 
   defp maybe_store_return_to(%{method: "GET"} = conn) do
@@ -312,14 +319,4 @@ defmodule <%= inspect auth_module %> do
   defp maybe_store_return_to(conn), do: conn
 
   defp signed_in_path(), do: ~p"/"
-
-  <%= if supabase_client do %>
-  def get_client, do: <%= supabase_client %>.get_client()
-  <% else %>
-  def get_client do
-    url = <%= inspect supabase_url %>
-    key = <%= inspect supabase_key %>
-    Supabase.init_client(url, key)
-  end
-  <% end %>
 end

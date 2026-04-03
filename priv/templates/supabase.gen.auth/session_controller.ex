@@ -42,45 +42,58 @@ defmodule <%= inspect web_module %>.SessionController do
   end
 
   def delete(conn, _params) do
+    client = conn.assigns.supabase_client
+
     conn
     |> put_flash(:info, "Logged out successfully.")
-    |> <%= inspect auth_module %>.log_out_user(:global)
+    |> <%= inspect auth_module %>.log_out_user(client, :global)
+  end
+
+  defp get_client!(conn) do
+    conn.assigns[:supabase_client] ||
+      raise "Supabase client not found in conn assigns. Make sure to assign :supabase_client in your pipeline."
   end
 
   <%= if "password" in strategy do %>
   def log_in_with_strategy(conn, %{"user" => %{"email" => email, "password" => password}}) when is_binary(email) and is_binary(password) do
-    <%= inspect auth_module %>.log_in_user_with_password(conn, %{"email" => email, "password" => password})
+    client = get_client!(conn)
+    <%= inspect auth_module %>.log_in_user_with_password(conn, client, %{"email" => email, "password" => password})
   end
   <% end %>
 
   <%= if "otp" in strategy do %>
   def log_in_with_strategy(conn, %{"user" => %{"token_hash" => token, "type" => type}})
     when is_binary(token) do
-    <%= inspect auth_module %>.verify_otp_and_log_in(conn, %{token_hash: token, type: type})
+    client = get_client!(conn)
+    <%= inspect auth_module %>.verify_otp_and_log_in(conn, client, %{token_hash: token, type: type})
   end
 
   def log_in_with_strategy(conn, %{"user" => %{} = params}) do
-    <%= inspect auth_module %>.log_in_user_with_otp(conn, params)
+    client = get_client!(conn)
+    <%= inspect auth_module %>.log_in_user_with_otp(conn, client, params)
   end
   <% end %>
 
   <%= if "oauth" in strategy do %>
   def log_in_with_strategy(conn, %{"user" => %{"provider" => provider}})
     when is_binary(provider) do
-    <%= inspect auth_module %>.log_in_user_with_oauth(conn, %{"provider" => provider})
+    client = get_client!(conn)
+    <%= inspect auth_module %>.log_in_user_with_oauth(conn, client, %{"provider" => provider})
   end
   <% end %>
 
   <%= if "id_token" in strategy do %>
   def log_in_with_strategy(conn, %{"user" => %{"id_token" => id_token}})
     when is_binary(id_token) do
-    <%= inspect auth_module %>.log_in_user_with_id_token(conn, %{"id_token" => id_token})
+    client = get_client!(conn)
+    <%= inspect auth_module %>.log_in_user_with_id_token(conn, client, %{"id_token" => id_token})
   end
   <% end %>
 
   <%= if "anon" in strategy do %>
   def log_in_with_strategy(conn, _params) do
-    <%= inspect auth_module %>.log_in_user_anonymously(conn)
+    client = get_client!(conn)
+    <%= inspect auth_module %>.log_in_user_anonymously(conn, client)
   end
   <% end %>
 end

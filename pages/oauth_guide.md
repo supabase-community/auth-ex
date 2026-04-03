@@ -5,6 +5,7 @@ This guide covers implementing OAuth 2.1 authorization flows in your Elixir appl
 ## Overview
 
 The OAuth module provides two main capabilities:
+
 - **Grant Management**: View and revoke third-party app access
 - **Authorization Flow**: Handle OAuth consent requests
 
@@ -18,7 +19,7 @@ Allow users to manage which applications have access to their account.
 def index(conn, _params) do
   session = conn.assigns.session
 
-  case Supabase.Auth.OAuth.list_grants(client(), session) do
+  case Supabase.Auth.OAuth.list_grants(client, session) do
     {:ok, grants} -> render(conn, "grants.html", grants: grants)
     {:error, _} -> redirect(conn, to: "/")
   end
@@ -31,7 +32,7 @@ end
 def revoke(conn, %{"client_id" => client_id}) do
   session = conn.assigns.session
 
-  case Supabase.Auth.OAuth.revoke_grant(client(), session, client_id) do
+  case Supabase.Auth.OAuth.revoke_grant(client, session, client_id) do
     :ok -> redirect(conn, to: "/oauth/grants")
     {:error, _} -> redirect(conn, to: "/oauth/grants")
   end
@@ -56,7 +57,7 @@ Handle OAuth consent when users authorize third-party applications.
 def authorize(conn, %{"authorization_id" => auth_id}) do
   session = conn.assigns.session
 
-  case Supabase.Auth.OAuth.get_authorization_details(client(), session, auth_id) do
+  case Supabase.Auth.OAuth.get_authorization_details(client, session, auth_id) do
     {:ok, %{redirect_url: url}} when not is_nil(url) ->
       # User already consented, skip consent screen
       redirect(conn, external: url)
@@ -73,7 +74,7 @@ end
 def approve(conn, %{"authorization_id" => auth_id}) do
   session = conn.assigns.session
 
-  case Supabase.Auth.OAuth.approve_authorization(client(), session, auth_id) do
+  case Supabase.Auth.OAuth.approve_authorization(client, session, auth_id) do
     {:ok, response} -> redirect(conn, external: response.redirect_url)
     {:error, _} -> redirect(conn, to: "/")
   end
@@ -82,7 +83,7 @@ end
 def deny(conn, %{"authorization_id" => auth_id}) do
   session = conn.assigns.session
 
-  case Supabase.Auth.OAuth.deny_authorization(client(), session, auth_id) do
+  case Supabase.Auth.OAuth.deny_authorization(client, session, auth_id) do
     {:ok, response} -> redirect(conn, external: response.redirect_url)
     {:error, _} -> redirect(conn, to: "/")
   end
@@ -97,7 +98,7 @@ For LiveView, handle events instead of controller actions:
 def mount(%{"authorization_id" => auth_id}, _session, socket) do
   session = socket.assigns.session
 
-  case Supabase.Auth.OAuth.get_authorization_details(client(), session, auth_id) do
+  case Supabase.Auth.OAuth.get_authorization_details(client, session, auth_id) do
     {:ok, %{redirect_url: url}} when not is_nil(url) ->
       {:ok, push_navigate(socket, external: url)}
     {:ok, details} ->
@@ -109,7 +110,7 @@ end
 
 def handle_event("approve", _, socket) do
   case Supabase.Auth.OAuth.approve_authorization(
-    client(),
+    client,
     socket.assigns.session,
     socket.assigns.auth_id
   ) do
@@ -120,7 +121,7 @@ end
 
 def handle_event("deny", _, socket) do
   case Supabase.Auth.OAuth.deny_authorization(
-    client(),
+    client,
     socket.assigns.session,
     socket.assigns.auth_id
   ) do
@@ -135,6 +136,7 @@ end
 ### Authorization Details
 
 The authorization details contain information about the OAuth request:
+
 - Application name and metadata
 - Requested scopes
 - Whether user previously consented
