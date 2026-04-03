@@ -5,20 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [0.11.0](https://github.com/supabase-community/auth-ex/compare/v0.10.0...v0.11.0) (2026-04-03)
 
 
-### ⚠ BREAKING CHANGES
-
-* remove self managed client ([#73](https://github.com/supabase-community/auth-ex/issues/73))
-
 ### Features
 
 * admin custom providers ([#91](https://github.com/supabase-community/auth-ex/issues/91)) ([881e153](https://github.com/supabase-community/auth-ex/commit/881e153093a189c333a1a1792842e80c52b28bfa))
 * admin list factors ([#89](https://github.com/supabase-community/auth-ex/issues/89)) ([59c9f60](https://github.com/supabase-community/auth-ex/commit/59c9f60f91a129d8d30c6c089aa9fec878ff1bba))
 * oauth admin client managemente ([#86](https://github.com/supabase-community/auth-ex/issues/86)) ([fa88887](https://github.com/supabase-community/auth-ex/commit/fa888870912c0cadbea2b195e85338633fd88665))
-
-
-### Bug Fixes
-
-* remove self managed client ([#73](https://github.com/supabase-community/auth-ex/issues/73)) ([da6f66d](https://github.com/supabase-community/auth-ex/commit/da6f66db1fda8681ac56a78788474351aa3bc60a))
 
 
 ### Tests
