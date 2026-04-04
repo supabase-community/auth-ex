@@ -2,10 +2,13 @@ defmodule Supabase.Auth.User.Identity do
   @moduledoc """
   This schema is used to validate and parse the identity of a user.
 
+  Supports both built-in OAuth providers (google, github, etc.) and custom providers
+  defined in Supabase Auth (using the `custom:identifier` format).
+
   ## Fields
     * `id` - The user's ID.
     * `user_id` - The user's ID.
-    * `provider` - The user's provider.
+    * `provider` - The OAuth provider (built-in or custom).
     * `created_at` - The user's creation date.
     * `updated_at` - The user's last update date.
     * `identity_data` - The user's identity data.
@@ -15,6 +18,8 @@ defmodule Supabase.Auth.User.Identity do
   use Ecto.Schema
 
   import Ecto.Changeset
+
+  alias Supabase.Auth.Types.Provider
 
   @type t :: %__MODULE__{
           id: Ecto.UUID.t(),
@@ -26,10 +31,9 @@ defmodule Supabase.Auth.User.Identity do
           last_sign_in_at: NaiveDateTime.t() | nil
         }
 
-  @providers ~w[apple azure bitbucket discord email facebook figma github gitlab google kakao keycloak linkedin linkedin_oidc notion phone slack spotify twitch twitter workos zoom fly]a
+  @providers Provider.builtins()
 
-  @type providers ::
-          unquote(@providers |> Enum.map_join(" | ", &inspect/1) |> Code.string_to_quoted!())
+  @type providers :: atom() | String.t()
 
   @required_fields ~w[id provider]a
   @optional_fields ~w[identity_data last_sign_in_at created_at updated_at user_id]a
@@ -39,7 +43,7 @@ defmodule Supabase.Auth.User.Identity do
   embedded_schema do
     field(:id, :binary_id)
     field(:identity_data, :map)
-    field(:provider, Ecto.Enum, values: @providers)
+    field(:provider, Provider)
     field(:last_sign_in_at, :naive_datetime)
 
     belongs_to(:user, Supabase.Auth.User, type: :binary_id)

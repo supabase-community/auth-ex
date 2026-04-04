@@ -5,6 +5,7 @@ defmodule Supabase.Auth.Schemas.SignInWithOauth do
 
   import Ecto.Changeset
 
+  alias Supabase.Auth.Types.Provider
   alias Supabase.Auth.User.Identity
 
   @type t :: %__MODULE__{
@@ -19,7 +20,7 @@ defmodule Supabase.Auth.Schemas.SignInWithOauth do
 
   @primary_key false
   embedded_schema do
-    field(:provider, Ecto.Enum, values: Identity.providers())
+    field(:provider, Provider)
 
     embeds_one :options, Options, primary_key: false do
       @moduledoc false
