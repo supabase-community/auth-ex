@@ -106,9 +106,14 @@ defmodule Supabase.Auth.Types.Provider do
     normalized = value |> String.trim() |> String.downcase()
 
     cond do
-      normalized in @builtins -> {:ok, Map.fetch!(@builtins_string_to_atom, normalized)}
-      Regex.match?(@custom_provider_regex, normalized) and byte_size(normalized) <= @max_provider_length -> {:ok, normalized}
-      true -> :error
+      normalized in @builtins ->
+        {:ok, Map.fetch!(@builtins_string_to_atom, normalized)}
+
+      Regex.match?(@custom_provider_regex, normalized) and byte_size(normalized) <= @max_provider_length ->
+        {:ok, normalized}
+
+      true ->
+        :error
     end
   end
 end
