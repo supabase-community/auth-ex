@@ -44,7 +44,7 @@ defmodule <%= web_module %>.RegistrationLive do
 
   @impl true
   def handle_event("save", %{"user" => user_params}, socket) do
-    {:ok, client} = <%= auth_module %>.get_client()
+    client = socket.assigns.supabase_client
     %{"email" => email, "password" => password} = user_params
 
     case Supabase.Auth.sign_up(client, %{email: email, password: password}) do

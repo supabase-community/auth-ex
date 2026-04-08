@@ -159,7 +159,7 @@ Retrieve current user details:
 Update user profile details:
 
 ```elixir
-{:ok, updated_conn} = Supabase.Auth.update_user(client, conn, %{
+{:ok, updated_user} = Supabase.Auth.update_user(client, session, %{
   data: %{
     display_name: "Jane Doe",
     avatar_url: "https://example.com/avatar.png"
@@ -172,8 +172,8 @@ Update user profile details:
 Send a password reset email:
 
 ```elixir
-:ok = Supabase.Auth.reset_password_for_email(client, 
-  "user@example.com", 
+:ok = Supabase.Auth.reset_password_for_email(client,
+  "user@example.com",
   redirect_to: "https://myapp.com/reset-password"
 )
 ```
@@ -202,8 +202,8 @@ Auth allows users to link multiple authentication methods to a single account:
 ```elixir
 # Get a URL to link a new provider
 {:ok, %{provider: :github, url: redirect_url}} = Supabase.Auth.link_identity(
-  client, 
-  session, 
+  client,
+  session,
   %{provider: :github}
 )
 
@@ -246,9 +246,8 @@ For Phoenix applications with traditional views, use the `Supabase.Auth.Plug` mo
 # lib/my_app_web/auth.ex
 defmodule MyAppWeb.Auth do
   use Supabase.Auth.Plug,
-    client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
-    signed_in_path: "/app", 
+    signed_in_path: "/app",
     not_authenticated_path: "/login",
     session_cookie: "my_app_session"
 end
@@ -256,23 +255,24 @@ end
 # lib/my_app_web/router.ex
 defmodule MyAppWeb.Router do
   import MyAppWeb.Auth
-  
+
   pipeline :browser do
-    plug :fetch_current_user
+    plug :fetch_session
+    plug :fetch_current_user, client: Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
   end
-  
+
   # Public routes
   scope "/", MyAppWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
-    
+
     get "/login", SessionController, :new
     post "/login", SessionController, :create
   end
-  
+
   # Protected routes
   scope "/app", MyAppWeb do
     pipe_through [:browser, :require_authenticated_user]
-    
+
     get "/", DashboardController, :index
   end
 end
@@ -280,14 +280,16 @@ end
 # lib/my_app_web/controllers/session_controller.ex
 defmodule MyAppWeb.SessionController do
   import MyAppWeb.Auth
-  
+
   def create(conn, %{"email" => email, "password" => password}) do
-    case log_in_with_password(conn, %{email: email, password: password}) do
+    client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
+
+    case log_in_with_password(conn, client, %{email: email, password: password}) do
       {:ok, conn} ->
         conn
         |> put_flash(:info, "Welcome back!")
         |> redirect(to: Routes.dashboard_path(conn, :index))
-        
+
       {:error, _reason} ->
         conn
         |> put_flash(:error, "Invalid email/password")
@@ -305,7 +307,6 @@ For LiveView applications, use the `Supabase.Auth.LiveView` module:
 # lib/my_app_web/auth.ex
 defmodule MyAppWeb.Auth do
   use Supabase.Auth.LiveView,
-    client: MyApp.Supabase.Client,
     endpoint: MyAppWeb.Endpoint,
     signed_in_path: "/app",
     not_authenticated_path: "/login"
@@ -314,12 +315,14 @@ end
 # In your LiveView
 defmodule MyAppWeb.DashboardLive do
   use MyAppWeb, :live_view
-  
-  on_mount {MyAppWeb.Auth, :mount_current_user}
-  on_mount {MyAppWeb.Auth, :ensure_authenticated}
-  
+  alias MyAppWeb.Auth
+
   def mount(_params, _session, socket) do
-    # socket.assigns.current_user is available here
+    # Assign the Supabase client to the socket first
+    client = Supabase.init_client!("https://myapp.supabase.co", "your-anon-key")
+    socket = Auth.assign_supabase_client(socket, client)
+
+    # socket.assigns.current_user is available here after on_mount
     {:ok, assign(socket, page_title: "Dashboard")}
   end
 end
@@ -344,7 +347,7 @@ end
    # Plug: refresh on each request if needed
    def fetch_current_user(conn, _opts) do
      with session <- get_session_from_conn(conn),
-          {:ok, valid} <- Supabase.Auth.ensure_valid_session(client(), session) do
+          {:ok, valid} <- Supabase.Auth.ensure_valid_session(client, session) do
        assign(conn, :session, valid)
      else
        _ -> assign(conn, :session, nil)
@@ -355,7 +358,7 @@ end
    ```elixir
    # LiveView: periodic check for long-lived sessions
    def handle_info(:check_session, socket) do
-     case Supabase.Auth.refresh_if_needed(client(), socket.assigns.session) do
+     case Supabase.Auth.refresh_if_needed(client, socket.assigns.session) do
        {:ok, new_session} ->
          schedule_next_check()
          {:noreply, assign(socket, :session, new_session)}
