@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.0](https://github.com/supabase-community/auth-ex/compare/v0.11.0...v0.12.0) (2026-04-08)
+
+
+### Features
+
+* oauth sign in with custom provider support ([#93](https://github.com/supabase-community/auth-ex/issues/93)) ([3383bc3](https://github.com/supabase-community/auth-ex/commit/3383bc3ce63c5db97ba97eeb03b2c86699ddccf1))
+
 ## [0.11.0](https://github.com/supabase-community/auth-ex/compare/v0.10.0...v0.11.0) (2026-04-03)
 
 
