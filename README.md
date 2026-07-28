@@ -6,6 +6,10 @@
 
 [Auth](https://supabase.com/docs/guides/auth) implementation for the [Supabase Potion](https://hexdocs.pm/supabase_potion) SDK in Elixir.
 
+## Compatibility
+
+We support the latest 3 stable Elixir versions.
+
 ## Installation
 
 ```elixir
