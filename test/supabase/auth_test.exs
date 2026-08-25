@@ -1774,10 +1774,8 @@ defmodule Supabase.AuthTest do
     end
 
     test "returns error for invalid JWT format", %{client: client} do
-      jwt = invalid_jwt()
-
-      assert_raise Jason.DecodeError, fn ->
-        Auth.get_claims(client, jwt)
+      for jwt <- [invalid_jwt(), "abc", "not.a.jwt", "aaaa.bbbb.cccc"] do
+        assert {:error, :invalid_jwt_format} = Auth.get_claims(client, jwt)
       end
     end
 

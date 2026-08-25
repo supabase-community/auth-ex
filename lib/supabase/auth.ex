@@ -859,6 +859,8 @@ defmodule Supabase.Auth do
     else
       _ -> {:error, :invalid_jwt_format}
     end
+  rescue
+    _ -> {:error, :invalid_jwt_format}
   end
 
   defp maybe_validate_expiry(payload, opts) do
