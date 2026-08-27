@@ -859,6 +859,9 @@ defmodule Supabase.Auth do
     else
       _ -> {:error, :invalid_jwt_format}
     end
+  rescue
+    # malformed tokens raise out of JOSE/Jason before the with/else can run
+    _ -> {:error, :invalid_jwt_format}
   end
 
   defp maybe_validate_expiry(payload, opts) do
