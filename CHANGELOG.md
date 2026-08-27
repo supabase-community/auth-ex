@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1](https://github.com/supabase-community/auth-ex/compare/v1.0.0...v1.0.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* dont raise on invalid JWT format ([0e20652](https://github.com/supabase-community/auth-ex/commit/0e20652bfd42f32ae921c65e8ec8f7636c782940)), closes [#97](https://github.com/supabase-community/auth-ex/issues/97)
+
 ## [1.0.0](https://github.com/supabase-community/auth-ex/compare/v0.12.0...v1.0.0) (2026-04-08)
 
 
