@@ -16,7 +16,7 @@ We support the latest 3 stable Elixir versions.
 def deps do
   [
     {:supabase_potion, "~> 1.0"},
-    {:supabase_auth, "~> 1.0.0"} # x-release-please-version
+    {:supabase_auth, "~> 1.0.1"} # x-release-please-version
   ]
 end
 ```
