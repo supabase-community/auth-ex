@@ -758,7 +758,7 @@ defmodule Supabase.Auth do
       :ok
   """
   @impl true
-  @spec sign_out(Client.t(), Session.t(), Behaviour.scope()) :: :ok | {:error, term()}
+  @spec sign_out(Client.t(), Session.t(), Supabase.Auth.Behaviour.scope()) :: :ok | {:error, term()}
   def sign_out(%Client{} = client, %Session{} = session, scope \\ :global) when scope in @scopes do
     if is_nil(session.access_token) do
       :ok
