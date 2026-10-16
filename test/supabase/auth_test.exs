@@ -1139,6 +1139,55 @@ defmodule Supabase.AuthTest do
     end
   end
 
+  describe "sign_out/3" do
+    test "successfully signs out with each scope", %{client: client} do
+      for scope <- [:global, :local, :others] do
+        expect(@mock, :request, fn %Request{} = req, _opts ->
+          assert req.method == :post
+          assert req.url.path =~ "/logout"
+          assert req.url.query =~ "scope=#{scope}"
+          assert Request.get_header(req, "authorization") == "Bearer test-token"
+
+          {:ok, %Finch.Response{body: ~s|{}|, status: 204, headers: []}}
+        end)
+
+        session = %Session{access_token: "test-token"}
+        assert :ok = Auth.sign_out(client, session, scope)
+      end
+    end
+
+    test "swallows 404, 401 and 403 errors", %{client: client} do
+      for status <- [404, 401, 403] do
+        expect(@mock, :request, fn %Request{} = req, _opts ->
+          assert req.method == :post
+          assert req.url.path =~ "/logout"
+
+          {:ok, %Finch.Response{body: ~s|{}|, status: status, headers: []}}
+        end)
+
+        session = %Session{access_token: "test-token"}
+        assert :ok = Auth.sign_out(client, session)
+      end
+    end
+
+    test "returns an error on other failures", %{client: client} do
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :post
+        assert req.url.path =~ "/logout"
+
+        {:ok, %Finch.Response{body: ~s|{}|, status: 500, headers: []}}
+      end)
+
+      session = %Session{access_token: "test-token"}
+      assert {:error, %Supabase.Error{}} = Auth.sign_out(client, session)
+    end
+
+    test "skips the server when the session has no access token", %{client: client} do
+      session = %Session{access_token: nil}
+      assert :ok = Auth.sign_out(client, session)
+    end
+  end
+
   describe "Session.expired?/1" do
     test "returns false when expires_at is nil" do
       session = %Session{

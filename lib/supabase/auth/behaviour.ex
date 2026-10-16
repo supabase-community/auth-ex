@@ -68,6 +68,10 @@ defmodule Supabase.Auth.Behaviour do
 
   @callback reauthenticate(Client.t(), Session.t()) :: :ok | {:error, term()}
 
+  @type scope :: :global | :local | :others
+
+  @callback sign_out(Client.t(), Session.t(), scope()) :: :ok | {:error, term()}
+
   if Code.ensure_loaded?(Plug) or Code.ensure_loaded?(Socket) do
     @type conn :: Plug.Conn.t() | Socket.t()
     @callback update_user(Client.t(), conn, UserParams.t()) :: {:ok, conn} | {:error, term()}

@@ -40,6 +40,7 @@ defmodule Supabase.Auth do
 
   @behaviour Supabase.Auth.Behaviour
 
+  alias Supabase.Auth.AdminHandler
   alias Supabase.Auth.Schemas.ResendParams
   alias Supabase.Auth.Schemas.ServerHealth
   alias Supabase.Auth.Schemas.ServerSettings
@@ -57,6 +58,8 @@ defmodule Supabase.Auth do
   alias Supabase.Auth.UserHandler
   alias Supabase.Auth.WeakPasswordError
   alias Supabase.Client
+
+  @scopes ~w[global local others]a
 
   @doc """
   Retrieves the currently authenticated user's profile.
@@ -726,6 +729,45 @@ defmodule Supabase.Auth do
   @impl true
   def reauthenticate(%Client{} = client, %Session{} = session) do
     UserHandler.reauthenticate(client, session.access_token)
+  end
+
+  @doc """
+  User-facing sign out: revokes the given session's tokens on the Auth server.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `session` - The session to sign out, often retrieved from a sign in function.
+    * `scope` - The scope to sign out the user from (atom):
+      * `:global` - Sign out the user from all sessions across all devices
+      * `:local` - Sign out the user from the current session only
+      * `:others` - Sign out the user from all other sessions except the current one
+
+  Errors indicating the session is already invalid (`:not_found`,
+  `:unauthorized` and `:forbidden`) are swallowed and reported as `:ok`,
+  mirroring the sign out semantics of the official JavaScript client. A
+  session without an access token is signed out locally without any request.
+
+  ## Returns
+    * `:ok` - Successfully signed out the user
+    * `{:error, error}` - Failed to sign out the user
+
+  ## Examples
+      iex> session = %Session{access_token: "eyJhbGciO..."}
+      iex> Supabase.Auth.sign_out(client, session, :global)
+      :ok
+  """
+  @impl true
+  @spec sign_out(Client.t(), Session.t(), Behaviour.scope()) :: :ok | {:error, term()}
+  def sign_out(%Client{} = client, %Session{} = session, scope \\ :global) when scope in @scopes do
+    if is_nil(session.access_token) do
+      :ok
+    else
+      case AdminHandler.sign_out(client, session.access_token, scope) do
+        {:ok, _} -> :ok
+        {:error, %{code: code}} when code in [:not_found, :unauthorized, :forbidden] -> :ok
+        {:error, _reason} = err -> err
+      end
+    end
   end
 
   @typedoc """

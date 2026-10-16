@@ -42,4 +42,6 @@ defmodule Supabase.GoTrue do
   defdelegate exchange_code_for_session(client, auth_code, code_verifier, opts \\ %{}), to: Auth
 
   defdelegate reauthenticate(client, session), to: Auth
+
+  defdelegate sign_out(client, session, scope \\ :global), to: Auth
 end
