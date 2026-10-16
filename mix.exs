@@ -74,13 +74,15 @@ defmodule SupabaseAuth.MixProject do
         "CHANGELOG.md",
         "pages/auth_guide.md",
         "pages/mfa_guide.md",
-        "pages/oauth_guide.md"
+        "pages/oauth_guide.md",
+        "pages/passkey_guide.md"
       ],
       groups_for_extras: [
         Guides: [
           "pages/auth_guide.md",
           "pages/mfa_guide.md",
-          "pages/oauth_guide.md"
+          "pages/oauth_guide.md",
+          "pages/passkey_guide.md"
         ]
       ],
       source_url: @source_url,
