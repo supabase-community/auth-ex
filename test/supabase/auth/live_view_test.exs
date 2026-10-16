@@ -12,14 +12,6 @@ defmodule Supabase.Auth.LiveViewTest do
 
   @mock TestHTTPClient
 
-  setup_all do
-    Application.put_env(:supabase_auth, :http_client, @mock)
-
-    on_exit(fn ->
-      Application.delete_env(:supabase_auth, :http_client)
-    end)
-  end
-
   # Minimal test endpoint for broadcast_from/4
   defmodule TestEndpoint do
     def broadcast_from(_from, _topic, _event, _payload), do: :ok

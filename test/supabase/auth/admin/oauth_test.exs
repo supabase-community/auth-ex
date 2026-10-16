@@ -13,14 +13,6 @@ defmodule Supabase.Auth.Admin.OAuthTest do
 
   @mock TestHTTPClient
 
-  setup_all do
-    Application.put_env(:supabase_auth, :http_client, @mock)
-
-    on_exit(fn ->
-      Application.delete_env(:supabase_auth, :http_client)
-    end)
-  end
-
   setup do
     client = Supabase.init_client!("http://localhost:54321", "test-api-key")
 

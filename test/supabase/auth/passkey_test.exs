@@ -1,8 +1,5 @@
 defmodule Supabase.Auth.PasskeyTest do
-  # sync on purpose: every auth test module swaps the global `:http_client`
-  # app env in setup_all and deletes it on_exit; async modules race on it
-  # and tests randomly bypass the Mox mock.
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   import Mox
   import Supabase.Auth.PasskeyFixture
@@ -18,14 +15,6 @@ defmodule Supabase.Auth.PasskeyTest do
   setup :verify_on_exit!
 
   @mock TestHTTPClient
-
-  setup_all do
-    Application.put_env(:supabase_auth, :http_client, @mock)
-
-    on_exit(fn ->
-      Application.delete_env(:supabase_auth, :http_client)
-    end)
-  end
 
   setup do
     client = Supabase.init_client!("http://localhost:54321", "test-api-key")
