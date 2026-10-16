@@ -136,6 +136,8 @@ defmodule Supabase.Auth.IdentityTest do
         json.encode!([
           %{
             id: "ident_1",
+            identity_id: "22222222-2222-2222-2222-222222222222",
+            email: "user@github.com",
             user_id: "user_123",
             identity_data: %{email: "user@github.com"},
             provider: "github",
@@ -144,6 +146,8 @@ defmodule Supabase.Auth.IdentityTest do
           },
           %{
             id: "ident_2",
+            identity_id: "33333333-3333-3333-3333-333333333333",
+            email: "user@google.com",
             user_id: "user_123",
             identity_data: %{email: "user@google.com"},
             provider: "google",
@@ -166,6 +170,16 @@ defmodule Supabase.Auth.IdentityTest do
       # Instead of relying on exact order, check that both providers exist
       assert Enum.any?(identities, fn identity -> identity.provider == :github end)
       assert Enum.any?(identities, fn identity -> identity.provider == :google end)
+
+      github = Enum.find(identities, &(&1.provider == :github))
+      assert github.id == "ident_1"
+      assert github.identity_id == "22222222-2222-2222-2222-222222222222"
+      assert github.email == "user@github.com"
+
+      google = Enum.find(identities, &(&1.provider == :google))
+      assert google.id == "ident_2"
+      assert google.identity_id == "33333333-3333-3333-3333-333333333333"
+      assert google.email == "user@google.com"
     end
 
     test "returns an error when not authenticated", %{client: client} do
@@ -182,5 +196,38 @@ defmodule Supabase.Auth.IdentityTest do
 
       assert {:error, %Supabase.Error{}} = Auth.get_user_identities(client, session)
     end
+  end
+
+  test "Session.parse keeps OAuth-linked identities with numeric provider ids" do
+    attrs = %{
+      "access_token" => "token-123",
+      "refresh_token" => "refresh-123",
+      "expires_in" => 3600,
+      "token_type" => "bearer",
+      "user" => %{
+        "id" => "11111111-1111-1111-1111-111111111111",
+        "aud" => "authenticated",
+        "app_metadata" => %{},
+        "created_at" => "2023-01-01T00:00:00Z",
+        "identities" => [
+          %{
+            "id" => "104505643897342987643",
+            "identity_id" => "22222222-2222-2222-2222-222222222222",
+            "provider" => "google",
+            "email" => "user@google.com",
+            "identity_data" => %{
+              "email" => "user@google.com",
+              "sub" => "104505643897342987643"
+            }
+          }
+        ]
+      }
+    }
+
+    assert {:ok, session} = Session.parse(attrs)
+    assert [identity] = session.user.identities
+    assert identity.id == "104505643897342987643"
+    assert identity.identity_id == "22222222-2222-2222-2222-222222222222"
+    assert identity.email == "user@google.com"
   end
 end

@@ -6,7 +6,11 @@ defmodule Supabase.Auth.User.Identity do
   defined in Supabase Auth (using the `custom:identifier` format).
 
   ## Fields
-    * `id` - The user's ID.
+    * `id` - The provider's subject for this identity (e.g. a numeric string
+      for Google or GitHub).
+    * `identity_id` - The identity UUID as Supabase Auth stores it (the value
+      `unlink_identity/3` expects).
+    * `email` - The identity email as emitted by the Auth server.
     * `user_id` - The user's ID.
     * `provider` - The OAuth provider (built-in or custom).
     * `created_at` - The user's creation date.
@@ -22,12 +26,14 @@ defmodule Supabase.Auth.User.Identity do
   alias Supabase.Auth.Types.Provider
 
   @type t :: %__MODULE__{
-          id: Ecto.UUID.t(),
-          user_id: Ecto.UUID.t(),
+          id: String.t(),
+          identity_id: Ecto.UUID.t() | nil,
+          user_id: Ecto.UUID.t() | nil,
           provider: providers,
-          created_at: NaiveDateTime.t(),
-          updated_at: NaiveDateTime.t(),
-          identity_data: map,
+          email: String.t() | nil,
+          created_at: NaiveDateTime.t() | nil,
+          updated_at: NaiveDateTime.t() | nil,
+          identity_data: map | nil,
           last_sign_in_at: NaiveDateTime.t() | nil
         }
 
@@ -36,14 +42,16 @@ defmodule Supabase.Auth.User.Identity do
   @type providers :: atom() | String.t()
 
   @required_fields ~w[id provider]a
-  @optional_fields ~w[identity_data last_sign_in_at created_at updated_at user_id]a
+  @optional_fields ~w[identity_data last_sign_in_at created_at updated_at user_id identity_id email]a
 
   @derive Code.ensure_loaded!(Supabase) && Module.concat(Supabase.json_library(), Encoder)
   @primary_key false
   embedded_schema do
-    field(:id, :binary_id)
+    field(:id, :string)
+    field(:identity_id, :binary_id)
     field(:identity_data, :map)
     field(:provider, Provider)
+    field(:email, :string)
     field(:last_sign_in_at, :naive_datetime)
 
     belongs_to(:user, Supabase.Auth.User, type: :binary_id)
