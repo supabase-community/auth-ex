@@ -1,8 +1,5 @@
 defmodule Supabase.Auth.JWKSTest do
-  # async: false: the http_client mock is set as global application env in
-  # setup_all; async modules tear it down when they finish, which races with
-  # other async modules still running in the full suite
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   import Mox
   import Supabase.Auth.JWTFixture
@@ -15,14 +12,6 @@ defmodule Supabase.Auth.JWKSTest do
   @mock TestHTTPClient
 
   setup :verify_on_exit!
-
-  setup_all do
-    Application.put_env(:supabase_auth, :http_client, @mock)
-
-    on_exit(fn ->
-      Application.delete_env(:supabase_auth, :http_client)
-    end)
-  end
 
   setup do
     # the cache is keyed by the client's auth URL in :persistent_term
