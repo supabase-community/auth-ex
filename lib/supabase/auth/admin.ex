@@ -9,6 +9,7 @@ defmodule Supabase.Auth.Admin do
   @behaviour Supabase.Auth.AdminBehaviour
 
   alias Supabase.Auth.AdminHandler
+  alias Supabase.Auth.Passkey
   alias Supabase.Auth.Schemas.AdminUserParams
   alias Supabase.Auth.Schemas.GenerateLink
   alias Supabase.Auth.Schemas.InviteUserParams
@@ -382,5 +383,54 @@ defmodule Supabase.Auth.Admin do
   @impl true
   def delete_identity(%Client{} = client, user_id, identity_id) do
     with {:ok, _} <- AdminHandler.delete_identity(client, user_id, identity_id), do: :ok
+  end
+
+  @doc """
+  Lists all passkeys for a specific user.
+
+  Requires a service-role client: this endpoint bypasses user-level
+  authorization and returns the passkeys of any user.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+
+  ## Returns
+    * `{:ok, passkeys}` - List of passkey maps for the user
+    * `{:error, error}` - Failed to list passkeys
+
+  ## Examples
+      iex> Supabase.Auth.Admin.list_passkeys(client, "d5bd2ef9-8df8-4e96-b592-35d120a8634c")
+      {:ok, [%{id: "...", friendly_name: "My YubiKey", ...}, ...]}
+  """
+  @impl true
+  def list_passkeys(%Client{} = client, user_id) do
+    with {:ok, response} <- AdminHandler.list_passkeys(client, user_id) do
+      Passkey.parse_list(response.body)
+    end
+  end
+
+  @doc """
+  Deletes a user's passkey.
+
+  Requires a service-role client: this endpoint bypasses user-level
+  authorization and deletes the passkey of any user.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+    * `passkey_id` - The ID of the passkey to delete.
+
+  ## Returns
+    * `:ok` - Successfully deleted the passkey
+    * `{:error, error}` - Failed to delete the passkey
+
+  ## Examples
+      iex> Supabase.Auth.Admin.delete_passkey(client, "d5bd2ef9-8df8-4e96-b592-35d120a8634c", "99999999-8888-7777-6666-555555555555")
+      :ok
+  """
+  @impl true
+  def delete_passkey(%Client{} = client, user_id, passkey_id) do
+    with {:ok, _response} <- AdminHandler.delete_passkey(client, user_id, passkey_id), do: :ok
   end
 end

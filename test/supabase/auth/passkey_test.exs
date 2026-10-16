@@ -4,7 +4,9 @@ defmodule Supabase.Auth.PasskeyTest do
   import Mox
   import Supabase.Auth.PasskeyFixture
   import Supabase.Auth.SessionFixture
+  import Supabase.Auth.UserFixture
 
+  alias Supabase.Auth.Admin
   alias Supabase.Auth.Passkey
   alias Supabase.Auth.Session
   alias Supabase.Fetcher.Request
@@ -342,6 +344,63 @@ defmodule Supabase.Auth.PasskeyTest do
 
       assert {:error, %Supabase.Error{}} =
                Passkey.delete(client, session, "99999999-8888-7777-6666-555555555555")
+    end
+  end
+
+  describe "admin passkeys" do
+    setup do
+      # a service-role-looking key makes the authorization header assertion meaningful
+      client = Supabase.init_client!("http://localhost:54321", "service-role-key")
+
+      {:ok, client: client}
+    end
+
+    test "Admin.list_passkeys/2 successfully lists a user's passkeys", %{
+      client: client,
+      json: json
+    } do
+      user_id = "d5bd2ef9-8df8-4e96-b592-35d120a8634c"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/admin/users/#{user_id}/passkeys"
+        assert Request.get_header(req, "authorization") == "Bearer service-role-key"
+
+        response_body = json.encode!([passkey_fixture()])
+
+        {:ok, %Finch.Response{status: 200, body: response_body, headers: []}}
+      end)
+
+      assert {:ok, [passkey]} = Admin.list_passkeys(client, user_id)
+      assert passkey.id == "99999999-8888-7777-6666-555555555555"
+      assert passkey.friendly_name == "My YubiKey"
+    end
+
+    test "Admin.delete_passkey/3 successfully deletes a passkey", %{client: client} do
+      user_id = "d5bd2ef9-8df8-4e96-b592-35d120a8634c"
+      passkey_id = "99999999-8888-7777-6666-555555555555"
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :delete
+        assert req.url.path =~ "/admin/users/#{user_id}/passkeys/#{passkey_id}"
+
+        {:ok, %Finch.Response{status: 204, body: ~s|{}|, headers: []}}
+      end)
+
+      assert :ok = Admin.delete_passkey(client, user_id, passkey_id)
+    end
+
+    test "Admin.delete_passkey/3 returns an error when the passkey doesn't exist", %{
+      client: client
+    } do
+      user_id = "d5bd2ef9-8df8-4e96-b592-35d120a8634c"
+      passkey_id = "99999999-8888-7777-6666-555555555555"
+
+      expect(@mock, :request, fn %Request{}, _opts ->
+        {:ok, %Finch.Response{status: 404, body: ~s|{"code": "passkey_not_found", "msg": "not found"}|, headers: []}}
+      end)
+
+      assert {:error, %Supabase.Error{}} = Admin.delete_passkey(client, user_id, passkey_id)
     end
   end
 end
