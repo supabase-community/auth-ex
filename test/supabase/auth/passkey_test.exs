@@ -7,7 +7,6 @@ defmodule Supabase.Auth.PasskeyTest do
   import Mox
   import Supabase.Auth.PasskeyFixture
   import Supabase.Auth.SessionFixture
-  import Supabase.Auth.UserFixture
 
   alias Supabase.Auth.Admin
   alias Supabase.Auth.Passkey
@@ -115,8 +114,9 @@ defmodule Supabase.Auth.PasskeyTest do
     end
 
     test "rejects a non-map credential before any http call", %{client: client, session: session} do
-      # nil at runtime; hidden from the compiler so the guard clause is reached
-      credential = Map.get(%{"credential" => attestation_credential_fixture()}, :missing)
+      # nil at runtime; the key type must match the map's string keys or the
+      # gradual type checker rejects the call
+      credential = Map.get(%{"credential" => attestation_credential_fixture()}, "missing")
 
       assert_raise FunctionClauseError, fn ->
         Passkey.verify_registration(
