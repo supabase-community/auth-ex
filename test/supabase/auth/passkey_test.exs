@@ -1,5 +1,8 @@
 defmodule Supabase.Auth.PasskeyTest do
-  use ExUnit.Case, async: true
+  # sync on purpose: every auth test module swaps the global `:http_client`
+  # app env in setup_all and deletes it on_exit; async modules race on it
+  # and tests randomly bypass the Mox mock.
+  use ExUnit.Case, async: false
 
   import Mox
   import Supabase.Auth.PasskeyFixture
@@ -112,12 +115,15 @@ defmodule Supabase.Auth.PasskeyTest do
     end
 
     test "rejects a non-map credential before any http call", %{client: client, session: session} do
+      # nil at runtime; hidden from the compiler so the guard clause is reached
+      credential = Map.get(%{"credential" => attestation_credential_fixture()}, :missing)
+
       assert_raise FunctionClauseError, fn ->
         Passkey.verify_registration(
           client,
           session,
           "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-          nil
+          credential
         )
       end
     end
