@@ -11,6 +11,7 @@ defmodule Supabase.AuthTest do
   import Supabase.Auth.WeakPasswordFixture
 
   alias Supabase.Auth
+  alias Supabase.Auth.JWKS
   alias Supabase.Auth.Schemas.ServerHealth
   alias Supabase.Auth.Schemas.ServerSettings
   alias Supabase.Auth.Session
@@ -33,6 +34,8 @@ defmodule Supabase.AuthTest do
 
   setup do
     client = Supabase.init_client!("https://localhost:54321", "test-api-key")
+
+    on_exit(fn -> JWKS.reset() end)
 
     {:ok, client: client, json: Supabase.json_library()}
   end
@@ -1783,7 +1786,10 @@ defmodule Supabase.AuthTest do
       assert is_binary(result.signature)
     end
 
-    test "successfully decodes JWT with RS256 by fetching JWKS from server", %{client: client, json: json} do
+    test "successfully decodes JWT with RS256 by fetching JWKS from server", %{json: json} do
+      # unique project URL: the JWKS cache is BEAM-global and keyed by
+      # auth URL, so tests sharing a URL would pollute each other
+      client = Supabase.init_client!("http://localhost:#{System.unique_integer([:positive])}", "test-api-key")
       {jwt, jwk} = rs256_jwt(%{}, "server-key-id")
       jwks = jwks_from_jwk(jwk, "server-key-id")
 
@@ -1857,7 +1863,10 @@ defmodule Supabase.AuthTest do
       assert result.claims["sub"] == "user-no-kid"
     end
 
-    test "falls back to server verification when JWKS fetch fails", %{client: client} do
+    test "falls back to server verification when JWKS fetch fails" do
+      # unique project URL: the JWKS cache is BEAM-global and keyed by
+      # auth URL, so tests sharing a URL would pollute each other
+      client = Supabase.init_client!("http://localhost:#{System.unique_integer([:positive])}", "test-api-key")
       {jwt, _jwk} = rs256_jwt()
 
       expect(@mock, :request, 2, fn %Request{} = req, _opts ->
@@ -1873,6 +1882,41 @@ defmodule Supabase.AuthTest do
 
       assert {:ok, result} = Auth.get_claims(client, jwt)
       assert result.claims["sub"] == "user-456"
+    end
+
+    test "uses the cached JWKS on subsequent calls" do
+      client = Supabase.init_client!("http://localhost:#{System.unique_integer([:positive])}", "test-api-key")
+      {jwt, jwk} = rs256_jwt(%{}, "cached-claims-key-id")
+      jwks = jwks_from_jwk(jwk, "cached-claims-key-id")
+
+      expect(@mock, :request, fn %Request{} = req, _opts ->
+        assert req.method == :get
+        assert req.url.path =~ "/.well-known/jwks.json"
+
+        {:ok, %Finch.Response{status: 200, body: Supabase.json_library().encode!(jwks), headers: []}}
+      end)
+
+      assert {:ok, first} = Auth.get_claims(client, jwt)
+      assert {:ok, second} = Auth.get_claims(client, jwt)
+      assert first.claims == second.claims
+      assert first.claims["sub"] == "user-456"
+      assert first.header.kid == "cached-claims-key-id"
+    end
+
+    test "explicit jwks option takes precedence over the cache" do
+      client = Supabase.init_client!("http://localhost:#{System.unique_integer([:positive])}", "test-api-key")
+
+      # seed the cache with a key set whose kid does not match the token
+      {_wrong_jwt, wrong_jwk} = rs256_jwt(%{}, "wrong-key-id")
+      JWKS.put(client, jwks_from_jwk(wrong_jwk, "wrong-key-id")["keys"])
+
+      {jwt, jwk} = rs256_jwt()
+      jwks = jwks_from_jwk(jwk)
+
+      # no expectation: verification must happen locally with the explicit jwks
+      assert {:ok, result} = Auth.get_claims(client, jwt, jwks: jwks)
+      assert result.claims["sub"] == "user-456"
+      assert result.header.kid == "test-key-id"
     end
 
     test "returns error when server verification fails", %{client: client} do

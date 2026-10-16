@@ -41,6 +41,7 @@ defmodule Supabase.Auth do
   @behaviour Supabase.Auth.Behaviour
 
   alias Supabase.Auth.AdminHandler
+  alias Supabase.Auth.JWKS
   alias Supabase.Auth.Schemas.ResendParams
   alias Supabase.Auth.Schemas.ServerHealth
   alias Supabase.Auth.Schemas.ServerSettings
@@ -841,6 +842,10 @@ defmodule Supabase.Auth do
   `/.well-known/jwks.json` which is often cached, resulting in significantly
   faster responses.
 
+  The JWKS fetched from the server is cached locally per project with a TTL
+  of 10 minutes (via `Supabase.Auth.JWKS`), so subsequent calls avoid the
+  extra HTTP request while the cache is fresh.
+
   If the project is not using an asymmetric JWT signing key (like ECC or
   RSA) it always sends a request to the Auth server to verify the JWT.
 
@@ -962,32 +967,11 @@ defmodule Supabase.Auth do
     end
   end
 
-  defp get_jwks(client, opts) do
+  defp get_jwks(%Client{} = client, opts) do
     case Keyword.get(opts, :jwks) do
-      nil -> fetch_jwks_from_server(client)
+      nil -> JWKS.fetch(client)
       %{"keys" => keys} -> {:ok, keys}
       %{keys: keys} -> {:ok, keys}
-    end
-  end
-
-  defp fetch_jwks_from_server(%Client{} = client) do
-    alias Supabase.Auth.Request, as: AuthRequest
-    alias Supabase.Fetcher
-    alias Supabase.Fetcher.Request
-    alias Supabase.Fetcher.Response
-
-    case client
-         |> AuthRequest.base("/.well-known/jwks.json")
-         |> Request.with_method(:get)
-         |> Fetcher.request() do
-      {:ok, %Response{body: %{"keys" => keys}}} when is_list(keys) ->
-        {:ok, keys}
-
-      {:ok, _} ->
-        {:error, :invalid_jwks_response}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 
