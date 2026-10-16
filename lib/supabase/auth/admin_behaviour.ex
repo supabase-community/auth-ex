@@ -6,6 +6,7 @@ defmodule Supabase.Auth.AdminBehaviour do
   providing function specifications and return types for all admin operations.
   """
 
+  alias Supabase.Auth.Passkey.Behaviour, as: PasskeyBehaviour
   alias Supabase.Auth.Session
   alias Supabase.Auth.User
   alias Supabase.Client
@@ -51,4 +52,9 @@ defmodule Supabase.Auth.AdminBehaviour do
               {:ok, list(User.Identity.t())} | {:error, term()}
 
   @callback delete_identity(Client.t(), String.t(), String.t()) :: :ok | {:error, term()}
+
+  @callback list_passkeys(Client.t(), String.t()) ::
+              {:ok, [PasskeyBehaviour.passkey()]} | {:error, term()}
+
+  @callback delete_passkey(Client.t(), String.t(), String.t()) :: :ok | {:error, term()}
 end

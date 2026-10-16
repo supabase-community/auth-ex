@@ -31,6 +31,12 @@ defmodule Supabase.Auth.AdminHandler do
     identities_endpoint(user_id) <> "/#{identity_id}"
   end
 
+  defp user_passkeys_endpoint(user_id), do: @users <> "/#{user_id}/passkeys"
+
+  defp user_passkey_endpoint(user_id, passkey_id) do
+    user_passkeys_endpoint(user_id) <> "/#{passkey_id}"
+  end
+
   defp sign_out(scope) do
     "/logout?scope=#{scope}"
   end
@@ -173,6 +179,35 @@ defmodule Supabase.Auth.AdminHandler do
 
     client
     |> Auth.Request.base(uri)
+    |> Request.with_method(:delete)
+    |> Fetcher.request()
+  end
+
+  @doc """
+  Lists all passkeys for a user via GET /admin/users/{user_id}/passkeys.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+  """
+  def list_passkeys(%Client{} = client, user_id) do
+    client
+    |> Auth.Request.base(user_passkeys_endpoint(user_id))
+    |> Request.with_method(:get)
+    |> Fetcher.request()
+  end
+
+  @doc """
+  Deletes a user's passkey via DELETE /admin/users/{user_id}/passkeys/{passkey_id}.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `user_id` - The ID of the user.
+    * `passkey_id` - The ID of the passkey to delete.
+  """
+  def delete_passkey(%Client{} = client, user_id, passkey_id) do
+    client
+    |> Auth.Request.base(user_passkey_endpoint(user_id, passkey_id))
     |> Request.with_method(:delete)
     |> Fetcher.request()
   end
