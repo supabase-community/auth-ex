@@ -40,6 +40,8 @@ defmodule Supabase.Auth do
 
   @behaviour Supabase.Auth.Behaviour
 
+  alias Supabase.Auth.AdminHandler
+  alias Supabase.Auth.JWKS
   alias Supabase.Auth.Schemas.ResendParams
   alias Supabase.Auth.Schemas.ServerHealth
   alias Supabase.Auth.Schemas.ServerSettings
@@ -57,6 +59,8 @@ defmodule Supabase.Auth do
   alias Supabase.Auth.UserHandler
   alias Supabase.Auth.WeakPasswordError
   alias Supabase.Client
+
+  @scopes ~w[global local others]a
 
   @doc """
   Retrieves the currently authenticated user's profile.
@@ -728,6 +732,45 @@ defmodule Supabase.Auth do
     UserHandler.reauthenticate(client, session.access_token)
   end
 
+  @doc """
+  User-facing sign out: revokes the given session's tokens on the Auth server.
+
+  ## Parameters
+    * `client` - The `Supabase` client to use for the request.
+    * `session` - The session to sign out, often retrieved from a sign in function.
+    * `scope` - The scope to sign out the user from (atom):
+      * `:global` - Sign out the user from all sessions across all devices
+      * `:local` - Sign out the user from the current session only
+      * `:others` - Sign out the user from all other sessions except the current one
+
+  Errors indicating the session is already invalid (`:not_found`,
+  `:unauthorized` and `:forbidden`) are swallowed and reported as `:ok`,
+  mirroring the sign out semantics of the official JavaScript client. A
+  session without an access token is signed out locally without any request.
+
+  ## Returns
+    * `:ok` - Successfully signed out the user
+    * `{:error, error}` - Failed to sign out the user
+
+  ## Examples
+      iex> session = %Session{access_token: "eyJhbGciO..."}
+      iex> Supabase.Auth.sign_out(client, session, :global)
+      :ok
+  """
+  @impl true
+  @spec sign_out(Client.t(), Session.t(), Supabase.Auth.Behaviour.scope()) :: :ok | {:error, term()}
+  def sign_out(%Client{} = client, %Session{} = session, scope \\ :global) when scope in @scopes do
+    if is_nil(session.access_token) do
+      :ok
+    else
+      case AdminHandler.sign_out(client, session.access_token, scope) do
+        {:ok, _} -> :ok
+        {:error, %{code: code}} when code in [:not_found, :unauthorized, :forbidden] -> :ok
+        {:error, _reason} = err -> err
+      end
+    end
+  end
+
   @typedoc """
   An authentication method reference (AMR) entry.
 
@@ -798,6 +841,10 @@ defmodule Supabase.Auth do
   JWT against the server's JSON Web Key Set endpoint
   `/.well-known/jwks.json` which is often cached, resulting in significantly
   faster responses.
+
+  The JWKS fetched from the server is cached locally per project with a TTL
+  of 10 minutes (via `Supabase.Auth.JWKS`), so subsequent calls avoid the
+  extra HTTP request while the cache is fresh.
 
   If the project is not using an asymmetric JWT signing key (like ECC or
   RSA) it always sends a request to the Auth server to verify the JWT.
@@ -920,32 +967,11 @@ defmodule Supabase.Auth do
     end
   end
 
-  defp get_jwks(client, opts) do
+  defp get_jwks(%Client{} = client, opts) do
     case Keyword.get(opts, :jwks) do
-      nil -> fetch_jwks_from_server(client)
+      nil -> JWKS.fetch(client)
       %{"keys" => keys} -> {:ok, keys}
       %{keys: keys} -> {:ok, keys}
-    end
-  end
-
-  defp fetch_jwks_from_server(%Client{} = client) do
-    alias Supabase.Auth.Request, as: AuthRequest
-    alias Supabase.Fetcher
-    alias Supabase.Fetcher.Request
-    alias Supabase.Fetcher.Response
-
-    case client
-         |> AuthRequest.base("/.well-known/jwks.json")
-         |> Request.with_method(:get)
-         |> Fetcher.request() do
-      {:ok, %Response{body: %{"keys" => keys}}} when is_list(keys) ->
-        {:ok, keys}
-
-      {:ok, _} ->
-        {:error, :invalid_jwks_response}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 
