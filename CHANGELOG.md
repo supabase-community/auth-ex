@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0](https://github.com/supabase-community/auth-ex/compare/v1.0.1...v1.1.0) (2026-10-16)
+
+
+### Features
+
+* passkey registration, authentication and management api ([#101](https://github.com/supabase-community/auth-ex/issues/101)) ([d965d61](https://github.com/supabase-community/auth-ex/commit/d965d613d85aa1cc7b401f2e8141a7b5bfe7803e))
+* user facing sign_out, jwks cache and identity fields ([#100](https://github.com/supabase-community/auth-ex/issues/100)) ([471396b](https://github.com/supabase-community/auth-ex/commit/471396b5add011e49c7ed17af17531d8f63d158b))
+
+
+### Bug Fixes
+
+* set http_client mock globally to avoid test env race ([#102](https://github.com/supabase-community/auth-ex/issues/102)) ([5d914ef](https://github.com/supabase-community/auth-ex/commit/5d914ef345cd09a60fbe48c10527fa2dded8157f))
+
 ## [1.0.1](https://github.com/supabase-community/auth-ex/compare/v1.0.0...v1.0.1) (2026-08-27)
 
 
