@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1](https://github.com/supabase-community/auth-ex/compare/v1.1.0...v1.1.1) (2026-11-02)
+
+
+### Miscellaneous Chores
+
+* **nix:** migrate dev shell to beam-overlay ([f2293af](https://github.com/supabase-community/auth-ex/commit/f2293afa5d498c05690b9d25703aae088215a4f5))
+
 ## [1.1.0](https://github.com/supabase-community/auth-ex/compare/v1.0.1...v1.1.0) (2026-10-16)
 
 
