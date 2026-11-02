@@ -1,12 +1,12 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05-small";
-    elixir-overlay.url = "github:zoedsoupe/elixir-overlay";
+    beam-overlay.url = "github:zeeetech/beam-overlay";
   };
 
   outputs = {
     nixpkgs,
-    elixir-overlay,
+    beam-overlay,
     ...
   }: let
     inherit (nixpkgs.lib) genAttrs;
@@ -15,7 +15,7 @@
       genAttrs flakeExposed (system:
         f (import nixpkgs {
           inherit system;
-          overlays = [elixir-overlay.overlays.default];
+          overlays = [beam-overlay.overlays.default];
         }));
   in {
     devShells = forAllSystems (pkgs: let
@@ -24,7 +24,13 @@
     in {
       default = mkShell {
         name = "auth-ex";
-        packages = with pkgs; [(elixir-with-otp erlang_28)."1.20.2" erlang_28 postgresql];
+        packages = with pkgs; [
+          (pkgs.beam-overlay.mkToolchain {
+            elixir.version = "1.20.2";
+          })
+          erlang_28
+          postgresql
+        ];
       };
     });
   };
