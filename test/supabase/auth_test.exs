@@ -1826,6 +1826,17 @@ defmodule Supabase.AuthTest do
       assert {:error, :invalid_jwt_format} = Auth.get_claims(client, jwt)
     end
 
+    test "rejects JWTs with an unknown algorithm without creating an atom", %{client: client, json: json} do
+      alg = "unsupported-alg-#{System.unique_integer([:positive, :monotonic])}"
+      header = Base.url_encode64(json.encode!(%{"alg" => alg, "typ" => "JWT"}), padding: false)
+      payload = Base.url_encode64(json.encode!(%{}), padding: false)
+      signature = Base.url_encode64("signature", padding: false)
+      jwt = Enum.join([header, payload, signature], ".")
+
+      assert {:error, :invalid_jwt_format} = Auth.get_claims(client, jwt)
+      assert_raise ArgumentError, fn -> String.to_existing_atom(alg) end
+    end
+
     test "returns error for malformed tokens that raise in JOSE/Jason", %{client: client} do
       for token <- ["abc", "not.a.jwt", "aaaa.bbbb.cccc", "", "eyJhbGciOiJIUzI1NiJ9.e30.x"] do
         assert {:error, :invalid_jwt_format} = Auth.get_claims(client, token),

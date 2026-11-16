@@ -897,7 +897,7 @@ defmodule Supabase.Auth do
          [_header, _payload, signature_b64] <- String.split(token, "."),
          {:ok, signature} <- Base.url_decode64(signature_b64, padding: false) do
       header_map = %{
-        alg: String.to_atom(header["alg"]),
+        alg: String.to_existing_atom(header["alg"]),
         kid: header["kid"],
         typ: header["typ"] || "JWT"
       }
