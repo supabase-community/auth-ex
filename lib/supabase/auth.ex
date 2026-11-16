@@ -962,6 +962,9 @@ defmodule Supabase.Auth do
          {:ok, _} <- verify_jwt_signature(token, jwk) do
       {:ok, %{claims: payload, header: header, signature: signature}}
     else
+      {:error, :invalid_jwt_signature} = error ->
+        error
+
       {:error, _reason} ->
         verify_with_server(client, token, header, payload, signature)
     end

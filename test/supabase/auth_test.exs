@@ -1778,6 +1778,15 @@ defmodule Supabase.AuthTest do
       assert is_binary(result.signature)
     end
 
+    test "rejects invalid local signatures without server fallback", %{client: client} do
+      {jwt, _jwk} = rs256_jwt()
+      {_other_jwt, other_jwk} = rs256_jwt(%{}, "test-key-id")
+      jwks = jwks_from_jwk(other_jwk, "test-key-id")
+
+      # An explicit JWKS with a matching kid must be verified locally.
+      assert {:error, :invalid_jwt_signature} = Auth.get_claims(client, jwt, jwks: jwks)
+    end
+
     test "successfully decodes JWT with RS256 by fetching JWKS from server", %{json: json} do
       # unique project URL: the JWKS cache is BEAM-global and keyed by
       # auth URL, so tests sharing a URL would pollute each other
