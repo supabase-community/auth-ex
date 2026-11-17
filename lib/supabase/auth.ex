@@ -897,7 +897,7 @@ defmodule Supabase.Auth do
          [_header, _payload, signature_b64] <- String.split(token, "."),
          {:ok, signature} <- Base.url_decode64(signature_b64, padding: false) do
       header_map = %{
-        alg: String.to_atom(header["alg"]),
+        alg: String.to_existing_atom(header["alg"]),
         kid: header["kid"],
         typ: header["typ"] || "JWT"
       }
@@ -962,6 +962,9 @@ defmodule Supabase.Auth do
          {:ok, _} <- verify_jwt_signature(token, jwk) do
       {:ok, %{claims: payload, header: header, signature: signature}}
     else
+      {:error, :invalid_jwt_signature} = error ->
+        error
+
       {:error, _reason} ->
         verify_with_server(client, token, header, payload, signature)
     end

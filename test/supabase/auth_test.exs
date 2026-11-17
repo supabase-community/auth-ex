@@ -1778,6 +1778,15 @@ defmodule Supabase.AuthTest do
       assert is_binary(result.signature)
     end
 
+    test "rejects invalid local signatures without server fallback", %{client: client} do
+      {jwt, _jwk} = rs256_jwt()
+      {_other_jwt, other_jwk} = rs256_jwt(%{}, "test-key-id")
+      jwks = jwks_from_jwk(other_jwk, "test-key-id")
+
+      # An explicit JWKS with a matching kid must be verified locally.
+      assert {:error, :invalid_jwt_signature} = Auth.get_claims(client, jwt, jwks: jwks)
+    end
+
     test "successfully decodes JWT with RS256 by fetching JWKS from server", %{json: json} do
       # unique project URL: the JWKS cache is BEAM-global and keyed by
       # auth URL, so tests sharing a URL would pollute each other
@@ -1824,6 +1833,17 @@ defmodule Supabase.AuthTest do
       jwt = invalid_jwt()
 
       assert {:error, :invalid_jwt_format} = Auth.get_claims(client, jwt)
+    end
+
+    test "rejects JWTs with an unknown algorithm without creating an atom", %{client: client, json: json} do
+      alg = "unsupported-alg-#{System.unique_integer([:positive, :monotonic])}"
+      header = Base.url_encode64(json.encode!(%{"alg" => alg, "typ" => "JWT"}), padding: false)
+      payload = Base.url_encode64(json.encode!(%{}), padding: false)
+      signature = Base.url_encode64("signature", padding: false)
+      jwt = Enum.join([header, payload, signature], ".")
+
+      assert {:error, :invalid_jwt_format} = Auth.get_claims(client, jwt)
+      assert_raise ArgumentError, fn -> String.to_existing_atom(alg) end
     end
 
     test "returns error for malformed tokens that raise in JOSE/Jason", %{client: client} do
