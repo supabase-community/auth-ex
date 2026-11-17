@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1](https://github.com/supabase-community/auth-ex/compare/v1.1.0...v1.1.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* **auth:** reject unsafe local JWT verification results ([#106](https://github.com/supabase-community/auth-ex/issues/106)) ([495e682](https://github.com/supabase-community/auth-ex/commit/495e682ce6559771837585dfa8a602772b943637))
+
+
+### Miscellaneous Chores
+
+* **nix:** migrate dev shell to beam-overlay ([f2293af](https://github.com/supabase-community/auth-ex/commit/f2293afa5d498c05690b9d25703aae088215a4f5))
+
 ## [1.1.0](https://github.com/supabase-community/auth-ex/compare/v1.0.1...v1.1.0) (2026-10-16)
 
 
